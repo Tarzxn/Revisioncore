@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RevisionCore</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://js.puter.com/v2/"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+</head>
+<body>
+
+<!-- LOGIN / CREATE ACCOUNT -->
+<div id="authOverlay" class="onboarding-overlay active">
+    <div class="onboarding-card auth-card">
+        <div class="onboarding-icon">🔐</div>
+        <h2 id="authTitle">Sign in to RevisionCore</h2>
+        <p class="onboarding-sub" id="authSub">Your flashcards, guides and progress are saved to your account.</p>
+        <form id="authForm">
+            <input type="text" id="authUsername" class="focus-modal-input" placeholder="Username" autocomplete="username" required>
+            <input type="email" id="authEmail" class="focus-modal-input auth-email-field" placeholder="Email (optional)" autocomplete="email" style="display:none;">
+            <input type="password" id="authPassword" class="focus-modal-input" placeholder="Password" autocomplete="current-password" required>
+            <div id="authError" class="auth-error"></div>
+            <button type="submit" class="btn-primary onboarding-start" id="authSubmitBtn">Sign In</button>
+        </form>
+        <p class="auth-toggle">
+            <span id="authToggleText">Don't have an account?</span>
+            <a href="#" id="authToggleLink">Create one</a>
+        </p>
+    </div>
+</div>
+
+<!-- ONBOARDING: subject picker (first visit on this device) -->
+<div id="onboardingOverlay" class="onboarding-overlay">
+    <div class="onboarding-card">
+        <div class="onboarding-icon">🎓</div>
+        <h2>Welcome to RevisionCore</h2>
+        <p class="onboarding-sub">Pick the subjects you're revising. This choice is saved on this device only, so you can start fresh on any other device.</p>
+        <div id="onboardingSubjects" class="onboarding-subject-grid"></div>
+        <button id="onboardingStartBtn" class="btn-primary onboarding-start" disabled>Start Revising</button>
+    </div>
+</div>
+
+<nav class="sidebar">
+    <div class="logo">
+        <div class="logo-icon">RC</div>
+        <h1>RevisionCore</h1>
+    </div>
+    <div class="nav-links">
+        <a href="#" class="nav-link active" data-page="dashboard"><span class="icon">📊</span><span>Dashboard</span></a>
+        <a href="#" class="nav-link" data-page="subjects"><span class="icon">📚</span><span>Subjects</span></a>
+        <a href="#" class="nav-link" data-page="flashcards"><span class="icon">🃏</span><span>Flashcards</span></a>
+        <a href="#" class="nav-link" data-page="quiz"><span class="icon">🎯</span><span>Quiz Mode</span></a>
+        <a href="#" class="nav-link" data-page="guides"><span class="icon">📄</span><span>Revision Guides</span></a>
+        <a href="#" class="nav-link" data-page="ai"><span class="icon">🤖</span><span>AI Tutor</span></a>
+        <a href="#" class="nav-link" data-page="memorise"><span class="icon">🧠</span><span>Memorise</span></a>
+        <a href="#" class="nav-link" data-page="dictionary"><span class="icon">🔤</span><span>Dictionary</span></a>
+        <a href="#" class="nav-link" data-page="focus"><span class="icon">⏱️</span><span>Focus Room</span></a>
+        <a href="#" class="nav-link" data-page="settings"><span class="icon">⚙️</span><span>AI Settings</span></a>
+        <a href="#" id="changeSubjectsLink" class="nav-link"><span class="icon">🎯</span><span>My Subjects</span></a>
+    </div>
+    <div class="streak-widget">
+        <div class="streak-flame">🔥</div>
+        <div class="streak-info">
+            <div class="streak-number" id="streakCount">0</div>
+            <div class="streak-label">day streak</div>
+        </div>
+    </div>
+    <a href="#" onclick="rcLogout(); return false;" class="nav-link logout-link"><span class="icon">🚪</span><span>Log Out</span></a>
+</nav>
+
+<main class="content">
+
+    <!-- DASHBOARD -->
+    <section id="dashboard" class="page active">
+        <div class="page-header">
+            <div>
+                <h2 class="page-title">Dashboard</h2>
+                <p class="page-subtitle">Your learning progress at a glance</p>
+            </div>
+            <div class="xp-badge"><span class="xp-icon">⭐</span><span id="totalXP">0</span> XP</div>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-icon">🎯</div><div class="stat-content"><div class="stat-value" id="totalQuizzes">0</div><div class="stat-label">Quizzes Completed</div></div></div>
+            <div class="stat-card"><div class="stat-icon">🃏</div><div class="stat-content"><div class="stat-value" id="totalCards">0</div><div class="stat-label">Cards Mastered</div></div></div>
+            <div class="stat-card"><div class="stat-icon">📈</div><div class="stat-content"><div class="stat-value" id="avgScore">0%</div><div class="stat-label">Average Score</div></div></div>
+            <div class="stat-card"><div class="stat-icon">🔥</div><div class="stat-content"><div class="stat-value" id="currentStreak">0</div><div class="stat-label">Day Streak</div></div></div>
+        </div>
+        <h3 class="section-title">Subject Progress</h3>
+        <div class="subject-cards" id="subjectProgress"></div>
+    </section>
+
+    <!-- SUBJECTS -->
+    <section id="subjects" class="page">
+        <div class="page-header">
+            <div><h2 class="page-title">Subjects</h2><p class="page-subtitle">Select a subject to start learning</p></div>
+        </div>
+        <div class="subjects-grid">
+            <div class="subject-tile" data-subject="biology"><div class="subject-icon">🧬</div><h3>Biology</h3><p>Cells, DNA, and life processes</p><div class="subject-progress-bar"><div class="progress-fill" style="width:0%"></div></div></div>
+            <div class="subject-tile" data-subject="chemistry"><div class="subject-icon">⚗️</div><h3>Chemistry</h3><p>Elements, reactions, and compounds</p><div class="subject-progress-bar"><div class="progress-fill" style="width:0%"></div></div></div>
+            <div class="subject-tile" data-subject="physics"><div class="subject-icon">⚛️</div><h3>Physics</h3><p>Forces, energy, and motion</p><div class="subject-progress-bar"><div class="progress-fill" style="width:0%"></div></div></div>
+            <div class="subject-tile" data-subject="maths"><div class="subject-icon">📐</div><h3>Maths</h3><p>Algebra, geometry, and calculus</p><div class="subject-progress-bar"><div class="progress-fill" style="width:0%"></div></div></div>
+            <div class="subject-tile" data-subject="computer_science"><div class="subject-icon">💻</div><h3>Computer Science</h3><p>Algorithms, code, and systems</p><div class="subject-progress-bar"><div class="progress-fill" style="width:0%"></div></div></div>
+            <div class="subject-tile" data-subject="english"><div class="subject-icon">📖</div><h3>English</h3><p>Literature, language, and analysis</p><div class="subject-progress-bar"><div class="progress-fill" style="width:0%"></div></div></div>
+            <div class="subject-tile" data-subject="history"><div class="subject-icon">🏛️</div><h3>History</h3><p>Key events, eras, and causes</p><div class="subject-progress-bar"><div class="progress-fill" style="width:0%"></div></div></div>
+            <div class="subject-tile" data-subject="geography"><div class="subject-icon">🌍</div><h3>Geography</h3><p>Places, climate, and maps</p><div class="subject-progress-bar"><div class="progress-fill" style="width:0%"></div></div></div>
+            <div class="subject-tile" data-subject="french"><div class="subject-icon">🇫🇷</div><h3>French</h3><p>Vocabulary and grammar</p><div class="subject-progress-bar"><div class="progress-fill" style="width:0%"></div></div></div>
+            <div class="subject-tile" data-subject="spanish"><div class="subject-icon">🇪🇸</div><h3>Spanish</h3><p>Vocabulary and grammar</p><div class="subject-progress-bar"><div class="progress-fill" style="width:0%"></div></div></div>
+            <div class="subject-tile" data-subject="german"><div class="subject-icon">🇩🇪</div><h3>German</h3><p>Vocabulary and grammar</p><div class="subject-progress-bar"><div class="progress-fill" style="width:0%"></div></div></div>
+        </div>
+    </section>
+
+    <!-- FLASHCARDS -->
+    <section id="flashcards" class="page">
+        <div class="page-header">
+            <div><h2 class="page-title">Flashcards</h2><p class="page-subtitle">Study your saved card sets</p></div>
+            <button class="btn-primary" id="newSetBtn">+ New Set</button>
+        </div>
+
+        <!-- New Set Modal -->
+        <div id="newSetModal" class="modal">
+            <div class="modal-content import-modal">
+                <div class="import-header">
+                    <h3 id="newSetModalTitle">Create New Set</h3>
+                    <span class="close" id="closeNewSet">&times;</span>
+                </div>
+                <div class="import-body">
+                    <!-- LEFT: config + paste -->
+                    <div class="import-left">
+                        <div class="form-group">
+                            <label>Set Name</label>
+                            <input type="text" id="setName" class="form-control" placeholder="e.g. Cell Biology, Chapter 3...">
+                        </div>
+                        <div class="form-group">
+                            <label>Subject</label>
+                            <select id="setSubject" class="form-control">
+                                <option value="biology">Biology</option>
+                                <option value="chemistry">Chemistry</option>
+                                <option value="physics">Physics</option>
+                                <option value="maths">Maths</option>
+                                <option value="computer_science">Computer Science</option>
+                                <option value="english">English</option>
+                                <option value="history">History</option>
+                                <option value="geography">Geography</option>
+                                <option value="french">French</option>
+                                <option value="spanish">Spanish</option>
+                                <option value="german">German</option>
+                                <option value="general">General</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Paste cards (optional — Quizlet style)</label>
+                            <textarea id="importText" class="form-control import-textarea"
+                                placeholder="mitochondria, powerhouse of the cell&#10;photosynthesis, how plants make food&#10;osmosis, water moving across a membrane"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Between term and definition</label>
+                            <div class="sep-options" id="termDefSepOptions">
+                                <button class="sep-btn active" data-sep=",">, comma</button>
+                                <button class="sep-btn" data-sep=";">; semicolon</button>
+                                <button class="sep-btn" data-sep=":">: colon</button>
+                                <button class="sep-btn" data-sep="TAB">tab</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Between each card</label>
+                            <div class="sep-options" id="cardSepOptions">
+                                <button class="sep-btn active" data-sep="newline">new line</button>
+                                <button class="sep-btn" data-sep="|">| pipe</button>
+                                <button class="sep-btn" data-sep="||">|| double pipe</button>
+                            </div>
+                        </div>
+                        <button class="btn-primary" id="previewCardsBtn" style="width:100%">Preview Cards</button>
+                    </div>
+                    <!-- RIGHT: live preview -->
+                    <div class="import-right">
+                        <div class="preview-placeholder" id="previewPlaceholder">
+                            <div style="font-size:3rem;margin-bottom:1rem">&#x1F4CB;</div>
+                            <p>Card preview appears here as you type</p>
+                        </div>
+                        <div id="cardPreview" style="display:none;flex-direction:column;height:100%">
+                            <div class="preview-header">
+                                <h4><span id="previewCount">0</span> cards ready</h4>
+                                <button class="btn-success" id="saveImportedCards">Save Set</button>
+                            </div>
+                            <div id="previewList" class="preview-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sets Library (shown when not studying) -->
+        <div id="setsLibrary">
+            <div class="filter-tabs" id="fcFilterTabs">
+                <button class="filter-tab active" data-filter="all">All Sets</button>
+                <button class="filter-tab" data-filter="biology">Biology</button>
+                <button class="filter-tab" data-filter="chemistry">Chemistry</button>
+                <button class="filter-tab" data-filter="physics">Physics</button>
+                <button class="filter-tab" data-filter="maths">Maths</button>
+                <button class="filter-tab" data-filter="general">General</button>
+            </div>
+            <div id="setsList" class="guides-list"></div>
+            <div id="setsEmpty" class="empty-state" style="display:none">No sets yet. Click "New Set" to create one!</div>
+        </div>
+
+        <!-- Study View (shown when a set is open) -->
+        <div id="studyView" style="display:none">
+            <div class="study-header">
+                <button class="viewer-btn" id="backToSets">← Back to Sets</button>
+                <div class="study-title-wrap">
+                    <h3 id="studySetName"></h3>
+                    <span class="guide-subject-tag" id="studySetSubject"></span>
+                </div>
+                <div class="study-stats">
+                    <span id="studyCardCount" class="study-stat"></span>
+                    <button class="btn-primary" id="startLearnBtn" style="padding:.5rem 1.25rem;font-size:.9rem">⚡ Learn</button>
+                </div>
+            </div>
+
+            <div class="flashcard-container">
+                <div class="flashcard-counter">
+                    <span id="cardCurrent">1</span> / <span id="cardTotal">0</span>
+                </div>
+                <div class="flashcard" id="flashcard">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front">
+                            <div class="card-label">Term</div>
+                            <div class="card-text" id="cardQuestion"></div>
+                            <div class="flip-hint">Click to reveal definition</div>
+                        </div>
+                        <div class="flashcard-back">
+                            <div class="card-label">Definition</div>
+                            <div class="card-text" id="cardAnswer"></div>
+                            <div class="flip-hint">Click to see term</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flashcard-controls">
+                    <button class="control-btn" id="prevCard">← Prev</button>
+                    <button class="control-btn danger-btn" id="markUnsure">✗ Not Sure</button>
+                    <button class="control-btn success-btn" id="markKnown">✓ Got It</button>
+                    <button class="control-btn" id="nextCard">Next →</button>
+                </div>
+                <div class="fc-progress-bar"><div class="fc-progress-fill" id="fcProgressFill"></div></div>
+                <div class="fc-legend">
+                    <span class="fc-legend-item"><span class="fc-dot success"></span> Got it: <strong id="gotItCount">0</strong></span>
+                    <span class="fc-legend-item"><span class="fc-dot danger"></span> Not sure: <strong id="notSureCount">0</strong></span>
+                </div>
+
+                <!-- AI Tools row -->
+                <div class="ai-tools-row">
+                    <button class="ai-btn" id="studyExplainBtn" title="AI explains this term simply">🤖 Explain This</button>
+                    <button class="ai-btn" id="writtenModeBtn" title="Type your answer and AI marks it">✍️ Written Mode</button>
+                    <button class="ai-btn" id="generateQuizBtn" title="Generate a quiz from this set with AI">⚡ Generate Quiz</button>
+                </div>
+
+                <!-- AI Explain panel -->
+                <div id="explainPanel" class="ai-panel" style="display:none">
+                    <div class="ai-panel-header"><span>🤖 AI Explanation</span><button class="ai-panel-close" onclick="closePanel('explainPanel')">✕</button></div>
+                    <div class="ai-panel-body" id="explainText"><span class="ai-thinking">Thinking...</span></div>
+                </div>
+
+                <!-- Written Answer panel -->
+                <div id="writtenPanel" class="ai-panel" style="display:none">
+                    <div class="ai-panel-header"><span>✍️ Written Answer Mode</span><button class="ai-panel-close" onclick="closePanel('writtenPanel')">✕</button></div>
+                    <div class="ai-panel-body">
+                        <p class="ai-panel-question" id="writtenQuestion"></p>
+                        <textarea id="writtenAnswer" class="form-control" rows="3" placeholder="Type your answer here..."></textarea>
+                        <button class="btn-primary" id="submitWritten" style="margin-top:0.75rem;width:100%">Submit for Marking</button>
+                        <div id="writtenFeedback" class="ai-feedback" style="display:none"></div>
+                    </div>
+                </div>
+
+                <!-- Generate Quiz panel -->
+                <div id="genQuizPanel" class="ai-panel" style="display:none">
+                    <div class="ai-panel-header"><span>⚡ AI Generated Quiz</span><button class="ai-panel-close" onclick="closePanel('genQuizPanel')">✕</button></div>
+                    <div class="ai-panel-body" id="genQuizBody"><span class="ai-thinking">Generating questions from your set...</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── Learn Mode ──────────────────────────────────────────────────── -->
+        <div id="learnView" style="display:none">
+            <div class="study-header">
+                <button class="viewer-btn" id="backFromLearn">← Back to Cards</button>
+                <div class="study-title-wrap">
+                    <h3 id="learnSetName"></h3>
+                    <span id="learnPhaseLabel" style="font-size:.85rem;color:var(--text-secondary);margin-left:.5rem"></span>
+                </div>
+                <div class="study-stats">
+                    <span id="learnProgressLabel" style="font-size:.85rem;color:var(--text-muted)"></span>
+                </div>
+            </div>
+
+            <!-- Progress bar -->
+            <div class="learn-progress-wrap">
+                <div class="learn-progress-track">
+                    <div class="learn-progress-fill" id="learnProgressFill"></div>
+                </div>
+                <div class="learn-progress-text" id="learnProgressText">0 / 0 mastered</div>
+            </div>
+
+            <!-- Question area -->
+            <div class="learn-card" id="learnCard">
+                <div class="learn-question-type" id="learnQType"></div>
+                <div class="learn-question-text" id="learnQText"></div>
+
+                <!-- Multiple choice options -->
+                <div id="learnMCOptions" class="learn-mc-options" style="display:none"></div>
+
+                <!-- Write answer -->
+                <div id="learnWriteArea" style="display:none">
+                    <input type="text" id="learnWriteInput" class="learn-write-input" placeholder="Type your answer…" autocomplete="off" spellcheck="false">
+                    <div class="learn-write-btns">
+                        <button class="btn-primary" id="learnSubmitWrite">Check Answer</button>
+                    </div>
+                </div>
+
+                <!-- Feedback panel (shown after answering) -->
+                <div id="learnFeedback" class="learn-feedback" style="display:none">
+                    <div class="learn-feedback-status" id="learnFeedbackStatus"></div>
+                    <div class="learn-feedback-correct" id="learnFeedbackCorrect"></div>
+                    <div class="learn-feedback-btns">
+                        <button class="btn-primary" id="learnContinueBtn">Continue →</button>
+                        <button class="learn-override-btn" id="learnOverrideBtn" style="display:none">✓ I was correct (typo)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── Learn Complete Screen ──────────────────────────────────────── -->
+        <div id="learnComplete" style="display:none">
+            <div class="learn-complete-wrap">
+                <div class="learn-complete-icon" id="learnCompleteIcon">🎉</div>
+                <h2 class="learn-complete-title" id="learnCompleteTitle">All Terms Mastered!</h2>
+                <p class="learn-complete-sub" id="learnCompleteSub"></p>
+                <div class="learn-complete-stats" id="learnCompleteStats"></div>
+                <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-top:1.5rem">
+                    <button class="btn-primary" id="learnKeepGoingBtn">🔄 Keep Practising</button>
+                    <button class="control-btn" id="learnFinishBtn">✓ Done</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- QUIZ -->
+    <section id="quiz" class="page">
+        <div class="page-header">
+            <div><h2 class="page-title">Quiz Mode</h2><p class="page-subtitle">Test your knowledge</p></div>
+        </div>
+        <div id="quizSubjectSelect" class="subject-select">
+            <button class="subject-btn" data-subject="biology">🧬 Biology</button>
+            <button class="subject-btn" data-subject="chemistry">⚗️ Chemistry</button>
+            <button class="subject-btn" data-subject="physics">⚛️ Physics</button>
+            <button class="subject-btn" data-subject="maths">📐 Maths</button>
+            <button class="subject-btn" data-subject="computer_science">💻 Computer Science</button>
+            <button class="subject-btn" data-subject="english">📖 English</button>
+            <button class="subject-btn" data-subject="history">🏛️ History</button>
+            <button class="subject-btn" data-subject="geography">🌍 Geography</button>
+            <button class="subject-btn" data-subject="french">🇫🇷 French</button>
+            <button class="subject-btn" data-subject="spanish">🇪🇸 Spanish</button>
+            <button class="subject-btn" data-subject="german">🇩🇪 German</button>
+        </div>
+        <div id="quizContainer" class="quiz-container" style="display:none">
+            <div class="quiz-progress">
+                <div class="quiz-bar"><div class="quiz-bar-fill" id="quizProgressBar" style="width:0%"></div></div>
+                <div class="quiz-counter">Question <span id="quizCurrent">1</span> of <span id="quizTotal">0</span></div>
+            </div>
+            <div class="quiz-card">
+                <h3 class="quiz-question" id="quizQuestion"></h3>
+                <div class="quiz-options" id="quizOptions"></div>
+            </div>
+            <div class="quiz-feedback" id="quizFeedback" style="display:none"></div>
+            <button class="btn-primary" id="quizNext" style="display:none">Next Question →</button>
+        </div>
+        <div id="quizResults" class="quiz-results" style="display:none">
+            <div class="results-icon">🎉</div>
+            <h3 class="results-title">Quiz Complete!</h3>
+            <div class="results-score"><span id="finalScore">0</span>%</div>
+            <div class="results-details">
+                <p><strong id="correctCount">0</strong> correct out of <strong id="totalCount">0</strong></p>
+                <p>+<strong id="xpEarned">0</strong> XP earned</p>
+            </div>
+            <button class="btn-primary" id="retakeQuiz">Try Another Quiz</button>
+        </div>
+        <div id="quizEmpty" class="empty-state">Select a subject to begin a quiz 🎯</div>
+    </section>
+
+    <!-- REVISION GUIDES -->
+    <section id="guides" class="page">
+        <div class="page-header">
+            <div><h2 class="page-title">Revision Guides</h2><p class="page-subtitle">Upload and annotate your PDFs</p></div>
+            <button class="btn-primary" id="uploadGuideBtn">+ Upload PDF</button>
+        </div>
+
+        <!-- Upload Modal -->
+        <div id="uploadModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeUpload">&times;</span>
+                <h3>Upload Revision Guide</h3>
+                <form id="uploadForm">
+                    <div class="form-group">
+                        <label>Subject</label>
+                        <select id="guideSubject" class="form-control">
+                            <option value="biology">🧬 Biology</option>
+                            <option value="chemistry">⚗️ Chemistry</option>
+                            <option value="physics">⚛️ Physics</option>
+                            <option value="maths">📐 Maths</option>
+                            <option value="computer_science">💻 Computer Science</option>
+                            <option value="english">📖 English</option>
+                            <option value="history">🏛️ History</option>
+                            <option value="geography">🌍 Geography</option>
+                            <option value="french">🇫🇷 French</option>
+                            <option value="spanish">🇪🇸 Spanish</option>
+                            <option value="german">🇩🇪 German</option>
+                            <option value="general">📚 General</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>PDF File</label>
+                        <input type="file" id="pdfFile" accept=".pdf" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Upload</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Library -->
+        <div id="guidesLibrary">
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-filter="all">All</button>
+                <button class="filter-tab" data-filter="biology">🧬 Biology</button>
+                <button class="filter-tab" data-filter="chemistry">⚗️ Chemistry</button>
+                <button class="filter-tab" data-filter="physics">⚛️ Physics</button>
+                <button class="filter-tab" data-filter="maths">📐 Maths</button>
+                <button class="filter-tab" data-filter="general">📚 General</button>
+            </div>
+            <div id="guidesList" class="guides-list"></div>
+            <div id="guidesEmpty" class="empty-state">No guides uploaded yet. Click "Upload PDF" to get started! 📄</div>
+        </div>
+
+        <!-- PDF Viewer -->
+        <div id="pdfViewer" class="pdf-viewer" style="display:none">
+            <div class="viewer-header">
+                <button class="viewer-btn" id="backToLibrary">← Library</button>
+                <h3 id="currentGuideName"></h3>
+                <button class="viewer-btn primary" id="saveAnnotations">💾 Save</button>
+            </div>
+            <div class="viewer-toolbar">
+                <div class="tool-group">
+                    <button class="tool-btn active" data-tool="select" title="Select">🖱️</button>
+                    <button class="tool-btn" data-tool="highlighter" title="Highlighter">🖍️</button>
+                    <button class="tool-btn" data-tool="pen" title="Pen">✏️</button>
+                    <button class="tool-btn" data-tool="text" title="Text Note">💬</button>
+                </div>
+                <div class="color-group" id="colorPicker" style="display:none">
+                    <button class="color-btn active-color" data-color="#ffeb3b" style="background:#ffeb3b" title="Yellow"></button>
+                    <button class="color-btn" data-color="#4caf50" style="background:#4caf50" title="Green"></button>
+                    <button class="color-btn" data-color="#2196f3" style="background:#2196f3" title="Blue"></button>
+                    <button class="color-btn" data-color="#ff9800" style="background:#ff9800" title="Orange"></button>
+                    <button class="color-btn" data-color="#e91e63" style="background:#e91e63" title="Pink"></button>
+                </div>
+                <div class="page-controls">
+                    <button class="control-btn" id="prevPage">←</button>
+                    <span id="pageInfo">Page 1 / 1</span>
+                    <button class="control-btn" id="nextPage">→</button>
+                </div>
+                <div class="zoom-controls">
+                    <button class="control-btn" id="zoomOut">−</button>
+                    <span id="zoomLevel">100%</span>
+                    <button class="control-btn" id="zoomIn">+</button>
+                </div>
+                <button class="tool-btn danger" id="clearAnnotations" title="Clear page annotations">🗑️</button>
+            </div>
+            <div class="viewer-content">
+                <div class="canvas-container">
+                    <canvas id="pdfCanvas"></canvas>
+                    <canvas id="annotationCanvas"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- AI TUTOR -->
+    <section id="ai" class="page">
+
+        <!-- Top bar: title + live status pill -->
+        <div class="ai-page-header">
+            <div>
+                <h2 class="page-title">AI Tutor</h2>
+                <p class="page-subtitle">Powered by Ollama — runs 100% on your PC</p>
+            </div>
+            <div class="ai-status-pill" id="aiStatus">
+                <span class="ai-status-dot" id="aiStatusDot"></span>
+                <span id="aiStatusText">Checking…</span>
+            </div>
+        </div>
+
+        <!-- Offline state -->
+        <div id="aiOfflineWarning" class="ai-offline-box" style="display:none">
+            <div class="ai-offline-icon">🔌</div>
+            <h3>Ollama is not running</h3>
+            <p>Follow these steps to get started:</p>
+            <div class="ai-steps">
+                <div class="ai-step"><span class="ai-step-num">1</span><span>Download Ollama from <strong>ollama.com</strong></span></div>
+                <div class="ai-step"><span class="ai-step-num">2</span><span>Open a terminal and run: <code>ollama pull llama3.2</code></span></div>
+                <div class="ai-step"><span class="ai-step-num">3</span><span>Ollama will start automatically — then refresh this page</span></div>
+                <p style="color:var(--text-muted);font-size:.875rem;margin-top:1rem">Or use <strong>OpenRouter</strong> (cloud AI) — set it up in <a href="#" onclick="document.querySelector('[data-page=settings]').click()" style="color:var(--accent)">AI Settings</a></p>
+            </div>
+            <p id="aiOfflineDetail" style="color:var(--error);font-size:.875rem;margin-bottom:1rem;font-family:monospace"></p>
+            <button class="btn-primary" id="retryAiStatus">↺ Check Again</button>
+        </div>
+
+        <!-- Online: full AI interface -->
+        <div id="aiTools" style="display:none">
+
+            <!-- Sidebar nav + content area -->
+            <div class="ai-layout">
+
+                <!-- Left sidebar -->
+                <div class="ai-sidebar">
+                    <button class="ai-nav-btn active" data-tab="chat">
+                        <span class="ai-nav-icon">💬</span>
+                        <span>Chat</span>
+                    </button>
+                    <button class="ai-nav-btn" data-tab="explain">
+                        <span class="ai-nav-icon">💡</span>
+                        <span>Explain</span>
+                    </button>
+                    <button class="ai-nav-btn" data-tab="generate">
+                        <span class="ai-nav-icon">⚡</span>
+                        <span>Generate Quiz</span>
+                    </button>
+                    <button class="ai-nav-btn" data-tab="mark">
+                        <span class="ai-nav-icon">✏️</span>
+                        <span>Mark Answer</span>
+                    </button>
+                    <div class="ai-sidebar-model" id="aiModelLabel"></div>
+                </div>
+
+                <!-- Right content -->
+                <div class="ai-content">
+
+                    <!-- ── CHAT ── -->
+                    <div class="ai-panel active" id="ai-panel-chat">
+                        <div class="chat-page">
+                            <div class="chat-window" id="chatWindow">
+                                <div class="chat-row ai-row">
+                                    <div class="chat-avatar-wrap">
+                                        <div class="chat-avatar ai-avatar">🤖</div>
+                                        <div class="ai-thinking-status" id="aiThinkingStatus" style="display:none">
+                                            <div class="thinking-dot"></div>
+                                            <div class="thinking-dot"></div>
+                                            <div class="thinking-dot"></div>
+                                            <span>Thinking…</span>
+                                        </div>
+                                    </div>
+                                    <div class="chat-bubble ai-bubble">
+                                        Hey! I'm your AI revision tutor. I can explain topics, test you, and help you understand anything tricky. What are you studying today?
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="chat-chips" id="chatChips">
+                                <button class="chat-chip">Explain osmosis simply</button>
+                                <button class="chat-chip">What is Newton's 2nd law?</button>
+                                <button class="chat-chip">Test me on chemistry</button>
+                                <button class="chat-chip">Help me remember the quadratic formula</button>
+                            </div>
+                            <div class="chat-input-bar">
+                                <textarea id="chatInput" class="chat-textarea" rows="1" placeholder="Ask anything…"></textarea>
+                                <button class="chat-send-btn" id="chatSendBtn">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── EXPLAIN ── -->
+                    <div class="ai-panel" id="ai-panel-explain">
+                        <div class="tool-page">
+                            <div class="tool-config-card">
+                                <h3>💡 Explain a Term</h3>
+                                <p class="tool-desc">Pick any card from your sets and the AI will explain it in plain English with a real-world example.</p>
+                                <div class="form-group">
+                                    <label>Set</label>
+                                    <select id="explainSetSelect" class="form-control"></select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Card</label>
+                                    <select id="explainCardSelect" class="form-control"></select>
+                                </div>
+                                <button class="btn-primary" id="explainBtn">💡 Explain This</button>
+                            </div>
+                            <div class="tool-result-card" id="explainResultCard">
+                                <div class="tool-result-placeholder" id="explainPlaceholder">
+                                    <span style="font-size:2.5rem">💡</span>
+                                    <p>Select a card and click Explain</p>
+                                </div>
+                                <div id="explainResult" style="display:none"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── GENERATE QUIZ ── -->
+                    <div class="ai-panel" id="ai-panel-generate">
+                        <div class="tool-page">
+                            <div class="tool-config-card">
+                                <h3>⚡ Generate Quiz</h3>
+                                <p class="tool-desc">AI creates brand new multiple choice questions from your flashcard sets.</p>
+                                <div class="form-group">
+                                    <label>Select sets to quiz from</label>
+                                    <div id="genSetContainer" class="gen-set-container">
+                                        <p style="color:var(--text-muted);font-size:.9rem">Loading sets…</p>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Number of questions</label>
+                                    <div class="count-options">
+                                        <button class="count-btn" data-count="3">3</button>
+                                        <button class="count-btn active" data-count="5">5</button>
+                                        <button class="count-btn" data-count="8">8</button>
+                                        <button class="count-btn" data-count="10">10</button>
+                                    </div>
+                                </div>
+                                <button class="btn-primary" id="aiPageGenerateBtn">⚡ Generate Quiz</button>
+                            </div>
+                            <div class="tool-result-card">
+                                <div class="tool-result-placeholder" id="genPlaceholder">
+                                    <span style="font-size:2.5rem">⚡</span>
+                                    <p>Configure and click Generate</p>
+                                </div>
+                                <div id="aiQuizLoading" style="display:none" class="gen-loading">
+                                    <div class="gen-spinner"></div>
+                                    <p>AI is writing your questions…</p>
+                                </div>
+                                <div id="aiQuizContainer" style="display:none">
+                                    <div id="aiQuizQuestions"></div>
+                                    <div id="aiQuizResults" style="display:none" class="gen-results">
+                                        <div style="font-size:3rem">🎉</div>
+                                        <h3>Quiz done!</h3>
+                                        <div class="gen-score"><span id="aiQuizScore">0</span>%</div>
+                                        <button class="btn-primary" id="aiQuizRetry">Generate Another</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── MARK ANSWER ── -->
+                    <div class="ai-panel" id="ai-panel-mark">
+                        <div class="tool-page">
+                            <div class="tool-config-card">
+                                <h3>✏️ Mark My Answer</h3>
+                                <p class="tool-desc">Write your answer to any card and get AI feedback, a score, and a memory tip.</p>
+                                <div class="form-group">
+                                    <label>Set</label>
+                                    <select id="markSetSelect" class="form-control"></select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Question</label>
+                                    <select id="markCardSelect" class="form-control"></select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Your answer</label>
+                                    <textarea id="markStudentAnswer" class="form-control" rows="5" placeholder="Write your answer here…"></textarea>
+                                </div>
+                                <button class="btn-primary" id="markBtn">✏️ Mark It</button>
+                            </div>
+                            <div class="tool-result-card">
+                                <div class="tool-result-placeholder" id="markPlaceholder">
+                                    <span style="font-size:2.5rem">✏️</span>
+                                    <p>Write your answer and click Mark</p>
+                                </div>
+                                <div id="markResult" style="display:none"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div><!-- /ai-content -->
+            </div><!-- /ai-layout -->
+        </div><!-- /aiTools -->
+    </section>
+
+
+    <!-- MEMORISE -->
+    <section id="memorise" class="page">
+        <div class="page-header">
+            <div>
+                <h2 class="page-title">Memorise</h2>
+                <p class="page-subtitle">Practice recalling paragraphs word-for-word — highlights your mistakes</p>
+            </div>
+            <button class="btn-primary" id="newMemoriseBtn">+ Add Text</button>
+        </div>
+
+        <!-- Add text modal -->
+        <div id="memoriseModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeMemoriseModal">&times;</span>
+                <h3>Add Text to Memorise</h3>
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" id="memoriseTitle" class="form-control" placeholder="e.g. Preamble, Cell respiration equation…">
+                </div>
+                <div class="form-group">
+                    <label>Subject</label>
+                    <select id="memoriseSubject" class="form-control">
+                        <option value="biology">Biology</option>
+                        <option value="chemistry">Chemistry</option>
+                        <option value="physics">Physics</option>
+                        <option value="maths">Maths</option>
+                        <option value="computer_science">Computer Science</option>
+                        <option value="english">English</option>
+                        <option value="history">History</option>
+                        <option value="geography">Geography</option>
+                        <option value="french">French</option>
+                        <option value="spanish">Spanish</option>
+                        <option value="german">German</option>
+                        <option value="general">General</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Text to memorise</label>
+                    <textarea id="memoriseText" class="form-control" rows="8"
+                        placeholder="Paste the paragraph, quote, or text you need to learn…"></textarea>
+                </div>
+                <button class="btn-primary" id="saveMemoriseBtn">Save</button>
+            </div>
+        </div>
+
+        <!-- Library -->
+        <div id="memoriseLibrary">
+            <div class="guides-list" id="memoriseList"></div>
+            <div id="memoriseEmpty" class="empty-state">No texts yet. Click "Add Text" to get started! 🧠</div>
+        </div>
+
+        <!-- Practice View -->
+        <div id="memorisePractice" style="display:none">
+            <div class="study-header">
+                <button class="viewer-btn" id="backToMemoriseLib">← Library</button>
+                <div class="study-title-wrap">
+                    <h3 id="practiceTitle"></h3>
+                    <span class="guide-subject-tag" id="practiceSubject"></span>
+                </div>
+                <div class="mem-mode-btns">
+                    <button class="mem-mode-btn active" id="modeTypeBtn">⌨️ Type it</button>
+                    <button class="mem-mode-btn" id="modeSpeakBtn">🎤 Speak it</button>
+                </div>
+            </div>
+
+            <!-- Original text (shown/hidden based on reveal) -->
+            <div class="mem-original-wrap">
+                <div class="mem-section-label">Original Text</div>
+                <div id="memOriginalText" class="mem-original"></div>
+                <button class="mem-reveal-btn" id="toggleOriginal">👁 Hide original</button>
+            </div>
+
+            <!-- Type mode -->
+            <div id="typeModeArea">
+                <div class="mem-section-label">Your attempt — type it from memory</div>
+                <textarea id="memTypeInput" class="mem-textarea"
+                    placeholder="Type the text from memory here… don't look!"></textarea>
+                <div class="mem-action-row">
+                    <button class="btn-primary" id="checkTypedBtn">Check my attempt</button>
+                    <button class="control-btn" id="clearTypedBtn">Clear</button>
+                </div>
+            </div>
+
+            <!-- Speak mode -->
+            <div id="speakModeArea" style="display:none">
+                <div class="mem-section-label">Your attempt — speak it aloud</div>
+                <div class="speak-controls">
+                    <button class="speak-btn" id="startSpeakBtn">🎤 Start Recording</button>
+                    <div class="speak-status" id="speakStatus">Press the button and speak</div>
+                </div>
+                <div id="transcriptWrap" style="display:none">
+                    <div class="mem-section-label">Transcript</div>
+                    <div id="speakTranscript" class="mem-transcript"></div>
+                    <button class="btn-primary" id="checkSpokenBtn">Check my attempt</button>
+                </div>
+            </div>
+
+            <!-- Diff result -->
+            <div id="diffResult" style="display:none">
+                <div class="mem-section-label">
+                    Results
+                    <span class="mem-score-badge" id="memScoreBadge"></span>
+                </div>
+                <div class="diff-legend">
+                    <span class="diff-key"><span class="diff-correct-sample">correct</span> Right</span>
+                    <span class="diff-key"><span class="diff-missing-sample">missing</span> Missing</span>
+                    <span class="diff-key"><span class="diff-wrong-sample">wrong</span> Wrong word</span>
+                    <span class="diff-key"><span class="diff-extra-sample">extra</span> Extra word</span>
+                </div>
+                <div class="diff-grid">
+                    <div class="diff-col">
+                        <div class="diff-col-label">Original</div>
+                        <div id="diffOriginal" class="diff-text"></div>
+                    </div>
+                    <div class="diff-col">
+                        <div class="diff-col-label">Your version</div>
+                        <div id="diffAttempt" class="diff-text"></div>
+                    </div>
+                </div>
+                <div class="mem-action-row" style="margin-top:1.5rem">
+                    <button class="btn-primary" id="tryAgainBtn">↺ Try Again</button>
+                    <button class="control-btn" id="showHintsBtn">💡 Show first letters</button>
+                </div>
+                <!-- Hint mode: shows first letter of each word -->
+                <div id="hintsArea" style="display:none" class="mem-hints"></div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- DICTIONARY -->
+    <section id="dictionary" class="page">
+        <div class="page-header">
+            <div>
+                <h2 class="page-title">Dictionary</h2>
+                <p class="page-subtitle">Look up a word — English, Spanish, French or German</p>
+            </div>
+        </div>
+        <div class="dict-search-row">
+            <select id="dictLang" class="form-control dict-lang-select">
+                <option value="en">🇬🇧 English</option>
+                <option value="es">🇪🇸 Spanish</option>
+                <option value="fr">🇫🇷 French</option>
+                <option value="de">🇩🇪 German</option>
+            </select>
+            <input type="text" id="dictInput" class="form-control dict-input" placeholder="Type a word…">
+            <button id="dictSearchBtn" class="btn-primary">Look up</button>
+        </div>
+        <div id="dictResults" class="dict-results"></div>
+    </section>
+
+
+    <!-- FOCUS ROOM -->
+    <section id="focus" class="page">
+
+        <!-- Normal view: configure and start -->
+        <div id="focusSetup">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title">Focus Room</h2>
+                    <p class="page-subtitle">Lock in. No distractions. Just you and the work.</p>
+                </div>
+            </div>
+
+            <div class="focus-setup-grid">
+                <!-- Timer config -->
+                <div class="focus-config-card">
+                    <h3 class="focus-card-title">Session Length</h3>
+                    <div class="focus-presets">
+                        <button class="focus-preset active" data-mins="25">25 min</button>
+                        <button class="focus-preset" data-mins="45">45 min</button>
+                        <button class="focus-preset" data-mins="60">60 min</button>
+                        <button class="focus-preset" data-mins="90">90 min</button>
+                        <button class="focus-preset" data-mins="custom">Custom</button>
+                    </div>
+                    <div id="customTimeWrap" style="display:none" class="custom-time-wrap">
+                        <input type="number" id="customMins" class="form-control" min="1" max="240" placeholder="Minutes" style="width:140px">
+                    </div>
+                    <div class="form-group" style="margin-top:1.25rem">
+                        <label>What are you focusing on?</label>
+                        <input type="text" id="focusSubjectInput" class="form-control" placeholder="e.g. Biology past papers, Chemistry revision…">
+                    </div>
+                    <button class="focus-start-btn" id="startFocusBtn">🚀 Enter Focus Room</button>
+                </div>
+
+                <!-- Stats preview -->
+                <div class="focus-config-card">
+                    <h3 class="focus-card-title">Today's Focus</h3>
+                    <div class="focus-today-stats">
+                        <div class="focus-today-stat">
+                            <div class="focus-today-val" id="todayFocusTime">0m</div>
+                            <div class="focus-today-label">Focused today</div>
+                        </div>
+                        <div class="focus-today-stat">
+                            <div class="focus-today-val" id="todaySessionCount">0</div>
+                            <div class="focus-today-label">Sessions today</div>
+                        </div>
+                        <div class="focus-today-stat">
+                            <div class="focus-today-val" id="totalFocusTime">0m</div>
+                            <div class="focus-today-label">Total all time</div>
+                        </div>
+                    </div>
+                    <div class="focus-quote" id="focusQuote"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active focus room (full-screen overlay) -->
+        <div id="focusRoom" class="focus-room" style="display:none">
+
+            <!-- Header bar -->
+            <div class="focus-room-header">
+                <div class="focus-room-subject" id="focusRoomSubject"></div>
+                <div class="focus-room-status" id="focusRoomStatus">Focusing…</div>
+            </div>
+
+            <!-- Main timer -->
+            <div class="focus-room-body">
+                <div class="focus-timer-ring">
+                    <svg class="focus-ring-svg" viewBox="0 0 200 200">
+                        <defs>
+                            <linearGradient id="focusGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#6366f1"/>
+                                <stop offset="100%" style="stop-color:#8b5cf6"/>
+                            </linearGradient>
+                        </defs>
+                        <circle class="ring-track" cx="100" cy="100" r="88"/>
+                        <circle class="ring-progress" id="ringProgress" cx="100" cy="100" r="88"/>
+                    </svg>
+                    <div class="focus-timer-display">
+                        <div class="focus-time-text" id="focusTimeText">25:00</div>
+                        <div class="focus-time-label" id="focusTimeLabel">remaining</div>
+                    </div>
+                </div>
+
+                <div class="focus-elapsed">
+                    <span id="focusElapsed">0:00</span> focused so far
+                </div>
+
+                <!-- Motivational message -->
+                <div class="focus-motivate" id="focusMotivate"></div>
+
+                <!-- Pause button -->
+                <button class="focus-pause-btn" id="focusPauseBtn">⏸ Pause</button>
+            </div>
+
+            <!-- Emergency stop (bottom) -->
+            <div class="focus-emergency-wrap">
+                <button class="focus-emergency-btn" id="focusEmergencyBtn">■ Emergency Stop</button>
+            </div>
+
+        </div>
+
+        <!-- PAUSE MODAL: why are you leaving? -->
+        <div id="pauseModal" class="focus-modal-overlay" style="display:none">
+            <div class="focus-modal">
+                <div class="focus-modal-icon">⏸</div>
+                <h3>Why are you pausing?</h3>
+                <p class="focus-modal-sub">Be honest. You'll see this reason before you can resume.</p>
+                <textarea id="pauseReason" class="focus-modal-input" rows="3"
+                    placeholder="e.g. Getting my biology textbook from downstairs…"></textarea>
+                <div class="focus-modal-btns">
+                    <button class="focus-modal-cancel" id="cancelPauseBtn">Stay focused →</button>
+                    <button class="focus-modal-confirm" id="confirmPauseBtn">Pause session</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESUME MODAL: guilt trip + 10s countdown -->
+        <div id="resumeModal" class="focus-modal-overlay" style="display:none">
+            <div class="focus-modal">
+                <div class="focus-modal-icon">👀</div>
+                <h3>You paused because…</h3>
+                <div class="pause-reason-display" id="pauseReasonDisplay"></div>
+                <p class="focus-modal-sub">Did you actually do that? Or did you get distracted?</p>
+                <div class="resume-stats">
+                    <div class="resume-stat">
+                        <div class="resume-stat-val" id="resumeElapsed">0:00</div>
+                        <div class="resume-stat-label">focused so far</div>
+                    </div>
+                    <div class="resume-stat">
+                        <div class="resume-stat-val" id="resumeRemaining">0:00</div>
+                        <div class="resume-stat-label">remaining</div>
+                    </div>
+                </div>
+                <div class="resume-countdown-wrap">
+                    <div class="resume-countdown" id="resumeCountdown">10</div>
+                    <div class="resume-countdown-label">seconds until you can resume</div>
+                </div>
+                <button class="focus-modal-confirm" id="confirmResumeBtn" disabled>Resume when ready</button>
+            </div>
+        </div>
+
+        <!-- EMERGENCY MODAL: convince them to stay -->
+        <div id="emergencyModal" class="focus-modal-overlay" style="display:none">
+            <div class="focus-modal emergency-modal">
+                <div class="focus-modal-icon">🚨</div>
+                <h3>Are you sure you want to stop?</h3>
+                <div class="emergency-stats">
+                    <div class="emergency-stat">
+                        <div class="emergency-stat-val" id="emergencyElapsed">0:00</div>
+                        <div class="emergency-stat-label">You've already focused for</div>
+                    </div>
+                    <div class="emergency-stat">
+                        <div class="emergency-stat-val" id="emergencyRemaining">0:00</div>
+                        <div class="emergency-stat-label">Just this much left</div>
+                    </div>
+                </div>
+                <div class="emergency-message" id="emergencyMessage"></div>
+                <div class="emergency-progress-wrap">
+                    <div class="emergency-progress-label">Session progress</div>
+                    <div class="emergency-bar"><div class="emergency-bar-fill" id="emergencyBarFill"></div></div>
+                    <div class="emergency-pct" id="emergencyPct">0%</div>
+                </div>
+                <div class="focus-modal-btns">
+                    <button class="focus-modal-stop" id="confirmEmergencyBtn">End session</button>
+                    <button class="focus-modal-confirm" id="cancelEmergencyBtn">Keep going! 💪</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SESSION COMPLETE -->
+        <div id="focusComplete" style="display:none" class="focus-complete">
+            <div class="focus-complete-icon">🎉</div>
+            <h2 class="focus-complete-title">Session Complete!</h2>
+            <div class="focus-complete-stats">
+                <div class="focus-complete-stat">
+                    <div class="focus-complete-val" id="completeDuration">0m</div>
+                    <div class="focus-complete-label">Focused</div>
+                </div>
+                <div class="focus-complete-stat">
+                    <div class="focus-complete-val" id="completeXP">+0</div>
+                    <div class="focus-complete-label">XP earned</div>
+                </div>
+            </div>
+            <div class="focus-complete-msg" id="focusCompleteMsg"></div>
+            <button class="focus-start-btn" id="focusAgainBtn">Start another session</button>
+        </div>
+
+    </section>
+
+
+    <!-- AI SETTINGS -->
+    <section id="settings" class="page">
+        <div class="puter-notice">🤖 The AI Tutor now runs entirely on <strong>Puter.js</strong> — free, no API key needed, nothing to configure below. This Ollama/OpenRouter panel is kept only as a legacy fallback.</div>
+        <div class="page-header">
+            <div>
+                <h2 class="page-title">AI Settings</h2>
+                <p class="page-subtitle">Choose between local Ollama or Gemini cloud API</p>
+            </div>
+            <div class="ai-status-pill" id="settingsStatusPill">
+                <span class="ai-status-dot" id="settingsStatusDot"></span>
+                <span id="settingsStatusText">Checking…</span>
+            </div>
+        </div>
+
+        <!-- Provider toggle -->
+        <div class="settings-card">
+            <h3 class="settings-card-title">AI Provider</h3>
+            <div class="provider-toggle">
+                <button class="provider-btn" id="providerOllama" data-provider="ollama">
+                    <div class="provider-icon">🖥️</div>
+                    <div class="provider-name">Ollama</div>
+                    <div class="provider-desc">100% local, free forever, runs on your PC</div>
+                    <div class="provider-badge provider-badge-local">Local</div>
+                </button>
+                <button class="provider-btn" id="providerOpenRouter" data-provider="openrouter">
+                    <div class="provider-icon">🌐</div>
+                    <div class="provider-name">OpenRouter</div>
+                    <div class="provider-desc">Access Claude, GPT-4o, Gemini, Llama & more with one key</div>
+                    <div class="provider-badge provider-badge-cloud">Cloud API</div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Ollama settings -->
+        <div class="settings-card" id="ollamaSettings">
+            <h3 class="settings-card-title">Ollama Settings</h3>
+            <div class="form-group">
+                <label>Model name</label>
+                <input type="text" id="ollamaModelInput" class="form-control" placeholder="e.g. llama3.2, mistral, gemma2">
+                <p class="settings-hint">Run <code>ollama list</code> in a terminal to see installed models</p>
+            </div>
+            <div class="settings-status-box" id="ollamaStatusBox"></div>
+            <button class="btn-primary" id="saveOllamaBtn">Save</button>
+        </div>
+
+        <!-- Gemini settings -->
+        <div class="settings-card" id="openrouterSettings" style="display:none">
+            <h3 class="settings-card-title">OpenRouter Settings</h3>
+
+            <div class="form-group">
+                <label>API Key</label>
+                <div class="key-input-row">
+                    <input type="password" id="openrouterKeyInput" class="form-control" placeholder="Paste your OpenRouter API key here">
+                    <button class="key-toggle-btn" id="toggleKeyVisibility" title="Show/hide key">👁</button>
+                </div>
+                <div class="key-status" id="keyStatus"></div>
+                <p class="settings-hint">
+                    Get a free key at <strong>openrouter.ai</strong> → Sign up → Keys → Create Key
+                </p>
+            </div>
+
+            <div class="form-group">
+                <label>Model</label>
+                <div class="model-grid" id="openrouterModelGrid"></div>
+            </div>
+
+            <div class="settings-status-box" id="openrouterStatusBox"></div>
+
+            <div class="settings-btn-row">
+                <button class="btn-primary" id="saveOpenRouterBtn">Save & Test</button>
+                <button class="control-btn" id="clearOpenRouterKeyBtn">Clear API Key</button>
+            </div>
+        </div>
+
+        <!-- How to get key guide -->
+        <div class="settings-card" id="openrouterGuide" style="display:none">
+            <h3 class="settings-card-title">How to get a free OpenRouter API key</h3>
+            <div class="ai-steps">
+                <div class="ai-step"><span class="ai-step-num">1</span><span>Go to <strong>openrouter.ai</strong> and create a free account</span></div>
+                <div class="ai-step"><span class="ai-step-num">2</span><span>Click your profile icon → <strong>Keys</strong></span></div>
+                <div class="ai-step"><span class="ai-step-num">3</span><span>Click <strong>"Create Key"</strong>, give it a name, copy it</span></div>
+                <div class="ai-step"><span class="ai-step-num">4</span><span>Paste it above and click <strong>Save &amp; Test</strong></span></div>
+            </div>
+            <div class="gemini-free-note">
+                <strong>Free models include:</strong> Gemini 2.0 Flash, Llama 3.3 70B, DeepSeek R1, Mistral 7B — no credit card needed!
+            </div>
+        </div>
+
+    </section>
+
+
+</main>
+
+<script src="/static/js/auth.js"></script>
+<script src="/static/js/onboarding.js"></script>
+<script src="/static/js/puterai.js"></script>
+<script src="/static/js/dictionary.js"></script>
+<script src="/static/js/docgen.js"></script>
+<script src="/static/js/app.js"></script>
+<script src="/static/js/guides.js"></script>
+<script src="/static/js/ai.js"></script>
+<script src="/static/js/memorise.js"></script>
+<script src="/static/js/focus.js"></script>
+<script src="/static/js/learn.js"></script>
+<script src="/static/js/settings.js"></script>
+</body>
+</html>
