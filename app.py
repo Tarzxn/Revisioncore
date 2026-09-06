@@ -1,5 +1,5 @@
 from flask import Flask, render_template, jsonify, request, send_file, Response, stream_with_context, session
-import json, os, uuid, socket, urllib.request, urllib.error, urllib.parse, sqlite3
+import json, os, uuid, socket, io, urllib.request, urllib.error, urllib.parse, sqlite3
 from functools import wraps
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -10,16 +10,10 @@ app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 # On Render, set a SECRET_KEY env var so sessions survive restarts/redeploys.
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-only-change-me-in-render-env-vars')
 
-DATA_DIR         = 'data'
-UPLOADS_DIR      = 'uploads'
-SETS_FILE        = os.path.join(DATA_DIR, 'sets.json')
-QUIZZES_FILE     = os.path.join(DATA_DIR, 'quizzes.json')
-PROGRESS_FILE    = os.path.join(DATA_DIR, 'progress.json')
-GUIDES_FILE      = os.path.join(DATA_DIR, 'guides.json')
-ANNOTATIONS_FILE = os.path.join(DATA_DIR, 'annotations.json')
-MEMORISE_FILE    = os.path.join(DATA_DIR, 'memorise.json')
-SETTINGS_FILE    = os.path.join(DATA_DIR, 'settings.json')
-USERS_DB         = os.path.join(DATA_DIR, 'users.db')
+DATA_DIR      = 'data'
+QUIZZES_FILE  = os.path.join(DATA_DIR, 'quizzes.json')   # shared curriculum bank — same for everyone, fine as a file
+SETTINGS_FILE = os.path.join(DATA_DIR, 'settings.json')  # legacy Ollama/OpenRouter config — no longer used by the AI Tutor
+LOCAL_DB_FILE = os.path.join(DATA_DIR, 'revisioncore.db')
 
 SUBJECT_IDS = ['biology','chemistry','physics','maths','computer_science',
                 'english','history','geography','french','spanish','german']
@@ -43,23 +37,67 @@ OPENROUTER_MODELS = {
     'deepseek/deepseek-r1:free':            'DeepSeek R1 (free)',
 }
 
-for d in [DATA_DIR, UPLOADS_DIR]:
-    os.makedirs(d, exist_ok=True)
+os.makedirs(DATA_DIR, exist_ok=True)
 
-# ── Auth: SQLite user store ───────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+#  DATABASE — real, persistent storage for accounts + all per-user data.
+#
+#  If a DATABASE_URL env var is set (a free Neon/Supabase Postgres URL), that
+#  is used — this is what makes data survive Render redeploys. Otherwise it
+#  falls back to a local SQLite file, which is fine for localhost but will be
+#  wiped on every Render redeploy since Render's disk is not persistent.
+# ══════════════════════════════════════════════════════════════════════════════
+DATABASE_URL = os.environ.get('DATABASE_URL')
+IS_PG = bool(DATABASE_URL)
+
+if IS_PG:
+    import psycopg2
+    import psycopg2.extras
+
 def get_db():
-    conn = sqlite3.connect(USERS_DB)
-    conn.row_factory = sqlite3.Row
+    if IS_PG:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+    else:
+        conn = sqlite3.connect(LOCAL_DB_FILE)
+        conn.row_factory = sqlite3.Row
     return conn
+
+def db_execute(conn, sql, params=()):
+    """Run a query written in %s-placeholder (Postgres) style on either backend."""
+    if IS_PG:
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    else:
+        cur = conn.cursor()
+        sql = sql.replace('%s', '?')
+    cur.execute(sql, params)
+    return cur
 
 def init_db():
     conn = get_db()
-    conn.execute('''CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_col = 'SERIAL PRIMARY KEY' if IS_PG else 'INTEGER PRIMARY KEY AUTOINCREMENT'
+    blob_type = 'BYTEA' if IS_PG else 'BLOB'
+    db_execute(conn, f'''CREATE TABLE IF NOT EXISTS users (
+        id {id_col},
         username TEXT UNIQUE NOT NULL,
         email TEXT,
         password_hash TEXT NOT NULL,
         created_at TEXT NOT NULL
+    )''')
+    # Generic per-user JSON store — replaces the old data/*.json files with
+    # rows that live in the (persistent) database instead of local disk.
+    db_execute(conn, '''CREATE TABLE IF NOT EXISTS user_store (
+        user_id TEXT NOT NULL,
+        store_name TEXT NOT NULL,
+        data TEXT NOT NULL,
+        PRIMARY KEY (user_id, store_name)
+    )''')
+    # Uploaded revision-guide PDFs, stored as bytes in the DB (not on disk)
+    # so they also survive redeploys.
+    db_execute(conn, f'''CREATE TABLE IF NOT EXISTS guide_files (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        filename TEXT NOT NULL,
+        content {blob_type} NOT NULL
     )''')
     conn.commit()
     conn.close()
@@ -81,16 +119,35 @@ def default_progress():
     return {"subjects": {sub: {"score":0,"quizzes_completed":0,"cards_mastered":0} for sub in SUBJECT_IDS},
             "total_xp":0, "streak":0, "last_active":""}
 
+# ── Per-user JSON store (backed by the DB — Postgres in production) ───────────
+def get_store(uid, name, default):
+    conn = get_db()
+    row = db_execute(conn, 'SELECT data FROM user_store WHERE user_id=%s AND store_name=%s', (uid, name)).fetchone()
+    conn.close()
+    if not row: return default
+    return json.loads(row['data'])
+
+def set_store(uid, name, value):
+    conn = get_db()
+    data = json.dumps(value)
+    if IS_PG:
+        db_execute(conn, '''INSERT INTO user_store (user_id, store_name, data) VALUES (%s,%s,%s)
+                             ON CONFLICT (user_id, store_name) DO UPDATE SET data = EXCLUDED.data''',
+                   (uid, name, data))
+    else:
+        db_execute(conn, '''INSERT INTO user_store (user_id, store_name, data) VALUES (%s,%s,%s)
+                             ON CONFLICT (user_id, store_name) DO UPDATE SET data = excluded.data''',
+                   (uid, name, data))
+    conn.commit()
+    conn.close()
+
 def new_user_defaults(uid):
     """Seed the demo flashcard sets + empty progress/guides/memorise for a freshly registered user."""
     uid = str(uid)
-    for path, empty in [(SETS_FILE, []), (GUIDES_FILE, []), (ANNOTATIONS_FILE, {}), (MEMORISE_FILE, [])]:
-        store = _read_json(path, {})
-        store[uid] = empty
-        _write_json(path, store)
-    prog = _read_json(PROGRESS_FILE, {})
-    prog[uid] = default_progress()
-    _write_json(PROGRESS_FILE, prog)
+    set_store(uid, 'guides', [])
+    set_store(uid, 'annotations', {})
+    set_store(uid, 'memorise', [])
+    set_store(uid, 'progress', default_progress())
     starter_sets = [
         {"id":str(uuid.uuid4())[:8],"name":"Cell Biology","subject":"biology","cards":[
             {"question":"What is the powerhouse of the cell?","answer":"Mitochondria"},
@@ -101,9 +158,7 @@ def new_user_defaults(uid):
             {"question":"Atomic number of Carbon?","answer":"6"},
             {"question":"Three states of matter?","answer":"Solid, Liquid, Gas"}]},
     ]
-    sets_store = _read_json(SETS_FILE, {})
-    sets_store[uid] = starter_sets
-    _write_json(SETS_FILE, sets_store)
+    set_store(uid, 'sets', starter_sets)
 
 def _read_json(path, default):
     if not os.path.exists(path):
@@ -116,7 +171,7 @@ def _write_json(path, data):
     with open(path, 'w') as f:
         json.dump(data, f, indent=2)
 
-# ── Settings helpers ──────────────────────────────────────────────────────────
+# ── Settings helpers (legacy Ollama/OpenRouter panel only) ────────────────────
 def get_settings():
     if os.path.exists(SETTINGS_FILE):
         with open(SETTINGS_FILE) as f:
@@ -134,15 +189,8 @@ def save_settings(s):
 
 # ── Data init ─────────────────────────────────────────────────────────────────
 def init_data():
-    # Per-user stores: {"<user_id>": [...] or {...}}. Older (pre-accounts)
-    # versions of RevisionCore stored these as a single global list/dict —
-    # if we find that shape, reset to the new per-user dict shape.
-    for path in [SETS_FILE, PROGRESS_FILE, GUIDES_FILE, ANNOTATIONS_FILE, MEMORISE_FILE]:
-        existing = _read_json(path, None)
-        if existing is None or not isinstance(existing, dict):
-            _write_json(path, {})
-
-    # Shared curriculum quiz bank (same practice questions for everyone)
+    # Shared curriculum quiz bank (same practice questions for everyone) — this
+    # is static seed content, not per-user data, so a plain file is fine.
     if not os.path.exists(QUIZZES_FILE):
         base = {
             "biology":  [{"question":"What is photosynthesis?","options":["How plants make food","How animals breathe","Cell division","DNA replication"],"correct":0},
@@ -320,14 +368,20 @@ def auth_register():
         return jsonify({"error":"Password must be at least 6 characters"}), 400
     conn = get_db()
     try:
-        cur = conn.execute(
-            'INSERT INTO users (username, email, password_hash, created_at) VALUES (?,?,?,?)',
+        cur = db_execute(conn,
+            'INSERT INTO users (username, email, password_hash, created_at) VALUES (%s,%s,%s,%s)' + (' RETURNING id' if IS_PG else ''),
             (username, email, generate_password_hash(password), datetime.now().isoformat()))
+        if IS_PG:
+            uid = cur.fetchone()['id']
+        else:
+            uid = cur.lastrowid
         conn.commit()
-        uid = cur.lastrowid
-    except sqlite3.IntegrityError:
+    except (sqlite3.IntegrityError, Exception) as e:
+        conn.rollback() if IS_PG else None
         conn.close()
-        return jsonify({"error":"That username is already taken"}), 400
+        if 'unique' in str(e).lower() or isinstance(e, sqlite3.IntegrityError):
+            return jsonify({"error":"That username is already taken"}), 400
+        return jsonify({"error": f"Could not create account: {e}"}), 500
     conn.close()
     new_user_defaults(uid)
     session['user_id'] = uid
@@ -340,7 +394,7 @@ def auth_login():
     username = (data.get('username') or '').strip()
     password = data.get('password') or ''
     conn = get_db()
-    row  = conn.execute('SELECT * FROM users WHERE username=?', (username,)).fetchone()
+    row  = db_execute(conn, 'SELECT * FROM users WHERE username=%s', (username,)).fetchone()
     conn.close()
     if not row or not check_password_hash(row['password_hash'], password):
         return jsonify({"error":"Incorrect username or password"}), 401
@@ -394,44 +448,38 @@ def save_settings_route():
 @app.route('/api/sets', methods=['GET'])
 @login_required
 def get_sets():
-    store = _read_json(SETS_FILE, {})
-    return jsonify(store.get(current_user_id(), []))
+    return jsonify(get_store(current_user_id(), 'sets', []))
 
 @app.route('/api/sets', methods=['POST'])
 @login_required
 def create_set():
     data = request.json
-    store = _read_json(SETS_FILE, {})
     uid = current_user_id()
-    sets = store.get(uid, [])
+    sets = get_store(uid, 'sets', [])
     new_set = {"id":str(uuid.uuid4())[:8],"name":data.get('name','Untitled'),
                "subject":data.get('subject','general'),"cards":data.get('cards',[])}
     sets.append(new_set)
-    store[uid] = sets
-    _write_json(SETS_FILE, store)
+    set_store(uid, 'sets', sets)
     return jsonify({"status":"success","set":new_set})
 
 @app.route('/api/sets/<set_id>', methods=['PUT'])
 @login_required
 def update_set(set_id):
     data = request.json
-    store = _read_json(SETS_FILE, {})
     uid = current_user_id()
-    sets = store.get(uid, [])
+    sets = get_store(uid, 'sets', [])
     for s in sets:
         if s['id'] == set_id:
             s.update({k:data[k] for k in ('name','subject','cards') if k in data})
-    store[uid] = sets
-    _write_json(SETS_FILE, store)
+    set_store(uid, 'sets', sets)
     return jsonify({"status":"success"})
 
 @app.route('/api/sets/<set_id>', methods=['DELETE'])
 @login_required
 def delete_set(set_id):
-    store = _read_json(SETS_FILE, {})
     uid = current_user_id()
-    store[uid] = [s for s in store.get(uid, []) if s['id'] != set_id]
-    _write_json(SETS_FILE, store)
+    sets = [s for s in get_store(uid, 'sets', []) if s['id'] != set_id]
+    set_store(uid, 'sets', sets)
     return jsonify({"status":"success"})
 
 # ── Progress ──────────────────────────────────────────────────────────────────
@@ -439,11 +487,9 @@ def delete_set(set_id):
 @login_required
 def progress():
     uid = current_user_id()
-    store = _read_json(PROGRESS_FILE, {})
     if request.method=='GET':
-        return jsonify(store.get(uid, default_progress()))
-    store[uid] = request.json
-    _write_json(PROGRESS_FILE, store)
+        return jsonify(get_store(uid, 'progress', default_progress()))
+    set_store(uid, 'progress', request.json)
     return jsonify({"status":"success"})
 
 # ── Quizzes ───────────────────────────────────────────────────────────────────
@@ -455,8 +501,7 @@ def get_quizzes(subject):
 @app.route('/api/guides', methods=['GET'])
 @login_required
 def get_guides():
-    store = _read_json(GUIDES_FILE, {})
-    return jsonify(store.get(current_user_id(), []))
+    return jsonify(get_store(current_user_id(), 'guides', []))
 
 @app.route('/api/guides/upload', methods=['POST'])
 @login_required
@@ -466,87 +511,92 @@ def upload_guide():
     subject = request.form.get('subject','general')
     if not file.filename.lower().endswith('.pdf'): return jsonify({"error":"PDF only"}),400
     uid = current_user_id()
-    filename = f"{uid}_{secure_filename(file.filename)}"
-    filepath = os.path.join(UPLOADS_DIR, filename)
-    file.save(filepath)
-    store = _read_json(GUIDES_FILE, {})
-    guides = store.get(uid, [])
-    guide = {"id":len(guides),"name":filename,"subject":subject,
-             "filepath":filepath,"uploaded_at":datetime.now().isoformat()}
+    filename = secure_filename(file.filename)
+    file_bytes = file.read()
+    guides = get_store(uid, 'guides', [])
+    guide_id = len(guides)
+    file_id = str(uuid.uuid4())
+
+    conn = get_db()
+    content_param = psycopg2.Binary(file_bytes) if IS_PG else file_bytes
+    db_execute(conn, 'INSERT INTO guide_files (id, user_id, filename, content) VALUES (%s,%s,%s,%s)',
+               (file_id, uid, filename, content_param))
+    conn.commit()
+    conn.close()
+
+    guide = {"id":guide_id,"name":filename,"subject":subject,
+             "file_id":file_id,"uploaded_at":datetime.now().isoformat()}
     guides.append(guide)
-    store[uid] = guides
-    _write_json(GUIDES_FILE, store)
+    set_store(uid, 'guides', guides)
     return jsonify({"status":"success","guide":guide})
 
 @app.route('/api/guides/<int:guide_id>/pdf')
 @login_required
 def get_guide_pdf(guide_id):
-    store = _read_json(GUIDES_FILE, {})
-    guides = store.get(current_user_id(), [])
+    uid = current_user_id()
+    guides = get_store(uid, 'guides', [])
     guide = next((g for g in guides if g['id']==guide_id),None)
     if not guide: return jsonify({"error":"Not found"}),404
-    return send_file(guide['filepath'],mimetype='application/pdf')
+    conn = get_db()
+    row = db_execute(conn, 'SELECT content FROM guide_files WHERE id=%s AND user_id=%s', (guide['file_id'], uid)).fetchone()
+    conn.close()
+    if not row: return jsonify({"error":"File not found"}),404
+    content = bytes(row['content'])
+    return send_file(io.BytesIO(content), mimetype='application/pdf', download_name=guide['name'])
 
 @app.route('/api/guides/<int:guide_id>/annotations', methods=['GET','POST'])
 @login_required
 def guide_annotations(guide_id):
     uid = current_user_id()
-    store = _read_json(ANNOTATIONS_FILE, {})
-    user_ann = store.get(uid, {})
+    user_ann = get_store(uid, 'annotations', {})
     key = str(guide_id)
     if request.method=='GET': return jsonify(user_ann.get(key,{}))
     user_ann[key] = request.json
-    store[uid] = user_ann
-    _write_json(ANNOTATIONS_FILE, store)
+    set_store(uid, 'annotations', user_ann)
     return jsonify({"status":"success"})
 
 @app.route('/api/guides/<int:guide_id>', methods=['DELETE'])
 @login_required
 def delete_guide(guide_id):
     uid = current_user_id()
-    store = _read_json(GUIDES_FILE, {})
-    guides = store.get(uid, [])
+    guides = get_store(uid, 'guides', [])
     guide = next((g for g in guides if g['id']==guide_id),None)
     if guide:
-        if os.path.exists(guide['filepath']): os.remove(guide['filepath'])
-        store[uid] = [g for g in guides if g['id']!=guide_id]
-        _write_json(GUIDES_FILE, store)
-        ann_store = _read_json(ANNOTATIONS_FILE, {})
-        user_ann = ann_store.get(uid, {})
+        conn = get_db()
+        db_execute(conn, 'DELETE FROM guide_files WHERE id=%s AND user_id=%s', (guide['file_id'], uid))
+        conn.commit()
+        conn.close()
+        set_store(uid, 'guides', [g for g in guides if g['id']!=guide_id])
+        user_ann = get_store(uid, 'annotations', {})
         user_ann.pop(str(guide_id),None)
-        ann_store[uid] = user_ann
-        _write_json(ANNOTATIONS_FILE, ann_store)
+        set_store(uid, 'annotations', user_ann)
     return jsonify({"status":"success"})
 
 # ── Memorise ──────────────────────────────────────────────────────────────────
 @app.route('/api/memorise', methods=['GET'])
 @login_required
 def get_memorise():
-    store = _read_json(MEMORISE_FILE, {})
-    return jsonify(store.get(current_user_id(), []))
+    return jsonify(get_store(current_user_id(), 'memorise', []))
 
 @app.route('/api/memorise', methods=['POST'])
 @login_required
 def create_memorise():
     data = request.json
     uid = current_user_id()
-    store = _read_json(MEMORISE_FILE, {})
-    items = store.get(uid, [])
+    items = get_store(uid, 'memorise', [])
     item = {"id":str(uuid.uuid4())[:8],"title":data.get('title','Untitled'),
             "subject":data.get('subject','general'),"text":data.get('text',''),
             "created":datetime.now().isoformat()}
     items.append(item)
-    store[uid] = items
-    _write_json(MEMORISE_FILE, store)
+    set_store(uid, 'memorise', items)
     return jsonify({"status":"success","item":item})
 
 @app.route('/api/memorise/<item_id>', methods=['DELETE'])
 @login_required
 def delete_memorise(item_id):
     uid = current_user_id()
-    store = _read_json(MEMORISE_FILE, {})
-    store[uid] = [i for i in store.get(uid, []) if i['id']!=item_id]
-    _write_json(MEMORISE_FILE, store)
+    items = [i for i in get_store(uid, 'memorise', []) if i['id']!=item_id]
+    set_store(uid, 'memorise', items)
     return jsonify({"status":"success"})
 
 
@@ -650,8 +700,8 @@ def ai_generate_quiz_stream():
     count   = min(int(data.get('count',5)),15)
     cards   = data.get('cards',[])
 
-    if set_ids and os.path.exists(SETS_FILE):
-        with open(SETS_FILE) as f: all_sets = json.load(f)
+    if set_ids:
+        all_sets = get_store(current_user_id(), 'sets', []) if session.get('user_id') else []
         merged,subjects_used = [],set()
         for s in all_sets:
             if s['id'] in set_ids:
