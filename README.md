@@ -3,10 +3,10 @@
 Modern revision website with flashcard import, working streak system, and PDF annotation.
 
 ## Quick Start
-1. Install Flask: `pip install flask`
+1. Install Flask: `pip install -r requirements.txt`
 2. Run: `python app.py`  
 3. Open: `http://127.0.0.1:5000`
-
+4. also available at revisioncore.onrender.com 
 ## New Features
 ✅ **Import Flashcards** - Paste Quizlet-style text with custom separators
 ✅ **Working Streak** - Tracks daily study activity
