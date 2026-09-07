@@ -95,20 +95,46 @@ function initUploadModal() {
         const subject = document.getElementById('guideSubject').value;
 
         if (!file) { alert('Please select a PDF file.'); return; }
+        if (!file.name.toLowerCase().endsWith('.pdf')) { alert('Please select a PDF file.'); return; }
+
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalLabel = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Uploading…';
 
         const fd = new FormData();
         fd.append('file', file);
         fd.append('subject', subject);
 
-        const res  = await fetch('/api/guides/upload', { method:'POST', body: fd });
-        const data = await res.json();
+        try {
+            const res = await fetch('/api/guides/upload', { method: 'POST', body: fd });
 
-        if (data.status === 'success') {
-            modal.style.display = 'none';
-            form.reset();
-            await loadGuides();
-        } else {
-            alert('Upload failed: ' + (data.error || 'Unknown error'));
+            if (res.status === 401) {
+                alert('Your session has expired — please log in again to upload.');
+                window.location.reload();
+                return;
+            }
+
+            let data;
+            try {
+                data = await res.json();
+            } catch {
+                alert('Upload failed: the server returned an unexpected response.');
+                return;
+            }
+
+            if (res.ok && data.status === 'success') {
+                modal.style.display = 'none';
+                form.reset();
+                await loadGuides();
+            } else {
+                alert('Upload failed: ' + (data.error || `Server error (${res.status})`));
+            }
+        } catch (err) {
+            alert('Upload failed: could not reach the server. Check your connection and try again.');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalLabel;
         }
     });
 }

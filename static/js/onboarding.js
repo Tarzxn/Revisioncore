@@ -1,9 +1,7 @@
-// ─── First-open subject picker ─────────────────────────────────────────────
-// The chosen subjects are stored in this browser's localStorage only, so the
-// choice is specific to this device. Opening RevisionCore on another device
-// (or another browser profile) has no saved selection and starts fresh —
-// this also means separate people using their own device/browser each get
-// their own independent selection, with no accounts needed.
+// ─── Subject picker ─────────────────────────────────────────────────────────
+// The chosen subjects are saved to the logged-in account (server-side), so
+// they follow the user to any device once they log in. A local copy is also
+// kept in this browser as a fast-loading cache / offline fallback.
 
 const RC_STORAGE_KEY = 'rc_selected_subjects';
 
@@ -34,6 +32,23 @@ function rcGetSelectedSubjects() {
 
 function rcSaveSelectedSubjects(ids) {
     localStorage.setItem(RC_STORAGE_KEY, JSON.stringify(ids));
+    // Also save to the account so it follows the user to any device.
+    fetch('/api/subjects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subjects: ids })
+    }).catch(() => {}); // if offline, the localStorage copy still works this session
+}
+
+async function rcFetchAccountSubjects() {
+    try {
+        const res = await fetch('/api/subjects');
+        if (!res.ok) return null;
+        const data = await res.json();
+        return Array.isArray(data) && data.length ? data : null;
+    } catch {
+        return null;
+    }
 }
 
 // ── Rendering the picker (used both for first-run onboarding and for
@@ -113,12 +128,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Called by auth.js once the user is confirmed logged in.
-    window.rcInitOnboarding = function () {
-        const saved = rcGetSelectedSubjects();
-        if (!saved) {
-            openPicker([]);
-        } else {
+    window.rcInitOnboarding = async function () {
+        const accountSubjects = await rcFetchAccountSubjects();
+        if (accountSubjects) {
+            // Account already has a saved choice (from this device or another one) — use it.
+            localStorage.setItem(RC_STORAGE_KEY, JSON.stringify(accountSubjects));
             rcApplySubjectFilter();
+            return;
+        }
+        const deviceSubjects = rcGetSelectedSubjects();
+        if (deviceSubjects) {
+            // First time this account has logged in on this device with a local
+            // choice already made — carry it up to the account.
+            rcSaveSelectedSubjects(deviceSubjects);
+            rcApplySubjectFilter();
+        } else {
+            openPicker([]);
         }
     };
 

@@ -62,6 +62,7 @@
         <a href="#" class="nav-link" data-page="focus"><span class="icon">⏱️</span><span>Focus Room</span></a>
         <a href="#" class="nav-link" data-page="settings"><span class="icon">⚙️</span><span>AI Settings</span></a>
         <a href="#" id="changeSubjectsLink" class="nav-link"><span class="icon">🎯</span><span>My Subjects</span></a>
+        <a href="#" class="nav-link" data-page="account"><span class="icon">👤</span><span>Account</span></a>
     </div>
     <div class="streak-widget">
         <div class="streak-flame">🔥</div>
@@ -70,7 +71,6 @@
             <div class="streak-label">day streak</div>
         </div>
     </div>
-    <a href="#" onclick="rcLogout(); return false;" class="nav-link logout-link"><span class="icon">🚪</span><span>Log Out</span></a>
 </nav>
 
 <main class="content">
@@ -815,6 +815,25 @@
                 <div id="hintsArea" style="display:none" class="mem-hints"></div>
             </div>
         </div>
+    </section>
+
+
+    <!-- ACCOUNT -->
+    <section id="account" class="page">
+        <div class="page-header">
+            <div>
+                <h2 class="page-title">Account</h2>
+                <p class="page-subtitle">Manage your RevisionCore login</p>
+            </div>
+        </div>
+        <div class="account-card">
+            <div class="account-avatar">👤</div>
+            <div class="account-info">
+                <div class="account-username" id="accountUsername">—</div>
+                <div class="account-hint">Signed in — your subjects, flashcards, guides and progress are saved to this account and follow you to any device.</div>
+            </div>
+        </div>
+        <button class="danger-btn account-logout-btn" onclick="rcLogout()">🚪 Log Out</button>
     </section>
 
 

@@ -169,6 +169,11 @@ body{font-family:'Outfit',-apple-system,sans-serif;background:var(--bg-primary);
 .docgen-btn{background:var(--bg-secondary);color:var(--text-primary);border:2px solid var(--border);padding:.625rem 1.125rem;border-radius:10px;font-size:.875rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:'Outfit',sans-serif;}
 .docgen-btn:hover{border-color:var(--accent);background:var(--accent-light);}
 .puter-notice{background:var(--accent-light);border:1px solid var(--accent);color:var(--text-primary);border-radius:14px;padding:1rem 1.375rem;margin-bottom:1.5rem;font-size:.9375rem;line-height:1.5;}
+.account-card{display:flex;align-items:center;gap:1.25rem;background:var(--bg-card);border:1px solid var(--border);border-radius:18px;padding:1.75rem;margin-bottom:1.5rem;max-width:520px;}
+.account-avatar{width:64px;height:64px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:2rem;flex-shrink:0;}
+.account-username{font-size:1.25rem;font-weight:700;margin-bottom:.375rem;}
+.account-hint{color:var(--text-secondary);font-size:.875rem;line-height:1.5;}
+.account-logout-btn{max-width:520px;width:100%;}
 
 .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.82);backdrop-filter:blur(4px);}
 .modal-content{background:var(--bg-card);margin:4% auto;padding:2.25rem;border:2px solid var(--border);border-radius:22px;width:92%;max-width:520px;box-shadow:0 16px 48px var(--shadow);max-height:90vh;overflow-y:auto;}

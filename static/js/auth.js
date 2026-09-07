@@ -73,7 +73,10 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const res = await fetch('/api/auth/me');
             if (res.ok) {
+                const data = await res.json();
                 overlay.classList.remove('active');
+                const nameEl = document.getElementById('accountUsername');
+                if (nameEl && data.user) nameEl.textContent = data.user.username;
                 if (window.rcInitOnboarding) window.rcInitOnboarding();
             } else {
                 overlay.classList.add('active');
