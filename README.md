@@ -1,5 +1,5 @@
 # RevisionCore - Complete Version
-
+The best revision website. combines all features of modern revision website. have a look down below for more info
 Modern revision website with flashcard import, working streak system, and PDF annotation.
 
 ## Quick Start
