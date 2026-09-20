@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: forge-ollama-cloud
+    runtime: python
+    # No "plan" pinned and no persistent disk here on purpose — accounts
+    # persist for free via the optional GitHub Gist sync below (GITHUB_TOKEN
+    # / GITHUB_GIST_ID) instead of requiring a paid disk. If you'd rather pay
+    # for a real persistent disk instead of using Gist sync, add a `disk:`
+    # block (name/mountPath: data/ under the repo root/sizeGB) and a paid
+    # `plan` in the Render dashboard or here — Render's free plan can't
+    # attach a disk at all.
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 1 --worker-class gthread --threads 8 --timeout 340
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: OLLAMA_API_KEY
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: FORGE_USERNAME
+        sync: false
+      - key: FORGE_PASSWORD
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_GIST_ID
+        sync: false
