@@ -1,3 +1,13 @@
+# RevisionCore Student Hub
+
+A polished Render-ready student hub with secure account login, personal timetable, tasks and deadlines, revision subjects, school quick links, and an integrated AI study assistant.
+
+## Render
+
+The existing Render deployment contract is preserved: `pip install -r requirements.txt` followed by Gunicorn. Set `OLLAMA_API_KEY` in Render for the AI assistant. For account and student-data persistence on Render Free, configure the existing `GITHUB_TOKEN` and `GITHUB_GIST_ID` environment variables. Keep all secrets in Render environment variables rather than source control.
+
+---
+
 # Forge (Gen 2)
 
 Forge is a Flask-based AI build workspace with a ChatGPT-style chat interface: sign in, describe what to create, watch the reply stream in live, then download the generated files as a ZIP. It runs on **Ollama Cloud** (https://ollama.com) for text/code, **Pollinations.ai** for images, and optionally **Tavily** for live web search — all server-authenticated, so nothing but your own Forge login is entered in the browser.

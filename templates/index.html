@@ -1,99 +1,104 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Forge</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RevisionCore — Student Hub</title>
+<meta name="theme-color" content="#0b1020">
 <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
 </head>
 <body class="logged-out">
-<div class="aurora"><span></span><span></span><span></span><span></span></div>
+<div class="aurora" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
 
-<div id="loginScreen">
-  <div class="login-card glass">
-    <div class="hero-mark" style="text-align:center">▣</div>
-    <p class="tagline" style="text-align:center;margin:2px 0 0">Making everyday model supercomputers</p>
-
-    <form id="loginForm" class="auth-form">
-      <h1>Sign in to Forge</h1>
-      <p class="auth-subtitle">Your session stays only in this tab — closing it signs you out.</p>
-      <label>Username<input id="loginUsername" type="text" autocomplete="username" required></label>
-      <label>Password<input id="loginPassword" type="password" autocomplete="current-password" required></label>
-      <button type="submit" id="loginSubmit">Sign in</button>
-      <p id="loginError" class="login-error"></p>
-      <p class="auth-switch">Don't have an account? <a href="#" id="toSignupLink">Create one</a></p>
-    </form>
-
-    <form id="signupForm" class="auth-form" hidden>
-      <h1>Create your Forge account</h1>
-      <p class="auth-subtitle">Your session stays only in this tab — closing it signs you out.</p>
-      <label>Username<input id="signupUsername" type="text" autocomplete="username" required></label>
-      <label>Password<input id="signupPassword" type="password" autocomplete="new-password" required></label>
-      <label>Confirm password<input id="signupConfirm" type="password" autocomplete="new-password" required></label>
-      <button type="submit" id="signupSubmit">Create account</button>
-      <p id="signupError" class="login-error"></p>
-      <p class="auth-switch">Already have an account? <a href="#" id="toLoginLink">Sign in</a></p>
-    </form>
+<section id="loginScreen" aria-label="Sign in">
+  <div class="login-layout">
+    <div class="login-intro">
+      <div class="brand large"><span class="brand-mark">R</span> RevisionCore</div>
+      <div class="eyebrow">STUDENT HUB</div>
+      <h1>Everything you need for school, in one calm place.</h1>
+      <p>Timetable, deadlines, revision, quick links and an AI study assistant — designed to feel simple before a busy school day.</p>
+      <div class="login-points"><span>✓ Personal dashboard</span><span>✓ Secure account</span><span>✓ Works on Render</span></div>
+    </div>
+    <div class="login-card glass">
+      <div class="login-icon">R</div>
+      <form id="loginForm" class="auth-form">
+        <div class="auth-kicker">WELCOME BACK</div><h2>Sign in</h2><p class="auth-subtitle">Use your RevisionCore account to continue.</p>
+        <label>Username<input id="loginUsername" type="text" autocomplete="username" required minlength="3"></label>
+        <label>Password<input id="loginPassword" type="password" autocomplete="current-password" required></label>
+        <button type="submit" id="loginSubmit">Sign in <span>→</span></button>
+        <p id="loginError" class="login-error" role="alert"></p>
+        <p class="auth-switch">New here? <a href="#" id="toSignupLink">Create an account</a></p>
+      </form>
+      <form id="signupForm" class="auth-form" hidden>
+        <div class="auth-kicker">GET STARTED</div><h2>Create your account</h2><p class="auth-subtitle">Your password is securely hashed before it is stored.</p>
+        <label>Username<input id="signupUsername" type="text" autocomplete="username" required minlength="3" maxlength="32"></label>
+        <label>Password<input id="signupPassword" type="password" autocomplete="new-password" required minlength="8"></label>
+        <label>Confirm password<input id="signupConfirm" type="password" autocomplete="new-password" required minlength="8"></label>
+        <button type="submit" id="signupSubmit">Create account <span>→</span></button>
+        <p id="signupError" class="login-error" role="alert"></p>
+        <p class="auth-switch">Already have an account? <a href="#" id="toLoginLink">Sign in</a></p>
+      </form>
+    </div>
   </div>
-</div>
+</section>
 
 <div id="app">
-<aside class="glass">
-  <div class="brand"><span class="brand-mark">▣</span> Forge</div>
-  <p class="tagline">Making everyday model supercomputers</p>
-  <button class="new" id="newChat"><span>＋</span> New task</button>
-  <p class="label">RECENT</p>
-  <div id="recent"><button class="history active">Current workspace</button></div>
-  <div class="sidebar-foot">
-    Ollama Cloud connected<br><small>Files stay in this workspace.</small>
-    <button id="logoutButton" type="button">Sign out</button>
-  </div>
-</aside>
-<main>
-  <header>
-    <button class="model" id="modelButton"><span class="orb">◆</span><span id="modelName">GPT-OSS 20B</span><span class="chev">⌄</span></button>
-    <div class="model-menu glass" id="modelMenu">
-      <div class="menu-title">Choose a model <small>Ollama Cloud hosted models</small></div>
-      <div id="models"></div>
+  <aside class="sidebar glass">
+    <div class="sidebar-top">
+      <div class="brand"><span class="brand-mark">R</span> RevisionCore</div>
+      <div class="student-badge"><span id="avatarInitial">S</span><div><strong id="sidebarName">Student</strong><small id="sidebarUsername">@student</small></div></div>
+      <button class="primary-side" id="newChat"><span>＋</span> Ask AI tutor</button>
+      <nav class="nav" aria-label="Student hub">
+        <button class="nav-item active" data-view="home"><span>⌂</span> Overview</button>
+        <button class="nav-item" data-view="timetable"><span>▤</span> Timetable</button>
+        <button class="nav-item" data-view="tasks"><span>✓</span> Tasks & deadlines <b id="taskBadge">0</b></button>
+        <button class="nav-item" data-view="revision"><span>◈</span> Revision</button>
+        <button class="nav-item" data-view="assistant"><span>✦</span> AI study assistant</button>
+      </nav>
     </div>
-    <button class="key-button" id="keyButton" title="Forge uses a server-side Ollama Cloud key — nothing to enter here.">Ollama connected</button>
-  </header>
-
-  <section id="conversation">
-    <div class="hero" id="hero">
-      <div class="hero-mark">▣</div>
-      <h1>What will you create?</h1>
-      <p class="tagline">Making everyday model supercomputers</p>
-      <p>Build complete projects and downloadable files with one prompt.</p>
-      <div class="suggestions">
-        <button class="glass">Build a polished portfolio website</button>
-        <button class="glass">Create a sales presentation</button>
-        <button class="glass">Generate an image of a neon cyberpunk city</button>
-        <button class="glass">Design a printable 3D model of a rocket</button>
-      </div>
+    <div class="sidebar-bottom">
+      <button class="nav-item" data-view="settings"><span>⚙</span> Settings</button>
+      <div class="status"><i></i> Account secured <small>Session active in this tab</small></div>
+      <button id="logoutButton" class="signout">Sign out</button>
     </div>
-  </section>
+  </aside>
 
-  <div class="composer-wrap">
-    <form id="composer" class="glass">
-      <textarea id="prompt" rows="1" placeholder="Message Forge… (Enter to send, Shift+Enter for a new line)"></textarea>
-      <div class="composer-actions">
-        <button id="webSearchToggle" type="button" class="pill-toggle" disabled title="Checking availability…">🔎 Web search</button>
-        <div class="power-select" id="powerSelect" title="How much reasoning effort the model spends before answering">
-          <span class="power-thumb" id="powerThumb"></span>
-          <button type="button" class="power-option" data-power="low" data-index="0">Low</button>
-          <button type="button" class="power-option active" data-power="medium" data-index="1">Medium</button>
-          <button type="button" class="power-option" data-power="high" data-index="2">High</button>
-          <button type="button" class="power-option" data-power="max" data-index="3">Max</button>
+  <main class="hub-main">
+    <header class="topbar">
+      <div><div class="mobile-brand"><span class="brand-mark">R</span> RevisionCore</div><span id="pageKicker">STUDENT OVERVIEW</span><h2 id="pageTitle">Good morning</h2></div>
+      <div class="top-actions"><button class="icon-button" id="refreshHub" title="Refresh">↻</button><div class="date-chip" id="todayLabel">Today</div></div>
+    </header>
+
+    <div class="view-shell">
+      <section class="view active" id="view-home">
+        <div class="welcome glass"><div><span class="eyebrow">YOUR SCHOOL DAY</span><h1 id="welcomeTitle">Ready when you are.</h1><p id="welcomeSub">Add your details in Settings to personalise your hub.</p></div><div class="welcome-orb">R</div></div>
+        <div class="stat-grid">
+          <article class="stat-card glass"><span class="stat-icon">✓</span><div><small>OPEN TASKS</small><strong id="statTasks">0</strong><em id="statTasksSub">Nothing due yet</em></div></article>
+          <article class="stat-card glass"><span class="stat-icon">▤</span><div><small>TODAY</small><strong id="statLessons">0</strong><em id="statLessonsSub">Lessons planned</em></div></article>
+          <article class="stat-card glass"><span class="stat-icon">◈</span><div><small>SUBJECTS</small><strong id="statSubjects">0</strong><em>In your revision list</em></div></article>
+          <article class="stat-card glass"><span class="stat-icon">✦</span><div><small>STUDY FOCUS</small><strong id="statFocus">Ready</strong><em>Use the AI tutor anytime</em></div></article>
         </div>
-        <span>Files, code, documents, slides, spreadsheets, images, STL, and more</span>
-        <button id="send" type="submit" aria-label="Send">↑</button>
-      </div>
-    </form>
-    <p class="notice">Forge can make mistakes. Review generated files before using them. Press Enter to send, Shift+Enter for a new line.</p>
-  </div>
-</main>
+        <div class="two-col">
+          <article class="panel glass"><div class="panel-head"><div><span class="eyebrow">NEXT UP</span><h3>Today's timetable</h3></div><button class="text-button" data-go="timetable">View all →</button></div><div id="homeTimetable" class="compact-list"></div></article>
+          <article class="panel glass"><div class="panel-head"><div><span class="eyebrow">DEADLINES</span><h3>Tasks to keep on top of</h3></div><button class="text-button" data-go="tasks">Manage →</button></div><div id="homeTasks" class="compact-list"></div></article>
+        </div>
+        <article class="panel glass"><div class="panel-head"><div><span class="eyebrow">QUICK ACCESS</span><h3>Your school links</h3></div><button class="text-button" data-go="settings">Edit →</button></div><div id="quickLinks" class="quick-grid"></div></article>
+      </section>
+
+      <section class="view" id="view-timetable"><div class="section-title"><div><span class="eyebrow">SCHEDULE</span><h1>Timetable</h1><p>Keep your school day visible without digging through apps.</p></div><button class="primary-button" id="addLessonBtn">＋ Add lesson</button></div><div id="timetableList" class="timetable-grid"></div></section>
+
+      <section class="view" id="view-tasks"><div class="section-title"><div><span class="eyebrow">PLANNING</span><h1>Tasks & deadlines</h1><p>Track homework, coursework, revision and anything else you need to finish.</p></div><button class="primary-button" id="addTaskBtn">＋ Add task</button></div><div class="task-toolbar"><button class="filter active" data-filter="all">All</button><button class="filter" data-filter="open">Open</button><button class="filter" data-filter="high">High priority</button><button class="filter" data-filter="done">Completed</button></div><div id="taskList" class="task-list"></div></section>
+
+      <section class="view" id="view-revision"><div class="section-title"><div><span class="eyebrow">LEARNING</span><h1>Revision</h1><p>Build a focused subject list and jump into the tools you already use.</p></div><button class="primary-button" id="addSubjectBtn">＋ Add subject</button></div><div id="subjectGrid" class="subject-grid"></div><div class="revision-tools"><article class="panel glass"><span class="tool-icon">▣</span><h3>Flashcards & active recall</h3><p>Turn your notes into short questions and test yourself regularly.</p><button class="text-button" data-go="assistant">Ask AI tutor →</button></article><article class="panel glass"><span class="tool-icon">◌</span><h3>Exam question planner</h3><p>Ask for a topic-specific practice set and mark what you need to revisit.</p><button class="text-button" data-go="assistant">Build practice →</button></article><article class="panel glass"><span class="tool-icon">◷</span><h3>Focus sessions</h3><p>Choose one task, set a short session and work without switching context.</p><button class="text-button" id="focusBtn">Start 25 min →</button></article></div></section>
+
+      <section class="view" id="view-assistant"><div class="legacy-ai-controls" hidden><button id="modelButton"></button><div id="modelMenu"><div id="models"></div></div><div id="recent"></div></div><div class="assistant-heading"><div><span class="eyebrow">STUDY COPILOT</span><h1>AI study assistant</h1><p>Explain a topic, make a quiz, plan revision or help me understand a question.</p></div></div><div class="assistant-frame glass"><div id="conversation"><div class="hero" id="hero"><div class="hero-mark">✦</div><h1>What are you studying?</h1><p class="tagline">Your on-demand study assistant</p><div class="suggestions"><button class="glass">Explain a difficult topic simply</button><button class="glass">Make me a 10-question quiz</button><button class="glass">Create a revision plan for this week</button><button class="glass">Give me an exam-style question</button></div></div></div><div class="composer-wrap"><form id="composer" class="glass"><textarea id="prompt" rows="1" placeholder="Ask your AI study assistant…"></textarea><div class="composer-actions"><button id="webSearchToggle" type="button" class="pill-toggle" disabled>⌕ Web search</button><div class="power-select" id="powerSelect"><span class="power-thumb" id="powerThumb"></span><button type="button" class="power-option" data-power="low" data-index="0">Low</button><button type="button" class="power-option active" data-power="medium" data-index="1">Medium</button><button type="button" class="power-option" data-power="high" data-index="2">High</button><button type="button" class="power-option" data-power="max" data-index="3">Max</button></div><span class="composer-hint">Use AI to learn, not just copy.</span><button id="send" type="submit" aria-label="Send">↑</button></div></form><p class="notice">AI answers can be wrong. Check important facts and your school's marking guidance.</p></div></div></section>
+
+      <section class="view" id="view-settings"><div class="section-title"><div><span class="eyebrow">PERSONALISE</span><h1>Settings</h1><p>Set your details and links once; they are saved to your account.</p></div><button class="primary-button" id="saveSettings">Save changes</button></div><div class="settings-grid"><article class="panel glass settings-card"><h3>Profile</h3><label>Display name<input id="settingName" placeholder="e.g. Alex"></label><label>Year group<input id="settingYear" placeholder="e.g. Year 11"></label><label>School / college<input id="settingSchool" placeholder="Optional"></label></article><article class="panel glass settings-card"><h3>Quick links</h3><p class="setting-note">One link per line in the format <code>Name | https://example.com</code>.</p><textarea id="settingLinks" rows="9" placeholder="Google Classroom | https://classroom.google.com"></textarea></article><article class="panel glass settings-card full"><h3>Subjects</h3><p class="setting-note">Separate subjects with commas. You can add more from the Revision page.</p><input id="settingSubjects" placeholder="English, Maths, Biology"></article></div><p id="settingsMessage" class="save-message"></p></section>
+    </div>
+  </main>
 </div>
+
+<div id="modal" class="modal" hidden><div class="modal-card glass"><button class="modal-close" id="modalClose">×</button><div id="modalContent"></div></div></div>
+<div id="toast" class="toast" role="status"></div>
 <script src="{{ url_for('static', filename='app.js') }}"></script>
-</body>
-</html>
+<script src="{{ url_for('static', filename='hub.js') }}"></script>
+</body></html>

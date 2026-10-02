@@ -53,6 +53,7 @@ USERS_FILE = Path(os.environ.get("USERS_FILE", "data/users.json"))
 FORGE_USERNAME = os.environ.get("FORGE_USERNAME", "").strip()  # optional seed account, see seed_admin_account()
 FORGE_PASSWORD = os.environ.get("FORGE_PASSWORD", "").strip()
 SESSION_TOKENS = {}  # token -> expiry unix timestamp
+SESSION_USERS = {}   # token -> username (same in-memory lifetime as the token)
 _session_lock = threading.Lock()  # gthread workers mean real concurrent threads touch this dict now
 SESSION_TTL_SECONDS = int(os.environ.get("FORGE_SESSION_HOURS", "12")) * 3600
 USERNAME_RE = re.compile(r"^[a-zA-Z0-9_.-]{3,32}$")
@@ -176,11 +177,20 @@ print(f"[Forge] {len(load_users())} account(s) loaded"
       f"{' (synced via GitHub Gist ' + GITHUB_GIST_ID + ')' if GITHUB_TOKEN and GITHUB_GIST_ID else f' from {USERS_FILE.resolve()}'}")
 
 
-def issue_token():
+def issue_token(username):
     token = secrets.token_urlsafe(32)
     with _session_lock:
         SESSION_TOKENS[token] = time.time() + SESSION_TTL_SECONDS
+        SESSION_USERS[token] = username
     return token
+
+
+def current_username():
+    token = token_from_request()
+    if not is_valid_token(token):
+        return None
+    with _session_lock:
+        return SESSION_USERS.get(token)
 
 
 def token_from_request():
@@ -199,6 +209,7 @@ def is_valid_token(token):
         if expiry is None: return False
         if time.time() > expiry:
             SESSION_TOKENS.pop(token, None)
+            SESSION_USERS.pop(token, None)
             return False
         return True
 
@@ -212,11 +223,9 @@ def require_auth(view):
     return wrapped
 
 
-# Single server-side token for Ollama Cloud (https://ollama.com). Falls back
-# to the key provided at setup time so this runs out of the box; override by
-# setting OLLAMA_API_KEY in the environment (preferred for anything but a
-# quick local test, since env vars don't end up committed to source control).
-OLLAMA_API_KEY = os.environ.get("OLLAMA_API_KEY", "38a2805ec9ba40abb2cfbece6d81b664.fcj4jrAZ0Vz8FVPPU3OF3joq").strip()
+# Single server-side token for Ollama Cloud. Keep credentials in Render
+# environment variables; never commit an API key to the repository.
+OLLAMA_API_KEY = os.environ.get("OLLAMA_API_KEY", "").strip()
 # Ollama Cloud uses its native /api/chat shape, not the OpenAI-style /v1 route.
 OLLAMA_CHAT_URL = "https://ollama.com/api/chat"
 
@@ -1080,7 +1089,7 @@ def login():
         return jsonify(error="Incorrect username or password."), 401
     if not check_password_hash(record["password_hash"], password):
         return jsonify(error="Incorrect username or password."), 401
-    return jsonify(token=issue_token(), expiresIn=SESSION_TTL_SECONDS)
+    return jsonify(token=issue_token(record["username"]), expiresIn=SESSION_TTL_SECONDS)
 
 
 @app.post("/api/signup")
@@ -1097,13 +1106,158 @@ def signup():
     with _users_lock:
         if not create_user(username, password):
             return jsonify(error="That username is already taken."), 409
-    return jsonify(token=issue_token(), expiresIn=SESSION_TTL_SECONDS)
+    return jsonify(token=issue_token(username), expiresIn=SESSION_TTL_SECONDS)
 
 
 @app.post("/api/logout")
 def logout():
     with _session_lock:
-        SESSION_TOKENS.pop(token_from_request(), None)
+        token = token_from_request()
+        SESSION_TOKENS.pop(token, None)
+        SESSION_USERS.pop(token, None)
+    return jsonify(ok=True)
+
+
+
+# ---- Student hub data ------------------------------------------------------
+# Student data lives inside the same account store as credentials. When the
+# optional GitHub Gist persistence is configured on Render, this means tasks,
+# timetable and revision data survive deploys without requiring a paid disk.
+def _default_student():
+    return {
+        "profile": {"display_name": "", "year_group": "", "school": ""},
+        "tasks": [],
+        "timetable": [],
+        "subjects": [],
+        "quick_links": [
+            {"title": "Google Classroom", "url": "https://classroom.google.com", "icon": "▦"},
+            {"title": "Microsoft Teams", "url": "https://teams.microsoft.com", "icon": "T"},
+            {"title": "OneDrive", "url": "https://onedrive.live.com", "icon": "☁"},
+            {"title": "BBC Bitesize", "url": "https://www.bbc.co.uk/bitesize", "icon": "B"},
+        ],
+        "notes": "",
+    }
+
+
+def _student_record(username):
+    with _users_lock:
+        users = load_users()
+        key = username.lower()
+        record = users.get(key)
+        if not record:
+            return None, None, None
+        record.setdefault("student", _default_student())
+        defaults = _default_student()
+        for k, v in defaults.items():
+            record["student"].setdefault(k, v)
+        return users, key, record
+
+
+def _save_student(username, student):
+    with _users_lock:
+        users = load_users()
+        key = username.lower()
+        if key not in users:
+            return False
+        users[key].setdefault("student", _default_student())
+        users[key]["student"] = student
+        save_users(users)
+        return True
+
+
+@app.get("/api/me")
+@require_auth
+def me():
+    username = current_username()
+    users, key, record = _student_record(username)
+    if not record:
+        return jsonify(error="Account not found."), 404
+    student = record["student"]
+    profile = dict(student.get("profile") or {})
+    profile["username"] = record.get("username", username)
+    return jsonify(user=profile)
+
+
+@app.get("/api/student")
+@require_auth
+def student_data():
+    username = current_username()
+    _, _, record = _student_record(username)
+    if not record:
+        return jsonify(error="Account not found."), 404
+    return jsonify(student=record["student"])
+
+
+@app.put("/api/student")
+@require_auth
+def update_student():
+    username = current_username()
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify(error="Malformed request body."), 400
+    _, _, record = _student_record(username)
+    if not record:
+        return jsonify(error="Account not found."), 404
+    current = record["student"]
+    for key in ("profile", "tasks", "timetable", "subjects", "quick_links", "notes"):
+        if key in data:
+            current[key] = data[key]
+    if not _save_student(username, current):
+        return jsonify(error="Could not save student data."), 500
+    return jsonify(ok=True, student=current)
+
+
+@app.post("/api/student/tasks")
+@require_auth
+def add_task():
+    username = current_username()
+    _, _, record = _student_record(username)
+    if not record: return jsonify(error="Account not found."), 404
+    data = request.get_json(silent=True) or {}
+    title = str(data.get("title", "")).strip()
+    if not title: return jsonify(error="Task title is required."), 400
+    task = {
+        "id": uuid.uuid4().hex,
+        "title": title[:160],
+        "subject": str(data.get("subject", "General")).strip()[:60] or "General",
+        "due": str(data.get("due", "")).strip()[:20],
+        "priority": str(data.get("priority", "normal")).lower() if str(data.get("priority", "normal")).lower() in {"low","normal","high"} else "normal",
+        "done": False,
+        "created_at": time.time(),
+    }
+    record["student"].setdefault("tasks", []).append(task)
+    _save_student(username, record["student"])
+    return jsonify(task=task), 201
+
+
+@app.patch("/api/student/tasks/<task_id>")
+@require_auth
+def patch_task(task_id):
+    username = current_username()
+    _, _, record = _student_record(username)
+    if not record: return jsonify(error="Account not found."), 404
+    data = request.get_json(silent=True) or {}
+    tasks = record["student"].setdefault("tasks", [])
+    task = next((t for t in tasks if t.get("id") == task_id), None)
+    if not task: return jsonify(error="Task not found."), 404
+    for key in ("title", "subject", "due", "priority", "done"):
+        if key in data: task[key] = data[key]
+    _save_student(username, record["student"])
+    return jsonify(task=task)
+
+
+@app.delete("/api/student/tasks/<task_id>")
+@require_auth
+def delete_task(task_id):
+    username = current_username()
+    _, _, record = _student_record(username)
+    if not record: return jsonify(error="Account not found."), 404
+    tasks = record["student"].setdefault("tasks", [])
+    before = len(tasks)
+    record["student"]["tasks"] = [t for t in tasks if t.get("id") != task_id]
+    if len(record["student"]["tasks"]) == before:
+        return jsonify(error="Task not found."), 404
+    _save_student(username, record["student"])
     return jsonify(ok=True)
 
 
