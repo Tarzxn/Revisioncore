@@ -9,8 +9,8 @@ const HERO_HTML = $('#hero') ? $('#hero').outerHTML : '';
 // tab/browser closes, so nothing is "remembered" past that point, and
 // because it's not a cookie the browser never auto-attaches it anywhere —
 // every request explicitly carries the token itself.
-const CONV_KEY = 'forge.conversations';
-const TOKEN_KEY = 'forge.token';
+const CONV_KEY = 'rianai.gen2.conversations';
+const TOKEN_KEY = 'rianai.gen2.token';
 
 const state = {
   model: 'gpt-oss:20b',
@@ -302,14 +302,14 @@ function startNewConversation() {
   promptEl.focus();
 }
 
-// ---- Auth ------------------------------------------------------------
-// authFetch centralizes attaching the bearer token and reacting to a 401 by
-// dropping back to the login screen — every authenticated call in this file
-// goes through it instead of calling fetch() directly.
+// ---- Authentication --------------------------------------------------
+// One auth implementation only. Tokens remain in sessionStorage and are
+// explicitly attached to API requests. Forms never perform a browser reload.
 async function authFetch(url, opts = {}) {
-  const headers = Object.assign({}, opts.headers, state.token ? { Authorization: `Bearer ${state.token}` } : {});
-  const response = await fetch(url, Object.assign({}, opts, { headers }));
-  if (response.status === 401) {
+  const headers = new Headers(opts.headers || {});
+  if (state.token) headers.set('Authorization', `Bearer ${state.token}`);
+  const response = await fetch(url, { ...opts, headers, credentials: 'same-origin' });
+  if (response.status === 401 && state.token) {
     sessionStorage.removeItem(TOKEN_KEY);
     state.token = null;
     showLogin('Your session expired. Please sign in again.');
@@ -322,20 +322,16 @@ function showApp() {
   initApp();
 }
 
-function showLogin(message) {
+function showLogin(message = '') {
   document.body.classList.add('logged-out');
   setAuthMode('login');
-  $('#loginError').textContent = message || '';
-  $('#loginPassword').value = '';
-  setTimeout(() => $('#loginUsername').focus(), 0);
+  const error = $('#loginError');
+  if (error) error.textContent = message;
+  const password = $('#loginPassword');
+  if (password) password.value = '';
+  setTimeout(() => $('#loginUsername')?.focus(), 0);
 }
 
-// ---- Login / Create account ------------------------------------------
-// Two entirely separate <form>s (only one visible at a time), rather than
-// one shared form with a conditionally-hidden confirm-password field. That
-// used to leave an inert "new-password" field sitting in the DOM even while
-// signing in, which is exactly the shape that trips up browser password
-// managers into odd autofill/"confirm your password" behavior on login.
 function setAuthMode(mode) {
   const signingUp = mode === 'signup';
   $('#loginForm').hidden = signingUp;
@@ -344,86 +340,112 @@ function setAuthMode(mode) {
   $('#signupError').textContent = '';
 }
 
-$('#toSignupLink').addEventListener('click', (e) => { e.preventDefault(); setAuthMode('signup'); });
-$('#toLoginLink').addEventListener('click', (e) => { e.preventDefault(); setAuthMode('login'); });
+function readJsonSafely(response) {
+  return response.json().catch(() => ({ error: `Server returned ${response.status}.` }));
+}
 
-$('#loginForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const username = $('#loginUsername').value.trim();
-  const password = $('#loginPassword').value;
-  $('#loginError').textContent = '';
-  $('#loginSubmit').disabled = true;
-  try {
-    const r = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
-    const data = await r.json();
-    if (!r.ok) {
-      if (r.status === 404) {
-        // No accounts exist on this server yet — steer straight to signup instead of a dead-end error.
-        setAuthMode('signup');
-        $('#signupUsername').value = username;
-        $('#signupError').textContent = 'No accounts exist yet — create the first one below.';
-        return;
+function attachAuthHandlers() {
+  $('#toSignupLink')?.addEventListener('click', (e) => { e.preventDefault(); setAuthMode('signup'); });
+  $('#toLoginLink')?.addEventListener('click', (e) => { e.preventDefault(); setAuthMode('login'); });
+
+  $('#loginForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const username = $('#loginUsername').value.trim();
+    const password = $('#loginPassword').value;
+    const errorBox = $('#loginError');
+    const button = $('#loginSubmit');
+    errorBox.textContent = '';
+    button.disabled = true;
+    try {
+      const r = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await readJsonSafely(r);
+      if (!r.ok) {
+        if (r.status === 404) {
+          setAuthMode('signup');
+          $('#signupUsername').value = username;
+          $('#signupError').textContent = 'No accounts exist yet — create the first one below.';
+          return;
+        }
+        throw new Error(data.error || 'Sign-in failed.');
       }
-      throw new Error(data.error || 'Sign-in failed.');
+      if (!data.token) throw new Error('The server did not return a login session.');
+      state.token = data.token;
+      sessionStorage.setItem(TOKEN_KEY, data.token);
+      showApp();
+    } catch (err) {
+      errorBox.textContent = err.message || 'Could not sign in. Please try again.';
+    } finally {
+      button.disabled = false;
     }
-    state.token = data.token;
-    sessionStorage.setItem(TOKEN_KEY, data.token);
-    showApp();
-  } catch (err) {
-    $('#loginError').textContent = err.message;
-  } finally {
-    $('#loginSubmit').disabled = false;
-  }
-});
+  });
 
-$('#signupForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const username = $('#signupUsername').value.trim();
-  const password = $('#signupPassword').value;
-  $('#signupError').textContent = '';
+  $('#signupForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const username = $('#signupUsername').value.trim();
+    const password = $('#signupPassword').value;
+    const confirm = $('#signupConfirm').value;
+    const errorBox = $('#signupError');
+    const button = $('#signupSubmit');
+    errorBox.textContent = '';
+    if (password !== confirm) { errorBox.textContent = "Passwords don't match."; return; }
+    if (password.length < 8) { errorBox.textContent = 'Password must be at least 8 characters.'; return; }
+    button.disabled = true;
+    try {
+      const r = await fetch('/api/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await readJsonSafely(r);
+      if (!r.ok) throw new Error(data.error || 'Could not create account.');
+      if (!data.token) throw new Error('The server did not return a login session.');
+      state.token = data.token;
+      sessionStorage.setItem(TOKEN_KEY, data.token);
+      showApp();
+    } catch (err) {
+      errorBox.textContent = err.message || 'Could not create the account.';
+    } finally {
+      button.disabled = false;
+    }
+  });
 
-  if (password !== $('#signupConfirm').value) {
-    $('#signupError').textContent = "Passwords don't match.";
-    return;
-  }
-  if (password.length < 8) {
-    $('#signupError').textContent = 'Password must be at least 8 characters.';
-    return;
-  }
+  $('#logoutButton')?.addEventListener('click', async () => {
+    try { await authFetch('/api/logout', { method: 'POST' }); } catch (_) {}
+    sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(CONV_KEY);
+    state.token = null;
+    state.conversations = {};
+    state.activeId = null;
+    state.history = [];
+    showLogin();
+  });
+}
 
-  $('#signupSubmit').disabled = true;
+async function validateExistingSession() {
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  if (!token) { showLogin(); return; }
+  state.token = token;
   try {
-    const r = await fetch('/api/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || 'Could not create account.');
-    state.token = data.token;
-    sessionStorage.setItem(TOKEN_KEY, data.token);
+    const response = await authFetch('/api/me');
+    if (!response.ok) throw new Error('Session invalid');
     showApp();
-  } catch (err) {
-    $('#signupError').textContent = err.message;
-  } finally {
-    $('#signupSubmit').disabled = false;
+  } catch (_) {
+    sessionStorage.removeItem(TOKEN_KEY);
+    state.token = null;
+    showLogin();
   }
-});
+}
 
-$('#logoutButton').addEventListener('click', async () => {
-  try { await authFetch('/api/logout', { method: 'POST' }); } catch (e) { /* best-effort */ }
-  sessionStorage.removeItem(TOKEN_KEY);
-  sessionStorage.removeItem(CONV_KEY);
-  state.token = null;
-  state.conversations = {};
-  state.activeId = null;
-  state.history = [];
-  showLogin();
-});
+attachAuthHandlers();
+validateExistingSession();
 
 // ---- Config / model list -------------------------------------------------
 async function loadConfig() {

@@ -3,7 +3,7 @@ const Hub = (() => {
   let taskFilter = 'all';
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-  const token = () => sessionStorage.getItem('forge.token') || '';
+  const token = () => sessionStorage.getItem('rianai.gen2.token') || '';
   const auth = (url, opts={}) => fetch(url, { ...opts, headers:{'Content-Type':'application/json','Authorization':`Bearer ${token()}`,...(opts.headers||{})} });
   const toast = msg => { const el=$('#toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(window._toast); window._toast=setTimeout(()=>el.classList.remove('show'),2400); };
   const formatDate = d => { if(!d) return 'No date'; const x=new Date(d+'T12:00:00'); return isNaN(x)?d:x.toLocaleDateString('en-GB',{day:'numeric',month:'short'}); };
@@ -13,7 +13,7 @@ const Hub = (() => {
 
   async function load(){
     const r=await auth('/api/student');
-    if(r.status===401){ sessionStorage.removeItem('forge.token'); location.reload(); return; }
+    if(r.status===401){ sessionStorage.removeItem('rianai.gen2.token'); return; }
     const j=await r.json(); data=j.student||data;
     renderAll();
   }
