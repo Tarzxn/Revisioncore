@@ -8,9 +8,9 @@ The existing Render deployment contract is preserved: `pip install -r requiremen
 
 ---
 
-# Rian AI Gen 2 (Gen 2)
+# Rian AI Gen 2 Built In (Gen 2)
 
-Rian AI Gen 2 is a Flask-based AI build workspace with a ChatGPT-style chat interface: sign in, describe what to create, watch the reply stream in live, then download the generated files as a ZIP. It runs on **Ollama Cloud** (https://ollama.com) for text/code, **Pollinations.ai** for images, and optionally **Tavily** for live web search — all server-authenticated, so nothing but your own Rian AI Gen 2 login is entered in the browser.
+Rian AI Gen 2 Built In is a Flask-based AI build workspace with a ChatGPT-style chat interface: sign in, describe what to create, watch the reply stream in live, then download the generated files as a ZIP. It runs on **Ollama Cloud** (https://ollama.com) for text/code, **Pollinations.ai** for images, and optionally **Tavily** for live web search — all server-authenticated, so nothing but your own Rian AI Gen 2 Built In login is entered in the browser.
 
 ## Look and feel
 
@@ -18,7 +18,7 @@ The UI uses a "liquid glass" style: translucent, blurred panels (sidebar, header
 
 ## Chat architecture
 
-- **Real token streaming.** Replies appear live, word by word, as the model generates them — Rian AI Gen 2 incrementally decodes the `"reply"` field straight out of the model's still-in-progress JSON output (a small custom streaming-JSON-string parser), so you see text immediately instead of waiting for the whole generation (which, for a file-heavy request, can take a while). Verified correct against Python's own JSON decoder across chunk boundaries that split mid-escape-sequence, mid-unicode-escape, and mid-key.
+- **Real token streaming.** Replies appear live, word by word, as the model generates them — Rian AI Gen 2 Built In incrementally decodes the `"reply"` field straight out of the model's still-in-progress JSON output (a small custom streaming-JSON-string parser), so you see text immediately instead of waiting for the whole generation (which, for a file-heavy request, can take a while). Verified correct against Python's own JSON decoder across chunk boundaries that split mid-escape-sequence, mid-unicode-escape, and mid-key.
 - **Power level** (Low/Medium/High/Max, in the composer) controls how much reasoning effort the model spends before answering, mapped to Ollama's native "think" parameter plus a scaled token budget — the model's reasoning streams live as a collapsible "Thinking…" trace above the reply. 3D-modeling requests are detected automatically and forced to the strongest available model at Max effort regardless of the selected model/power, since build quality there is directly limited by model capability.
 - **Stop generating** mid-stream — the send button becomes a Stop button; any text that had already streamed in is kept rather than thrown away.
 - **Regenerate** any assistant reply (not just the latest) — drops it and everything after it, then re-asks the same prompt.
@@ -28,19 +28,19 @@ The UI uses a "liquid glass" style: translucent, blurred panels (sidebar, header
 
 ## Authentication
 
-Rian AI Gen 2 sits behind a login screen, with self-service account creation:
+Rian AI Gen 2 Built In sits behind a login screen, with self-service account creation:
 
 - **Accounts persist**, sessions don't. Usernames and password hashes (via Werkzeug's `generate_password_hash`, never plaintext) are saved to a small JSON file on disk (`USERS_FILE`, default `data/users.json`), and optionally also synced to a private GitHub Gist for free (see below) — either way, people don't have to re-register every time the server restarts. Being logged *in*, and conversation history, are the opposite: session tokens live only in an in-memory dict (wiped on restart) and conversation history lives in the browser's `sessionStorage` — both gone the moment the tab/browser closes or the server restarts.
 - **No cookies, ever.** The server never sets one. On login/signup it hands back an opaque bearer token, which the browser holds in `sessionStorage` (not `localStorage`) and sends explicitly (`Authorization: Bearer ...`) on every request. There is no mechanism for a returning visitor to be silently auto-logged-in.
-- **Creating the first account.** There's no hardcoded default login. The first time you open Rian AI Gen 2 with zero accounts on the server, signing in automatically offers "Create one" — fill in a username and an 8+ character password and you're in. You can also seed a standing account via env vars (see below) instead, e.g. for automated deployments.
-- **Optional seed account.** Set `RIAN_USERNAME` + `RIAN_PASSWORD` to have Rian AI Gen 2 create that account automatically on startup (matches how earlier versions of this app worked, before self-signup existed). Being an env var, this one always survives redeploys on any host, disk or not.
+- **Creating the first account.** There's no hardcoded default login. The first time you open Rian AI Gen 2 Built In with zero accounts on the server, signing in automatically offers "Create one" — fill in a username and an 8+ character password and you're in. You can also seed a standing account via env vars (see below) instead, e.g. for automated deployments.
+- **Optional seed account.** Set `RIAN_USERNAME` + `RIAN_PASSWORD` to have Rian AI Gen 2 Built In create that account automatically on startup (matches how earlier versions of this app worked, before self-signup existed). Being an env var, this one always survives redeploys on any host, disk or not.
 
 ### Making self-signup accounts survive redeploys for free
 
-Hosts like Render's free tier don't offer a persistent disk at all, so `data/users.json` alone gets wiped on every redeploy there. Rather than requiring a paid plan, Rian AI Gen 2 can sync accounts to a **private GitHub Gist** instead — free, and you likely already have a GitHub account, so there's nothing new to sign up for:
+Hosts like Render's free tier don't offer a persistent disk at all, so `data/users.json` alone gets wiped on every redeploy there. Rather than requiring a paid plan, Rian AI Gen 2 Built In can sync accounts to a **private GitHub Gist** instead — free, and you likely already have a GitHub account, so there's nothing new to sign up for:
 
 1. Create a personal access token at https://github.com/settings/tokens with just the `gist` scope, and set it as `GITHUB_TOKEN`.
-2. Leave `GITHUB_GIST_ID` unset for the very first boot — Rian AI Gen 2 creates a new private gist automatically and prints its ID in the startup logs (`[Rian AI Gen 2] Created a private gist for account storage: <id>`).
+2. Leave `GITHUB_GIST_ID` unset for the very first boot — Rian AI Gen 2 Built In creates a new private gist automatically and prints its ID in the startup logs (`[Rian AI Gen 2 Built In] Created a private gist for account storage: <id>`).
 3. Copy that ID into a `GITHUB_GIST_ID` env var and redeploy. From then on every account (self-signup or seeded) is synced to that same gist, and survives every future redeploy — the disk being ephemeral no longer matters.
 
 This is layered on top of the local file, not a replacement for it: every write still saves locally too, and any GitHub failure (unset token, network hiccup, bad ID) is caught and silently falls back to the local file — a login can never fail *because* Gist sync had a problem. If you'd rather use a real paid persistent disk instead, that still works too: just don't set `GITHUB_TOKEN`/`GITHUB_GIST_ID`, and attach a disk mounted at `data/` in the Render dashboard (or `render.yaml`) on a paid plan.
@@ -63,10 +63,10 @@ All generated paths are restricted to a per-request workspace and delivered as a
 
 ## Models
 
-Rian AI Gen 2 deliberately sticks to Ollama's own `gpt-oss` family rather than third-party cloud models (Qwen, DeepSeek, etc.) whose Ollama Cloud offerings churn heavily — DeepSeek's alone has been retired and replaced multiple times (v3.1 → v4-flash → v4-pro) in the time this app has existed. `gpt-oss` has stayed stable:
+Rian AI Gen 2 Built In deliberately sticks to Ollama's own `gpt-oss` family rather than third-party cloud models (Qwen, DeepSeek, etc.) whose Ollama Cloud offerings churn heavily — DeepSeek's alone has been retired and replaced multiple times (v3.1 → v4-flash → v4-pro) in the time this app has existed. `gpt-oss` has stayed stable:
 
 - **GPT-OSS 20B** (default) — fast, capable, and the best balance of speed vs. quality for interactive use.
-- GPT-OSS 120B — larger, slower, stronger reasoning; also what Rian AI Gen 2 auto-switches to for 3D-modeling requests (see below).
+- GPT-OSS 120B — larger, slower, stronger reasoning; also what Rian AI Gen 2 Built In auto-switches to for 3D-modeling requests (see below).
 
 ## Run locally
 
@@ -77,7 +77,7 @@ Rian AI Gen 2 deliberately sticks to Ollama's own `gpt-oss` family rather than t
    export RIAN_USERNAME="admin"
    export RIAN_PASSWORD="choose-a-real-password"
    ```
-4. Rian AI Gen 2 ships with an Ollama Cloud API key already set as the default in `app.py`, so text/code/file generation works immediately once you've logged in. To use a different key, set it in the environment instead — it overrides the built-in default:
+4. Rian AI Gen 2 Built In ships with an Ollama Cloud API key already set as the default in `app.py`, so text/code/file generation works immediately once you've logged in. To use a different key, set it in the environment instead — it overrides the built-in default:
    ```
    export OLLAMA_API_KEY="<your-ollama-cloud-api-key>"
    ```
@@ -91,8 +91,17 @@ Rian AI Gen 2 deliberately sticks to Ollama's own `gpt-oss` family rather than t
 
 Push this directory to a Git repository and create a Render Blueprint from it (or a Python Web Service with the commands in `render.yaml`) — this now works fully on the **free plan**, no paid disk required. Set `OLLAMA_API_KEY` if you want to use a key other than the one built into `app.py`, and optionally `RIAN_USERNAME`/`RIAN_PASSWORD` (seed account) and `GITHUB_TOKEN`/`GITHUB_GIST_ID` (free account persistence across redeploys — see the Authentication section above for setup) — all declared as non-synced secrets in `render.yaml`. `render.yaml` and `gunicorn.conf.py` both set a longer worker timeout (300s) since Ollama Cloud generations — especially file-heavy ones — routinely exceed gunicorn's 30s default, and use threaded (`gthread`) workers so one process can serve several concurrent streaming chats instead of a single request occupying a whole worker.
 
-**On accounts surviving redeploys**: without `GITHUB_TOKEN`/`GITHUB_GIST_ID` configured, self-signup accounts live only in `data/users.json` on Render's ephemeral disk and are lost on every redeploy — only the env-var seed account (`RIAN_USERNAME`/`RIAN_PASSWORD`) is guaranteed to survive on the free plan, since Render never wipes env vars. Set up Gist sync (free, five minutes, see above) to make *every* account — including ones created via self-signup — survive redeploys too. On startup Rian AI Gen 2 logs how many accounts it loaded, and whether Gist sync is active, so a drop back to 0 accounts after a redeploy is easy to spot. Generated files remain intentionally ephemeral either way — pruned after 2 hours regardless.
+**On accounts surviving redeploys**: without `GITHUB_TOKEN`/`GITHUB_GIST_ID` configured, self-signup accounts live only in `data/users.json` on Render's ephemeral disk and are lost on every redeploy — only the env-var seed account (`RIAN_USERNAME`/`RIAN_PASSWORD`) is guaranteed to survive on the free plan, since Render never wipes env vars. Set up Gist sync (free, five minutes, see above) to make *every* account — including ones created via self-signup — survive redeploys too. On startup Rian AI Gen 2 Built In logs how many accounts it loaded, and whether Gist sync is active, so a drop back to 0 accounts after a redeploy is easy to spot. Generated files remain intentionally ephemeral either way — pruned after 2 hours regardless.
 
 ## Security and privacy
 
 **Ollama is configured server-side. Set `OLLAMA_API_KEY` in Render; it is never sent to the browser or stored in frontend code.**
+
+
+## Login loop prevention
+
+The login and signup controls do not use native browser form submission. They use explicit JavaScript requests, so a stale or interrupted frontend script cannot trigger a POST-and-reload loop. HTML, JavaScript and CSS responses are also marked `no-store` to prevent an older authentication bundle being reused after a Render deployment.
+
+## AI backend
+
+The built-in assistant uses Ollama through the server-side `OLLAMA_API_KEY`. No Puter.js dependency is used.

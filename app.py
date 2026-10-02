@@ -33,6 +33,20 @@ matplotlib.use("Agg")  # headless rendering — must be set before importing pyp
 import matplotlib.pyplot as plt
 
 app = Flask(__name__)
+
+# Never allow an old frontend bundle to survive a deployment. This is
+# particularly important for authentication: serving an older auth script
+# alongside a newer server can make the login form appear to endlessly
+# refresh/redirect. Render deployments should always receive the current
+# HTML/JS/CSS.
+@app.after_request
+def no_stale_frontend_cache(response):
+    path = request.path or ""
+    if path == "/" or path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 app.config["MAX_CONTENT_LENGTH"] = 12 * 1024 * 1024
 WORKSPACES = Path(os.environ.get("WORKSPACE_DIR", "data/workspaces"))
 WORKSPACES.mkdir(parents=True, exist_ok=True)
@@ -1202,6 +1216,22 @@ def update_student():
     for key in ("profile", "tasks", "timetable", "subjects", "quick_links", "notes"):
         if key in data:
             current[key] = data[key]
+    # Keep the student course model structured and safe for older accounts that
+    # may still contain a simple list of subject strings.
+    if isinstance(current.get("subjects"), list):
+        courses = []
+        for item in current["subjects"]:
+            if isinstance(item, str):
+                name = item.strip()
+                if name:
+                    courses.append({"name": name, "course": "", "exam_board": "", "specification": "", "progress": 0})
+            elif isinstance(item, dict):
+                name = str(item.get("name", "")).strip()
+                if name:
+                    try: progress = max(0, min(100, int(float(item.get("progress", 0)))))
+                    except (TypeError, ValueError): progress = 0
+                    courses.append({"name": name[:120], "course": str(item.get("course", "")).strip()[:120], "exam_board": str(item.get("exam_board", item.get("examBoard", ""))).strip()[:80], "specification": str(item.get("specification", item.get("spec_link", ""))).strip()[:500], "progress": progress})
+        current["subjects"] = courses
     if not _save_student(username, current):
         return jsonify(error="Could not save student data."), 500
     return jsonify(ok=True, student=current)

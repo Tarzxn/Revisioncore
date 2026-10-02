@@ -20,20 +20,20 @@
     </div>
     <div class="login-card glass">
       <div class="login-icon">R</div>
-      <form id="loginForm" class="auth-form">
+      <form id="loginForm" class="auth-form" onsubmit="return false;" novalidate>
         <div class="auth-kicker">WELCOME BACK</div><h2>Sign in</h2><p class="auth-subtitle">Use your Rian AI Gen 2 Built In account to continue.</p>
         <label>Username<input id="loginUsername" type="text" autocomplete="username" required minlength="3"></label>
         <label>Password<input id="loginPassword" type="password" autocomplete="current-password" required></label>
-        <button type="submit" id="loginSubmit">Sign in <span>→</span></button>
+        <button type="button" id="loginSubmit">Sign in <span>→</span></button>
         <p id="loginError" class="login-error" role="alert"></p>
         <p class="auth-switch">New here? <a href="#" id="toSignupLink">Create an account</a></p>
       </form>
-      <form id="signupForm" class="auth-form" hidden>
+      <form id="signupForm" class="auth-form" hidden onsubmit="return false;" novalidate>
         <div class="auth-kicker">GET STARTED</div><h2>Create your account</h2><p class="auth-subtitle">Your password is securely hashed before it is stored.</p>
         <label>Username<input id="signupUsername" type="text" autocomplete="username" required minlength="3" maxlength="32"></label>
         <label>Password<input id="signupPassword" type="password" autocomplete="new-password" required minlength="8"></label>
         <label>Confirm password<input id="signupConfirm" type="password" autocomplete="new-password" required minlength="8"></label>
-        <button type="submit" id="signupSubmit">Create account <span>→</span></button>
+        <button type="button" id="signupSubmit">Create account <span>→</span></button>
         <p id="signupError" class="login-error" role="alert"></p>
         <p class="auth-switch">Already have an account? <a href="#" id="toLoginLink">Sign in</a></p>
       </form>
@@ -92,13 +92,13 @@
 
       <section class="view" id="view-assistant"><div class="legacy-ai-controls" hidden><button id="modelButton"></button><div id="modelMenu"><div id="models"></div></div><div id="recent"></div></div><div class="assistant-heading"><div><span class="eyebrow">RIAN AI GEN 2 · BUILT IN</span><h1>Rian AI Gen 2 Built In</h1><p>Built in with Ollama — explain a topic, make a quiz, plan revision or help me understand a question.</p></div></div><div class="assistant-frame glass"><div id="conversation"><div class="hero" id="hero"><div class="hero-mark">✦</div><h1>What are you studying?</h1><p class="tagline">Your on-demand study assistant</p><div class="suggestions"><button class="glass">Explain a difficult topic simply</button><button class="glass">Make me a 10-question quiz</button><button class="glass">Create a revision plan for this week</button><button class="glass">Give me an exam-style question</button></div></div></div><div class="composer-wrap"><form id="composer" class="glass"><textarea id="prompt" rows="1" placeholder="Ask your AI study assistant…"></textarea><div class="composer-actions"><button id="webSearchToggle" type="button" class="pill-toggle" disabled>⌕ Web search</button><div class="power-select" id="powerSelect"><span class="power-thumb" id="powerThumb"></span><button type="button" class="power-option" data-power="low" data-index="0">Low</button><button type="button" class="power-option active" data-power="medium" data-index="1">Medium</button><button type="button" class="power-option" data-power="high" data-index="2">High</button><button type="button" class="power-option" data-power="max" data-index="3">Max</button></div><span class="composer-hint">Use AI to learn, not just copy.</span><button id="send" type="submit" aria-label="Send">↑</button></div></form><p class="notice">AI answers can be wrong. Check important facts and your school's marking guidance.</p></div></div></section>
 
-      <section class="view" id="view-settings"><div class="section-title"><div><span class="eyebrow">PERSONALISE</span><h1>Settings</h1><p>Set your details and links once; they are saved to your account.</p></div><button class="primary-button" id="saveSettings">Save changes</button></div><div class="settings-grid"><article class="panel glass settings-card"><h3>Profile</h3><label>Display name<input id="settingName" placeholder="e.g. Alex"></label><label>Year group<input id="settingYear" placeholder="e.g. Year 11"></label><label>School / college<input id="settingSchool" placeholder="Optional"></label></article><article class="panel glass settings-card"><h3>Quick links</h3><p class="setting-note">One link per line in the format <code>Name | https://example.com</code>.</p><textarea id="settingLinks" rows="9" placeholder="Google Classroom | https://classroom.google.com"></textarea></article><article class="panel glass settings-card full"><h3>Subjects</h3><p class="setting-note">Separate subjects with commas. You can add more from the Revision page.</p><input id="settingSubjects" placeholder="English, Maths, Biology"></article></div><p id="settingsMessage" class="save-message"></p></section>
+      <section class="view" id="view-settings"><div class="section-title"><div><span class="eyebrow">PERSONALISE</span><h1>Settings</h1><p>Set your details and links once; they are saved to your account.</p></div><button class="primary-button" id="saveSettings">Save changes</button></div><div class="settings-grid"><article class="panel glass settings-card"><h3>Profile</h3><label>Display name<input id="settingName" placeholder="e.g. Alex"></label><label>Year group<input id="settingYear" placeholder="e.g. Year 11"></label><label>School / college<input id="settingSchool" placeholder="Optional"></label></article><article class="panel glass settings-card"><div class="settings-card-head"><div><h3>Quick links</h3><p class="setting-note">Add your school services without typing special formats.</p></div><button class="small-button" type="button" id="addQuickLink">＋ Add link</button></div><div id="quickLinkEditor" class="editor-list"></div></article><article class="panel glass settings-card full"><div class="settings-card-head"><div><h3>Courses & subjects</h3><p class="setting-note">Build your courses here. Choose the exam board, add the specification, and track how far through the course you are.</p></div><button class="small-button" type="button" id="addCourse">＋ Add course</button></div><div id="courseEditor" class="course-editor"></div></article></div><p id="settingsMessage" class="save-message"></p></section>
     </div>
   </main>
 </div>
 
 <div id="modal" class="modal" hidden><div class="modal-card glass"><button class="modal-close" id="modalClose">×</button><div id="modalContent"></div></div></div>
 <div id="toast" class="toast" role="status"></div>
-<script src="{{ url_for('static', filename='app.js') }}?v=gen2"></script>
-<script src="{{ url_for('static', filename='hub.js') }}?v=gen2"></script>
+<script src="{{ url_for('static', filename='app.js') }}?v=rian-20261002-4"></script>
+<script src="{{ url_for('static', filename='hub.js') }}?v=rian-20261002-4"></script>
 </body></html>

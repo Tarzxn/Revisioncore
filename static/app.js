@@ -11,6 +11,8 @@ const HERO_HTML = $('#hero') ? $('#hero').outerHTML : '';
 // every request explicitly carries the token itself.
 const CONV_KEY = 'rianai.gen2.conversations';
 const TOKEN_KEY = 'rianai.gen2.token';
+let authHandlersAttached = false;
+let appInitialized = false;
 
 const state = {
   model: 'gpt-oss:20b',
@@ -312,18 +314,20 @@ async function authFetch(url, opts = {}) {
   if (response.status === 401 && state.token) {
     sessionStorage.removeItem(TOKEN_KEY);
     state.token = null;
-    showLogin('Your session expired. Please sign in again.');
+    if (!url.endsWith('/api/me')) showLogin('Your session expired. Please sign in again.');
   }
   return response;
 }
 
 function showApp() {
   document.body.classList.remove('logged-out');
+  document.body.classList.add('logged-in');
   initApp();
 }
 
 function showLogin(message = '') {
   document.body.classList.add('logged-out');
+  document.body.classList.remove('logged-in');
   setAuthMode('login');
   const error = $('#loginError');
   if (error) error.textContent = message;
@@ -345,22 +349,25 @@ function readJsonSafely(response) {
 }
 
 function attachAuthHandlers() {
+  if (authHandlersAttached) return;
+  authHandlersAttached = true;
+
   $('#toSignupLink')?.addEventListener('click', (e) => { e.preventDefault(); setAuthMode('signup'); });
   $('#toLoginLink')?.addEventListener('click', (e) => { e.preventDefault(); setAuthMode('login'); });
 
-  $('#loginForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+  async function performLogin() {
     const username = $('#loginUsername').value.trim();
     const password = $('#loginPassword').value;
     const errorBox = $('#loginError');
     const button = $('#loginSubmit');
+    if (!username || !password) { errorBox.textContent = 'Enter your username and password.'; return; }
     errorBox.textContent = '';
     button.disabled = true;
     try {
       const r = await fetch('/api/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Cache-Control': 'no-store' },
+        cache: 'no-store',
         credentials: 'same-origin',
         body: JSON.stringify({ username, password }),
       });
@@ -383,24 +390,24 @@ function attachAuthHandlers() {
     } finally {
       button.disabled = false;
     }
-  });
+  }
 
-  $('#signupForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+  async function performSignup() {
     const username = $('#signupUsername').value.trim();
     const password = $('#signupPassword').value;
     const confirm = $('#signupConfirm').value;
     const errorBox = $('#signupError');
     const button = $('#signupSubmit');
     errorBox.textContent = '';
+    if (!username) { errorBox.textContent = 'Choose a username.'; return; }
     if (password !== confirm) { errorBox.textContent = "Passwords don't match."; return; }
     if (password.length < 8) { errorBox.textContent = 'Password must be at least 8 characters.'; return; }
     button.disabled = true;
     try {
       const r = await fetch('/api/signup', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Cache-Control': 'no-store' },
+        cache: 'no-store',
         credentials: 'same-origin',
         body: JSON.stringify({ username, password }),
       });
@@ -415,6 +422,19 @@ function attachAuthHandlers() {
     } finally {
       button.disabled = false;
     }
+  }
+
+  // The auth controls deliberately use type="button" rather than native form
+  // submission. That makes a missing/stale browser script incapable of causing
+  // the browser's default POST + document reload loop. Enter still works via
+  // these key handlers.
+  $('#loginSubmit')?.addEventListener('click', performLogin);
+  $('#signupSubmit')?.addEventListener('click', performSignup);
+  $('#loginForm')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); performLogin(); }
+  });
+  $('#signupForm')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); performSignup(); }
   });
 
   $('#logoutButton')?.addEventListener('click', async () => {
@@ -709,6 +729,8 @@ promptEl.addEventListener('keydown', (e) => {
 });
 
 function initApp() {
+  if (appInitialized) return;
+  appInitialized = true;
   state.conversations = loadConversations();
   const mostRecent = Object.values(state.conversations).filter(c => c.messages.length > 0).sort((a, b) => b.updatedAt - a.updatedAt)[0];
   if (mostRecent) {
