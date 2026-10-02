@@ -5,7 +5,7 @@
 # requests, a web-search pass first, or High/Max reasoning effort on the
 # largest model) can take well over gunicorn's 30s default, which otherwise
 # kills the worker mid-request and makes the platform's proxy return an HTML
-# error page instead of Forge's own JSON error response. Kept above app.py's
+# error page instead of Rian AI Gen 2's own JSON error response. Kept above app.py's
 # own request timeout (up to 280s at High/Max power) so gunicorn never wins
 # that race.
 #

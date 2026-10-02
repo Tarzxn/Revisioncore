@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: forge-ollama-cloud
+    name: rian-ai-gen-2
     runtime: python
     # No "plan" pinned and no persistent disk here on purpose — accounts
     # persist for free via the optional GitHub Gist sync below (GITHUB_TOKEN
@@ -18,9 +18,9 @@ services:
         sync: false
       - key: TAVILY_API_KEY
         sync: false
-      - key: FORGE_USERNAME
+      - key: RIAN_USERNAME
         sync: false
-      - key: FORGE_PASSWORD
+      - key: RIAN_PASSWORD
         sync: false
       - key: GITHUB_TOKEN
         sync: false

@@ -1,4 +1,4 @@
-"""Forge (Gen 2) — an Ollama Cloud-powered, downloadable file workspace."""
+"""Rian AI Gen 2 — a built-in Ollama-powered student hub."""
 import base64
 import io
 import json
@@ -50,8 +50,8 @@ WORKSPACE_MAX_AGE_SECONDS = 2 * 60 * 60  # ephemeral disk: prune old workspaces 
 #    sends it explicitly on every request. There is no mechanism for a
 #    returning visitor to be silently auto-logged-in.
 USERS_FILE = Path(os.environ.get("USERS_FILE", "data/users.json"))
-FORGE_USERNAME = os.environ.get("FORGE_USERNAME", "").strip()  # optional seed account, see seed_admin_account()
-FORGE_PASSWORD = os.environ.get("FORGE_PASSWORD", "").strip()
+FORGE_USERNAME = os.environ.get("RIAN_USERNAME", os.environ.get("FORGE_USERNAME", "")).strip()  # optional seed account, see seed_admin_account()
+FORGE_PASSWORD = os.environ.get("RIAN_PASSWORD", os.environ.get("FORGE_PASSWORD", "")).strip()
 SESSION_TOKENS = {}  # token -> expiry unix timestamp
 SESSION_USERS = {}   # token -> username (same in-memory lifetime as the token)
 _session_lock = threading.Lock()  # gthread workers mean real concurrent threads touch this dict now
@@ -69,7 +69,7 @@ _users_lock = threading.Lock()  # gunicorn now runs with gthread workers, so con
 # unset token never breaks login.
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "").strip()
 GITHUB_GIST_ID = os.environ.get("GITHUB_GIST_ID", "").strip()
-GITHUB_GIST_FILENAME = "forge_users.json"
+GITHUB_GIST_FILENAME = "rian_ai_gen2_users.json"
 GITHUB_API_VERSION = "2022-11-28"
 
 
@@ -105,7 +105,7 @@ def _gist_save(users):
             timeout=10,
         )
     except requests.RequestException as error:
-        print(f"[Forge] Warning: could not sync accounts to GitHub Gist: {error}")
+        print(f"[Rian AI Gen 2] Warning: could not sync accounts to GitHub Gist: {error}")
 
 
 def _gist_create_if_needed():
@@ -119,17 +119,17 @@ def _gist_create_if_needed():
         response = requests.post(
             "https://api.github.com/gists",
             headers=_github_headers(),
-            json={"description": "Forge account store — do not edit by hand", "public": False,
+            json={"description": "Rian AI Gen 2 account store — do not edit by hand", "public": False,
                   "files": {GITHUB_GIST_FILENAME: {"content": "{}"}}},
             timeout=10,
         )
         response.raise_for_status()
         GITHUB_GIST_ID = response.json()["id"]
-        print(f"[Forge] Created a private gist for account storage: {GITHUB_GIST_ID}")
-        print(f"[Forge] IMPORTANT: set GITHUB_GIST_ID={GITHUB_GIST_ID} as an env var now — "
+        print(f"[Rian AI Gen 2] Created a private gist for account storage: {GITHUB_GIST_ID}")
+        print(f"[Rian AI Gen 2] IMPORTANT: set GITHUB_GIST_ID={GITHUB_GIST_ID} as an env var now — "
               f"without it, the next restart creates a new, empty gist instead of reusing this one.")
     except (requests.RequestException, KeyError, ValueError) as error:
-        print(f"[Forge] Warning: could not create a gist for account storage: {error}. Falling back to local-file-only persistence.")
+        print(f"[Rian AI Gen 2] Warning: could not create a gist for account storage: {error}. Falling back to local-file-only persistence.")
 
 
 def load_users():
@@ -173,7 +173,7 @@ seed_admin_account()
 # restart even though people have signed up, accounts aren't actually
 # persisting (no GitHub sync configured and USERS_FILE isn't on persistent
 # storage — e.g. a Render free-tier service with no disk attached).
-print(f"[Forge] {len(load_users())} account(s) loaded"
+print(f"[Rian AI Gen 2] {len(load_users())} account(s) loaded"
       f"{' (synced via GitHub Gist ' + GITHUB_GIST_ID + ')' if GITHUB_TOKEN and GITHUB_GIST_ID else f' from {USERS_FILE.resolve()}'}")
 
 
@@ -255,7 +255,7 @@ IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}
 # MODELS) supports: bool or "low"/"medium"/"high" (GPT-OSS specifically
 # always reasons at least a little regardless of the boolean value — "Low"
 # still gets the smallest token budget and skips the explicit higher levels).
-# There's no official "max" level at the Ollama API — Forge's "Max" instead
+# There's no official "max" level at the Ollama API — Rian AI Gen 2's "Max" instead
 # combines "high" thinking with the largest token budget and (for 3D
 # requests specifically) the largest model, which is the actual lever
 # available for going further than "High".
@@ -279,7 +279,7 @@ def looks_like_3d_request(prompt):
     output type here where model capability directly limits build quality."""
     return bool(_3D_REQUEST_PATTERN.search(prompt))
 
-SYSTEM = '''You are Forge, an expert software and artifact builder. Turn the request into a concise response plus files. Respond with ONLY valid JSON, no prose before or after it, no markdown code fences, using this schema:
+SYSTEM = '''You are Rian AI Gen 2, an expert AI study and software assistant. Turn the request into a concise response plus files. Respond with ONLY valid JSON, no prose before or after it, no markdown code fences, using this schema:
 {"reply":"short helpful Markdown response","files":[{"path":"safe relative filename.ext","kind":"text|docx|xlsx|pptx|pdf|stl|image|chart|base64","content":"content for artifact"}]}
 Create useful, complete files. Use text for code, HTML, CSS, JSON, CSV, SVG (vector images), Markdown and arbitrary plain text.
 
@@ -289,7 +289,7 @@ For pptx, content is JSON slides like [{"title":"...","body":"one bullet per lin
 For a raster/photographic or artistic image, use kind "image" with a .png/.jpg path. content is either a plain English image-generation prompt, or JSON {"prompt":"...","aspect":"square|portrait|landscape"} for more control over framing — use vivid, specific, detailed prompts.
 For an actual DATA chart (bar/line/pie/scatter of real numbers) rather than an artistic picture, use kind "chart" with a .png path. content is JSON: {"type":"bar|line|pie|scatter","title":"...","x_label":"...","y_label":"...","labels":["A","B","C"],"series":[{"name":"Series 1","values":[1,2,3]}]}. Use "chart" whenever the user wants to see numbers plotted — it renders a real, accurate chart from the data instead of an AI-generated approximation of one.
 
-For a 3D model, use kind "stl" with a .stl path. Take real time to think this through — you are the CAD engineer: mentally model the object as an assembly of real, distinct parts and their spatial relationships before writing anything. content is JSON describing a BUILD PROGRAM that Forge parses and executes step by step:
+For a 3D model, use kind "stl" with a .stl path. Take real time to think this through — you are the CAD engineer: mentally model the object as an assembly of real, distinct parts and their spatial relationships before writing anything. content is JSON describing a BUILD PROGRAM that Rian AI Gen 2 parses and executes step by step:
 {"plan":"a few sentences: what real-world parts does this object have, roughly what size is each, and how do they connect/align?","ops":[
   {"op":"add","shape":"box|sphere|cylinder|cone|torus|tube|capsule|wedge|pyramid","size":20,"radius":10,"height":20,"tube":4,"segments":16,"position":[x,y,z],"rotation":[rx,ry,rz],"scale":[sx,sy,sz]},
   {"op":"repeat","count":6,"rotate":[0,0,60],"around":[0,0,0]}
@@ -298,7 +298,7 @@ Shape params — "box": size [w,d,h] (or one number for a cube); optionally add 
 Every shape is centered on its own local origin, then: scaled by "scale" [sx,sy,sz] (stretch into an ellipsoid, plank, etc.), rotated by "rotation" [rx,ry,rz] degrees (X then Y then Z, e.g. tilt a fin or lay a cylinder on its side), then moved to "position" [x,y,z]. All optional, default no scale/rotation, position [0,0,0].
 "repeat" duplicates the shape from the immediately preceding "add" "count"-1 more times: "rotate":[rx,ry,rz] rotates each successive copy further around the "around" pivot (default world origin) — radial patterns (gear teeth, wheel spokes, flower petals, fins around a body). "translate":[dx,dy,dz] offsets each successive copy further along that vector — linear patterns (fence posts, stair treads, table legs, shelf slats, a row of mounting holes). Combine both for a spiral/helix.
 "mirror" reflects the immediately preceding "add" across an axis-aligned plane through the origin (or through "offset" along that axis): {"op":"mirror","axis":"x|y|z","offset":0} — use for symmetric designs (matched wings, a hull's two sides, paired brackets) instead of specifying both halves by hand.
-There is deliberately no general subtract/union/intersect between arbitrary shapes — Forge tried a general boolean engine and it produced subtly broken (self-intersecting) geometry on realistic shapes during testing, so it was removed rather than shipped unreliable. Work within what's actually available: "bore" for holes through a box, "tube" for hollow cylinders/pipes/rings, overlapping "add"s for anything that reads fine as visually-merged solids (most non-precision parts don't need true CSG to look and print correctly).
+There is deliberately no general subtract/union/intersect between arbitrary shapes — Rian AI Gen 2 tried a general boolean engine and it produced subtly broken (self-intersecting) geometry on realistic shapes during testing, so it was removed rather than shipped unreliable. Work within what's actually available: "bore" for holes through a box, "tube" for hollow cylinders/pipes/rings, overlapping "add"s for anything that reads fine as visually-merged solids (most non-precision parts don't need true CSG to look and print correctly).
 Design like an engineer, not an illustrator: before writing ops, work out in "plan" what the real object is made of (its distinct functional parts), roughly how big each one is relative to the others, and exactly how they align and connect (shared axis, shared face, a specific offset) — vague ops with parts floating unconnected or wildly mismatched in scale are the main way these builds go wrong. Build real objects from several parts (roughly 6-20 ops is normal for something detailed) — e.g. a mug = a "tube" body + a "torus" or bent-"capsule" handle positioned at the side; a table = one flat box top + 4 cylinder legs via one add + one repeat with translate; a gear = a short cylinder body + one tooth box at its edge + a repeat rotating around the center; a rocket = a cylinder body + a cone nose + a capsule or sphere tip + fin boxes via one add + a radial repeat; a bracket = a box with a "bore" for its mounting hole. Prefer the shape that is actually hollow/rounded/holed when the real object is (a cup or pipe should be a "tube" not a solid cylinder; a pill or rounded handle should be a "capsule" not a box; a mounting plate should use "bore" not a solid slab). Keep coordinates within roughly -200..200. If one of your ops is invalid Forge will skip just that piece and keep the rest, so don't let one uncertain part stop you from building the others.
 
 Use base64 only for true binary payloads that don't fit the kinds above. If the request only needs a text answer, return an empty files list. Never use absolute paths, traversal, or more than 12 files.'''
@@ -401,7 +401,7 @@ def safe_path(value):
 
 # ---- Parametric solid-build engine for the "stl" kind ---------------------
 # Rather than trust free models to emit raw, hand-rolled vertex/face lists
-# (which are easy to get non-manifold or malformed), Forge exposes a small
+# (which are easy to get non-manifold or malformed), Rian AI Gen 2 exposes a small
 # instruction set — add a primitive, repeat it with a rotation/translation —
 # and executes that program itself. The model writes the build steps; Forge
 # turns them into real, valid geometry.
@@ -776,7 +776,7 @@ def run_stl_program(spec):
 
 
 def render_ascii_stl(triangles):
-    lines = ["solid forge"]
+    lines = ["solid rian_ai_gen2"]
     for a, b, c in triangles:
         ax, ay, az = a; bx, by, bz = b; cx, cy, cz = c
         ux, uy, uz = bx-ax, by-ay, bz-az
@@ -786,7 +786,7 @@ def render_ascii_stl(triangles):
         lines += [f" facet normal {nx/length:.6f} {ny/length:.6f} {nz/length:.6f}", "  outer loop"]
         lines += [f"   vertex {p[0]:.4f} {p[1]:.4f} {p[2]:.4f}" for p in (a, b, c)]
         lines += ["  endloop", " endfacet"]
-    lines.append("endsolid forge")
+    lines.append("endsolid rian_ai_gen2")
     return "\n".join(lines)
 
 
@@ -1277,7 +1277,7 @@ def config():
 @require_auth
 def chat():
     if not OLLAMA_API_KEY:
-        return jsonify(error="Forge isn't configured yet: set the OLLAMA_API_KEY environment variable on the server to an Ollama Cloud API key (ollama.com/settings/keys), then restart."), 500
+        return jsonify(error="Rian AI Gen 2 isn't configured yet: set the OLLAMA_API_KEY environment variable on the server to an Ollama Cloud API key (ollama.com/settings/keys), then restart."), 500
     # get_json(force=True) raises Flask's own HTML 400 page on a malformed
     # body, which broke the frontend's JSON parsing. silent=True + a manual
     # check keeps every response on this route JSON, even for bad input.
@@ -1429,7 +1429,7 @@ def download(workspace_id):
         for file in root.rglob("*"):
             if file.is_file(): archive.write(file, file.relative_to(root))
     payload.seek(0)
-    return send_file(payload, as_attachment=True, download_name=f"forge-{workspace_id[:8]}.zip", mimetype="application/zip")
+    return send_file(payload, as_attachment=True, download_name=f"rian-ai-gen-2-{workspace_id[:8]}.zip", mimetype="application/zip")
 
 
 def resolve_workspace_file(workspace_id, filename):

@@ -1,0 +1,77 @@
+{
+  "biology": [
+    {
+      "question": "What is photosynthesis?",
+      "options": [
+        "How plants make food",
+        "How animals breathe",
+        "Cell division",
+        "DNA replication"
+      ],
+      "correct": 0
+    },
+    {
+      "question": "Largest organ in the human body?",
+      "options": [
+        "Heart",
+        "Brain",
+        "Liver",
+        "Skin"
+      ],
+      "correct": 3
+    }
+  ],
+  "chemistry": [
+    {
+      "question": "Chemical symbol for Gold?",
+      "options": [
+        "Go",
+        "Gd",
+        "Au",
+        "Ag"
+      ],
+      "correct": 2
+    },
+    {
+      "question": "Neutral pH level?",
+      "options": [
+        "0",
+        "7",
+        "14",
+        "1"
+      ],
+      "correct": 1
+    }
+  ],
+  "physics": [
+    {
+      "question": "Gravity on Earth?",
+      "options": [
+        "9.8 m/s\u00b2",
+        "10 m/s",
+        "5 m/s\u00b2",
+        "15 m/s\u00b2"
+      ],
+      "correct": 0
+    }
+  ],
+  "maths": [
+    {
+      "question": "15% of 200?",
+      "options": [
+        "20",
+        "25",
+        "30",
+        "35"
+      ],
+      "correct": 2
+    }
+  ],
+  "computer_science": [],
+  "english": [],
+  "history": [],
+  "geography": [],
+  "french": [],
+  "spanish": [],
+  "german": []
+}

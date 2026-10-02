@@ -1,0 +1,64 @@
+{
+  "1": {
+    "last_active": "2026-09-05",
+    "streak": 1,
+    "subjects": {
+      "biology": {
+        "cards_mastered": 0,
+        "quizzes_completed": 0,
+        "score": 0
+      },
+      "chemistry": {
+        "cards_mastered": 0,
+        "quizzes_completed": 0,
+        "score": 0
+      },
+      "computer_science": {
+        "cards_mastered": 0,
+        "quizzes_completed": 0,
+        "score": 0
+      },
+      "english": {
+        "cards_mastered": 0,
+        "quizzes_completed": 0,
+        "score": 0
+      },
+      "french": {
+        "cards_mastered": 0,
+        "quizzes_completed": 0,
+        "score": 0
+      },
+      "geography": {
+        "cards_mastered": 0,
+        "quizzes_completed": 0,
+        "score": 0
+      },
+      "german": {
+        "cards_mastered": 0,
+        "quizzes_completed": 0,
+        "score": 0
+      },
+      "history": {
+        "cards_mastered": 0,
+        "quizzes_completed": 0,
+        "score": 0
+      },
+      "maths": {
+        "cards_mastered": 0,
+        "quizzes_completed": 0,
+        "score": 0
+      },
+      "physics": {
+        "cards_mastered": 0,
+        "quizzes_completed": 0,
+        "score": 0
+      },
+      "spanish": {
+        "cards_mastered": 0,
+        "quizzes_completed": 0,
+        "score": 0
+      }
+    },
+    "total_xp": 0
+  }
+}
