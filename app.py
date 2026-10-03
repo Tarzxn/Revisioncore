@@ -933,6 +933,48 @@ def update_student():
     return jsonify(ok=True, student=current)
 
 
+def _clean_course(data):
+    if not isinstance(data, dict):
+        return None, "Course data is invalid."
+    name = str(data.get("name", "")).strip()
+    course = str(data.get("course", "")).strip()
+    exam_board = str(data.get("exam_board", data.get("examBoard", ""))).strip()
+    specification = str(data.get("specification", data.get("spec_link", ""))).strip()
+    if not name:
+        return None, "Subject name is required."
+    if len(name) > 120 or len(course) > 120 or len(exam_board) > 80 or len(specification) > 500:
+        return None, "One or more course fields are too long."
+    if specification and not (specification.startswith("https://") or specification.startswith("http://")):
+        return None, "Specification link must start with http:// or https://."
+    try:
+        progress = max(0, min(100, int(float(data.get("progress", 0)))))
+    except (TypeError, ValueError):
+        return None, "Course progress must be between 0 and 100."
+    return {"id": uuid.uuid4().hex, "name": name, "course": course, "exam_board": exam_board, "specification": specification, "progress": progress}, None
+
+
+@app.post("/api/student/courses")
+@require_auth
+def add_course():
+    username = current_username()
+    _, _, record = _student_record(username)
+    if not record:
+        return jsonify(error="Account not found."), 404
+    course, error = _clean_course(request.get_json(silent=True) or {})
+    if error:
+        return jsonify(error=error), 400
+    courses = record["student"].setdefault("subjects", [])
+    # Treat the same subject + qualification as a duplicate instead of creating
+    # confusing copies. Existing courses can still be edited in Settings.
+    key = (course["name"].casefold(), course["course"].casefold())
+    if any((str(c.get("name", "")).casefold(), str(c.get("course", "")).casefold()) == key for c in courses if isinstance(c, dict)):
+        return jsonify(error="That course is already in your list."), 409
+    courses.append(course)
+    if not _save_student(username, record["student"]):
+        return jsonify(error="Could not save the course."), 500
+    return jsonify(ok=True, course=course, student=record["student"]), 201
+
+
 @app.post("/api/student/tasks")
 @require_auth
 def add_task():
