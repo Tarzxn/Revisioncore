@@ -408,6 +408,14 @@ def _sanitize_student(s, username):
             links.append({"title": title, "url": _safe_url(l["url"]), "icon": (str(l.get("icon") or title[:1]).strip() or "↗")[:2]})
     s["quick_links"] = links[:24]
     s["notes"] = str(s.get("notes") or "")[:5000]
+    # Flashcards are stored as lightweight student-owned text records.
+    cards = []
+    for c in (s.get("flashcards") if isinstance(s.get("flashcards"), list) else []):
+        if not isinstance(c, dict): continue
+        q, a = str(c.get("question") or "").strip(), str(c.get("answer") or "").strip()
+        if not q or not a: continue
+        cards.append({"id": str(c.get("id") or uuid.uuid4().hex)[:40], "deck": str(c.get("deck") or "General").strip()[:80] or "General", "subject": str(c.get("subject") or "").strip()[:80], "question": q[:1000], "answer": a[:2000], "created_at": c.get("created_at") if isinstance(c.get("created_at"), (int,float)) else time.time()})
+    s["flashcards"] = cards[:5000]
 
 
 def _default_student():
@@ -423,6 +431,7 @@ def _default_student():
             {"title": "BBC Bitesize", "url": "https://www.bbc.co.uk/bitesize", "icon": "B"},
         ],
         "notes": "",
+        "flashcards": [],
     }
 
 
@@ -553,6 +562,83 @@ def add_course():
     if not _save_student(username, record["student"]):
         return jsonify(error="Could not save the course."), 500
     return jsonify(ok=True, course=course, student=record["student"]), 201
+
+
+def _clean_flashcard(c, deck_default="General"):
+    if not isinstance(c, dict): return None, "Invalid flashcard."
+    q = str(c.get("question") or "").strip()
+    a = str(c.get("answer") or "").strip()
+    if not q or not a: return None, "Each flashcard needs both a question and an answer."
+    return {"id": uuid.uuid4().hex, "deck": str(c.get("deck") or deck_default).strip()[:80] or "General", "subject": str(c.get("subject") or "").strip()[:80], "question": q[:1000], "answer": a[:2000], "created_at": time.time()}, None
+
+
+@app.post("/api/student/flashcards/import")
+@require_auth
+def import_flashcards():
+    data = request.get_json(silent=True) or {}
+    raw = str(data.get("text") or "")
+    deck = str(data.get("deck") or "General").strip()[:80] or "General"
+    subject = str(data.get("subject") or "").strip()[:80]
+    fmt = str(data.get("format") or "auto").lower()
+    if not raw.strip(): return jsonify(error="Paste or import some flashcards first."), 400
+    import csv, io
+    rows=[]
+    try:
+        if fmt in {"csv","auto"} and (fmt=="csv" or "," in raw.splitlines()[0]):
+            reader=csv.reader(io.StringIO(raw))
+            parsed=[r for r in reader if any(str(x).strip() for x in r)]
+            if parsed and len(parsed[0]) >= 2 and any(str(x).strip().lower() in {"question","front","term","prompt"} for x in parsed[0][:2]): parsed=parsed[1:]
+            rows=[(r[0], r[1]) for r in parsed if len(r)>=2]
+        if not rows:
+            # TXT supports: question<TAB>answer, question :: answer, or blank-line pairs.
+            lines=[x.strip() for x in raw.splitlines()]
+            for line in lines:
+                if not line: continue
+                if "\t" in line: rows.append(tuple(line.split("\t",1)))
+                elif "::" in line: rows.append(tuple(line.split("::",1)))
+                elif "|" in line: rows.append(tuple(line.split("|",1)))
+            if not rows:
+                blocks=[b.strip().splitlines() for b in raw.split("\n\n") if b.strip()]
+                rows=[(b[0], " ".join(b[1:])) for b in blocks if len(b)>=2]
+    except Exception:
+        return jsonify(error="We could not read that import. Check the format and try again."), 400
+    if not rows: return jsonify(error="No valid question/answer pairs were found."), 400
+    _, _, record = _student_record(current_username())
+    cards=record["student"].setdefault("flashcards", [])
+    existing={(str(c.get("deck","General")).casefold(),str(c.get("question","")).strip().casefold(),str(c.get("answer","")).strip().casefold()) for c in cards if isinstance(c,dict)}
+    added=duplicates=invalid=0
+    new_cards=[]
+    for q,a in rows[:1000]:
+        card,err=_clean_flashcard({"question":q,"answer":a,"deck":deck,"subject":subject},deck)
+        if err: invalid+=1; continue
+        key=(deck.casefold(),card["question"].casefold(),card["answer"].casefold())
+        if key in existing: duplicates+=1; continue
+        existing.add(key); cards.append(card); new_cards.append(card); added+=1
+    record["student"]["flashcards"]=cards[-5000:]
+    if not _save_student(current_username(), record["student"]): return jsonify(error="Could not save the imported flashcards."), 500
+    return jsonify(ok=True, added=added, duplicates=duplicates, invalid=invalid, flashcards=new_cards, student=record["student"])
+
+
+@app.patch("/api/student/flashcards/<card_id>")
+@require_auth
+def patch_flashcard(card_id):
+    data=request.get_json(silent=True) or {}
+    _,_,record=_student_record(current_username()); cards=record["student"].setdefault("flashcards", [])
+    card=next((c for c in cards if c.get("id")==card_id),None)
+    if not card: return jsonify(error="Flashcard not found."),404
+    for k,limit in (("question",1000),("answer",2000),("deck",80),("subject",80)):
+        if k in data: card[k]=str(data[k] or "").strip()[:limit]
+    if not card.get("question") or not card.get("answer"): return jsonify(error="Question and answer are required."),400
+    _save_student(current_username(),record["student"]); return jsonify(card=card)
+
+
+@app.delete("/api/student/flashcards/<card_id>")
+@require_auth
+def delete_flashcard(card_id):
+    _,_,record=_student_record(current_username()); cards=record["student"].setdefault("flashcards", [])
+    new=[c for c in cards if c.get("id")!=card_id]
+    if len(new)==len(cards): return jsonify(error="Flashcard not found."),404
+    record["student"]["flashcards"]=new; _save_student(current_username(),record["student"]); return jsonify(ok=True)
 
 
 @app.post("/api/student/tasks")
