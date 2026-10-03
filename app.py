@@ -1,18 +1,13 @@
 """Rian AI Gen 2 — a built-in Ollama-powered student hub."""
 import json
-import math
-import mimetypes
 import os
 import re
 import secrets
-import textwrap
 import threading
 import time
 import uuid
-from datetime import datetime, timezone
 from functools import wraps
-from pathlib import Path, PurePosixPath
-from urllib.parse import quote
+from pathlib import Path
 
 import requests
 from flask import Flask, Response, jsonify, render_template, request, stream_with_context
@@ -129,20 +124,35 @@ def _gist_create_if_needed():
         print(f"[Rian AI Gen 2] Warning: could not create a gist for account storage: {error}. Falling back to local-file-only persistence.")
 
 
+_users_cache = None
+_gist_lock = threading.Lock()
+
+
 def load_users():
-    remote = _gist_load()
-    if remote is not None: return remote
-    if not USERS_FILE.exists(): return {}
-    try:
-        return json.loads(USERS_FILE.read_text())
-    except (json.JSONDecodeError, OSError):
-        return {}
+    """Accounts are read once (gist, else local file) and then served from memory, so requests
+    never wait on GitHub and concurrent edits all share one dict instead of overwriting each other."""
+    global _users_cache
+    if _users_cache is None:
+        remote = _gist_load()
+        if remote is not None:
+            _users_cache = remote
+        else:
+            try: _users_cache = json.loads(USERS_FILE.read_text()) if USERS_FILE.exists() else {}
+            except (json.JSONDecodeError, OSError): _users_cache = {}
+    return _users_cache
 
 
 def save_users(users):
     USERS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    USERS_FILE.write_text(json.dumps(users, indent=2))
-    _gist_save(users)
+    tmp = USERS_FILE.with_suffix(".tmp")
+    tmp.write_text(json.dumps(users, indent=2))
+    os.replace(tmp, USERS_FILE)  # atomic: a crash mid-write can't corrupt the account file
+    if GITHUB_TOKEN and GITHUB_GIST_ID:
+        def push():
+            with _gist_lock:
+                try: _gist_save(json.loads(json.dumps(users)))
+                except RuntimeError: pass
+        threading.Thread(target=push, daemon=True).start()  # off the request path
 
 
 def create_user(username, password):
@@ -226,8 +236,6 @@ OLLAMA_API_KEY = os.environ.get("OLLAMA_API_KEY", "").strip()
 # Ollama Cloud uses its native /api/chat shape, not the OpenAI-style /v1 route.
 OLLAMA_CHAT_URL = "https://ollama.com/api/chat"
 
-# Pollinations.ai — free, keyless text-to-image API. Used for the "image" file kind.
-POLLINATIONS_URL = "https://image.pollinations.ai/prompt/{prompt}"
 
 # Tavily — web search, used to ground answers in current information before
 # the model responds. No key is baked in (unlike Ollama) because none was
@@ -244,8 +252,6 @@ MODELS = [
     {"id": "gpt-oss:120b", "name": "GPT-OSS 120B", "family": "OpenAI OSS", "tag": "Larger · slower · stronger reasoning"},
 ]
 DEFAULT_MODEL = MODELS[0]["id"]
-BEST_MODEL = "gpt-oss:120b"  # largest/most capable in our catalogue — auto-used for 3D modeling requests, see chat()
-IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}
 
 # ---- Power level (ChatGPT-style Low/Medium/High/Max reasoning-effort slider) -----
 # Maps onto Ollama's native "think" field, which GPT-OSS (every model in
@@ -264,492 +270,12 @@ POWER_LEVELS = {
 }
 DEFAULT_POWER = "medium"
 
-_3D_REQUEST_PATTERN = re.compile(
-    r"\b(3d|three[\s-]?dimensional|stl|cad|\bprint(?:able|ed)?\b.*\b(model|part|object|design)|"
-    r"model.*\bprint\b|design.*\bprint\b|mount(?:ing)?\s*bracket|\bbracket\b|\bfigurine\b|\bmini(?:ature)?\b|"
-    r"\bsculpt|\bmesh\b|\bmold\b)\b", re.IGNORECASE)
-
-def looks_like_3d_request(prompt):
-    """Heuristic used to auto-select the strongest available model (and force
-    max reasoning effort) specifically for 3D-modeling requests, regardless
-    of whatever model/power the person has picked — 3D geometry is the one
-    output type here where model capability directly limits build quality."""
-    return bool(_3D_REQUEST_PATTERN.search(prompt))
-
 SYSTEM = '''You are Rian AI Gen 2, the built-in student AI assistant.
 
 Return ONLY a helpful plain-text/Markdown response to the user's request. NEVER create, describe, attach, encode, save, preview, download, or return files or file-generation instructions. Do not output JSON wrappers or artifact metadata. If a user asks for a file, explain the content directly in the chat instead and offer a copyable text version when appropriate.
 
 You are especially good at explaining school subjects, making quizzes, exam-style questions, revision plans, study techniques, homework guidance, course planning, and helping students understand questions. Be concise but useful, use clear headings/bullets when helpful, and do not pretend to have access to school systems or private information you were not given.'''
 
-
-
-class ReplyStreamExtractor:
-    """Incrementally decodes the "reply" string field out of a partial JSON
-    buffer as it streams in from the model, token chunk by token chunk —
-    without waiting for the whole (reply + files) JSON object to finish, so
-    the person sees the chat text appear live instead of staring at a
-    spinner for the full generation. Only ever emits fully-decoded
-    characters (correctly unescaping \\", \\n, \\uXXXX, etc.); an incomplete
-    trailing escape sequence is held back until more of the buffer arrives.
-    If the model never emits a well-formed "reply" key, this simply never
-    finds a start point and emits nothing — falling back to no worse than
-    the old "type indicator until done" behavior."""
-
-    _KEY_PATTERN = re.compile(r'"reply"\s*:\s*"')
-    _SIMPLE_ESCAPES = {'"': '"', '\\': '\\', '/': '/', 'n': '\n', 't': '\t', 'r': '\r', 'b': '\b', 'f': '\f'}
-
-    def __init__(self):
-        self.buffer = ""
-        self.reply_start = None
-        self.emitted = ""
-        self.finished = False
-
-    def feed(self, chunk):
-        if self.finished or not chunk:
-            return ""
-        self.buffer += chunk
-        if self.reply_start is None:
-            match = self._KEY_PATTERN.search(self.buffer)
-            if not match:
-                return ""
-            self.reply_start = match.end()
-        decoded, closed = self._decode_partial(self.buffer, self.reply_start)
-        new_text = decoded[len(self.emitted):]
-        self.emitted = decoded
-        if closed:
-            self.finished = True
-        return new_text
-
-    @classmethod
-    def _decode_partial(cls, buf, start):
-        out = []
-        i, n = start, len(buf)
-        while i < n:
-            c = buf[i]
-            if c == '"':
-                return "".join(out), True  # unescaped closing quote — string is complete
-            if c == '\\':
-                if i + 1 >= n:
-                    break  # incomplete escape at the buffer's end — wait for more to arrive
-                nxt = buf[i + 1]
-                if nxt in cls._SIMPLE_ESCAPES:
-                    out.append(cls._SIMPLE_ESCAPES[nxt]); i += 2; continue
-                if nxt == 'u':
-                    if i + 6 > n:
-                        break  # incomplete \\uXXXX — wait for more
-                    try:
-                        out.append(chr(int(buf[i + 2:i + 6], 16))); i += 6; continue
-                    except ValueError:
-                        i += 2; continue  # malformed escape — skip it rather than crash the stream
-                out.append(nxt); i += 2; continue  # unrecognized escape — drop the backslash, keep the char
-            out.append(c); i += 1
-        return "".join(out), False  # ran out of buffer without hitting the closing quote yet
-
-
-def decode_model_result(content):
-    """Accept strict JSON, fenced JSON, and imperfect free-model output."""
-    text = str(content or "").strip()
-    if not text:
-        raise ValueError("The selected model returned an empty response. Try another free model or retry.")
-    candidates = [text]
-    fenced = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text, re.IGNORECASE)
-    if fenced: candidates.append(fenced.group(1))
-    start, end = text.find("{"), text.rfind("}")
-    if start >= 0 and end > start: candidates.append(text[start:end + 1])
-    for candidate in candidates:
-        try:
-            parsed = json.loads(candidate)
-            if isinstance(parsed, dict): return parsed
-        except json.JSONDecodeError:
-            continue
-    # Free models sometimes ignore structured-output instructions. Preserve their work.
-    return {"reply": "The model returned unstructured output, saved below.", "files": [{"path": "generation.md", "kind": "text", "content": text}]}
-
-
-def safe_path(value):
-    path = PurePosixPath(value.replace("\\", "/"))
-    if path.is_absolute() or ".." in path.parts or not path.parts or path.name in ("", "."):
-        raise ValueError("Unsafe output filename")
-    if len(path.parts) > 1 and re.match(r"^[a-zA-Z]:$", path.parts[0]):
-        raise ValueError("Unsafe output filename")  # reject Windows-style drive prefixes too
-    return path
-
-
-# ---- Parametric solid-build engine for the "stl" kind ---------------------
-# Rather than trust free models to emit raw, hand-rolled vertex/face lists
-# (which are easy to get non-manifold or malformed), Rian AI Gen 2 exposes a small
-# instruction set — add a primitive, repeat it with a rotation/translation —
-# and executes that program itself. The model writes the build steps; Forge
-# turns them into real, valid geometry.
-MAX_TRIANGLES = 260_000  # generous cap (user explicitly OK with slower/bigger builds) so a runaway program still can't hang the worker indefinitely
-MAX_OPS = 160
-MAX_REPEAT_COUNT = 120
-
-
-def _clamp_segments(value, lo=6, hi=64):
-    try: return max(lo, min(int(round(float(value))), hi))
-    except (TypeError, ValueError): return 16
-
-
-def _auto_segments(size_metric, explicit):
-    """When the model doesn't specify a segment count, scale it with the
-    part's own size instead of using one fixed default — bigger round parts
-    get smoother curves automatically, which reads as far more realistic
-    without requiring the model to reason about facet counts itself."""
-    if explicit is not None: return _clamp_segments(explicit)
-    return _clamp_segments(round(abs(size_metric) * 1.3) + 12, 14, 64)
-
-
-def _box_triangles(size):
-    w, d, h = ((size, size, size) if not isinstance(size, (list, tuple)) else (list(size) + [size[0] if size else 20]*3)[:3])
-    w, d, h = float(w), float(d), float(h)
-    hw, hd, hh = w/2, d/2, h/2
-    v = [(-hw,-hd,-hh),(hw,-hd,-hh),(hw,hd,-hh),(-hw,hd,-hh),(-hw,-hd,hh),(hw,-hd,hh),(hw,hd,hh),(-hw,hd,hh)]
-    faces = [(0,2,1),(0,3,2),(4,5,6),(4,6,7),(0,1,5),(0,5,4),(1,2,6),(1,6,5),(2,3,7),(2,7,6),(3,0,4),(3,4,7)]
-    return [(v[a], v[b], v[c]) for a, b, c in faces]
-
-
-def _box_with_bore_canonical(size, radius, segments):
-    """A box with a round hole bored straight through it along its local
-    z-axis. Built directly with an explicit, hand-verified triangulation
-    (radial "rim" bridge between the bore circle and the box's rectangular
-    cross-section) rather than a general boolean/CSG algorithm — an earlier,
-    general-purpose triangle-mesh boolean engine was tried for this and
-    discarded after testing found it produced subtly self-intersecting
-    geometry on realistic (non-axis-trivial) shapes; this construction is
-    provably correct by how it's built, and is verified watertight (manifold)
-    and hole-correct (via ray-casting) for every supported axis."""
-    w, d, h = size
-    hw, hd, hh = w / 2, d / 2, h / 2
-    radius = min(float(radius), min(hw, hd) * 0.92)  # keep the hole comfortably inside the footprint
-
-    def rim_point(theta):
-        c, s = math.cos(theta), math.sin(theta)
-        candidates = []
-        if abs(c) > 1e-9: candidates.append(hw / abs(c))
-        if abs(s) > 1e-9: candidates.append(hd / abs(s))
-        t = min(candidates)
-        return (t * c, t * s)
-
-    circle = [(radius * math.cos(2*math.pi*i/segments), radius * math.sin(2*math.pi*i/segments)) for i in range(segments)]
-    rim = [rim_point(2 * math.pi * i / segments) for i in range(segments)]
-
-    tris = []
-    for i in range(segments):
-        j = (i + 1) % segments
-        c0, c1, r0, r1 = circle[i], circle[j], rim[i], rim[j]
-        # top/bottom annular faces (rectangle-with-round-hole)
-        tris += [((c0[0],c0[1],hh), (c1[0],c1[1],hh), (r1[0],r1[1],hh)),
-                 ((c0[0],c0[1],hh), (r1[0],r1[1],hh), (r0[0],r0[1],hh)),
-                 ((c0[0],c0[1],-hh), (r0[0],r0[1],-hh), (r1[0],r1[1],-hh)),
-                 ((c0[0],c0[1],-hh), (r1[0],r1[1],-hh), (c1[0],c1[1],-hh))]
-        # inner bore wall
-        top0, top1, bot0, bot1 = (c0[0],c0[1],hh), (c1[0],c1[1],hh), (c0[0],c0[1],-hh), (c1[0],c1[1],-hh)
-        tris += [(bot1, bot0, top0), (bot1, top0, top1)]
-        # outer side wall — deliberately subdivided to match the annulus's own
-        # rim points exactly (not one flat quad per box side), since that
-        # mismatch is what caused the seam bug found during testing.
-        rtop0, rtop1, rbot0, rbot1 = (r0[0],r0[1],hh), (r1[0],r1[1],hh), (r0[0],r0[1],-hh), (r1[0],r1[1],-hh)
-        tris += [(rbot0, rbot1, rtop1), (rbot0, rtop1, rtop0)]
-    return tris
-
-
-def _box_with_bore(size, radius, segments=24, axis="z"):
-    sx, sy, sz = ((size, size, size) if not isinstance(size, (list, tuple)) else (list(size) + [size[0] if size else 20]*3)[:3])
-    sx, sy, sz = float(sx), float(sy), float(sz)
-    segments = _clamp_segments(segments, 12, 64)
-    axis = str(axis).lower()
-    if axis == "x":
-        canonical_size, permute = (sy, sz, sx), (lambda u, v, w: (w, u, v))
-    elif axis == "y":
-        canonical_size, permute = (sz, sx, sy), (lambda u, v, w: (v, w, u))
-    else:
-        canonical_size, permute = (sx, sy, sz), (lambda u, v, w: (u, v, w))
-    raw = _box_with_bore_canonical(canonical_size, radius, segments)
-    return [tuple(permute(*p) for p in tri) for tri in raw]
-
-
-def _wedge_triangles(size):
-    """A ramp/doorstop/roof shape: a rectangular base tapering up to a ridge
-    along one edge, sloped down along x. Useful for ramps, roofs, chocks."""
-    w, d, h = ((size, size, size) if not isinstance(size, (list, tuple)) else (list(size) + [size[0] if size else 20]*3)[:3])
-    w, d, h = float(w), float(d), float(h)
-    hw, hd, hh = w/2, d/2, h/2
-    b0,b1,b2,b3 = (-hw,-hd,-hh),(hw,-hd,-hh),(hw,hd,-hh),(-hw,hd,-hh)
-    t0,t1 = (-hw,0,hh),(hw,0,hh)
-    return [
-        (b0,b2,b1),(b0,b3,b2),          # bottom
-        (b0,b1,t1),(b0,t1,t0),          # front slope (y=-hd side)
-        (b3,t0,t1),(b3,t1,b2),          # back slope (y=+hd side)
-        (b0,t0,b3),                     # left end cap
-        (b1,b2,t1),                     # right end cap
-    ]
-
-
-def _pyramid_triangles(size, height=None):
-    h = float(size) / 2; height = float(height) if height is not None else float(size); z0, z1 = -height/2, height/2
-    v = [(-h,-h,z0),(h,-h,z0),(h,h,z0),(-h,h,z0),(0,0,z1)]
-    faces = [(0,2,1),(0,3,2),(0,1,4),(1,2,4),(2,3,4),(3,0,4)]
-    return [(v[a], v[b], v[c]) for a, b, c in faces]
-
-
-def _sphere_triangles(radius, segments=16):
-    segments = _clamp_segments(segments); stacks = max(4, segments // 2)
-    tris = []
-    for i in range(stacks):
-        lat0 = math.pi * (-0.5 + i / stacks); lat1 = math.pi * (-0.5 + (i + 1) / stacks)
-        for j in range(segments):
-            lon0 = 2 * math.pi * j / segments; lon1 = 2 * math.pi * (j + 1) / segments
-            def pt(lat, lon): return (radius*math.cos(lat)*math.cos(lon), radius*math.cos(lat)*math.sin(lon), radius*math.sin(lat))
-            p00, p01, p10, p11 = pt(lat0,lon0), pt(lat0,lon1), pt(lat1,lon0), pt(lat1,lon1)
-            if i != 0: tris.append((p00, p01, p11))
-            if i != stacks - 1: tris.append((p00, p11, p10))
-    return tris
-
-
-def _hemisphere_triangles(radius, segments=16, upper=True):
-    """Half a sphere, flat/open side on the z=0 plane — used to cap capsules
-    so they seal flush against the cylinder body. Unlike a full sphere, only
-    ONE end (the pole, away from z=0) collapses to a point; the z=0 ring is
-    a full-radius rim and must keep both triangles of every quad so its
-    boundary edges exist to seal against the adjoining cylinder wall."""
-    segments = _clamp_segments(segments); stacks = max(3, segments // 4)
-    sign = 1 if upper else -1
-    tris = []
-    for i in range(stacks):
-        lat0 = sign * (math.pi/2) * (i / stacks); lat1 = sign * (math.pi/2) * ((i + 1) / stacks)
-        pole_row = (i == stacks - 1)  # only the far row degenerates to a point
-        for j in range(segments):
-            lon0 = 2 * math.pi * j / segments; lon1 = 2 * math.pi * (j + 1) / segments
-            def pt(lat, lon): return (radius*math.cos(lat)*math.cos(lon), radius*math.cos(lat)*math.sin(lon), radius*math.sin(lat))
-            p00, p01, p10, p11 = pt(lat0,lon0), pt(lat0,lon1), pt(lat1,lon0), pt(lat1,lon1)
-            if upper:
-                tris.append((p00, p01, p11))
-                if not pole_row: tris.append((p00, p11, p10))
-            else:
-                tris.append((p00, p11, p01))
-                if not pole_row: tris.append((p00, p10, p11))
-    return tris
-
-
-def _cylinder_side_triangles(radius, height, segments=16):
-    segments = _clamp_segments(segments); h = height / 2
-    tris = []
-    for j in range(segments):
-        a0, a1 = 2*math.pi*j/segments, 2*math.pi*(j+1)/segments
-        x0,y0,x1,y1 = radius*math.cos(a0), radius*math.sin(a0), radius*math.cos(a1), radius*math.sin(a1)
-        top0,top1,bot0,bot1 = (x0,y0,h),(x1,y1,h),(x0,y0,-h),(x1,y1,-h)
-        tris += [(bot0,bot1,top1),(bot0,top1,top0)]
-    return tris
-
-
-def _cylinder_triangles(radius, height, segments=16):
-    segments = _clamp_segments(segments); h = height / 2
-    tris = _cylinder_side_triangles(radius, height, segments)
-    for j in range(segments):
-        a0, a1 = 2*math.pi*j/segments, 2*math.pi*(j+1)/segments
-        x0,y0,x1,y1 = radius*math.cos(a0), radius*math.sin(a0), radius*math.cos(a1), radius*math.sin(a1)
-        top0,top1,bot0,bot1 = (x0,y0,h),(x1,y1,h),(x0,y0,-h),(x1,y1,-h)
-        tris += [(top0,top1,(0,0,h)), (bot1,bot0,(0,0,-h))]
-    return tris
-
-
-def _cone_triangles(radius, height, segments=16):
-    segments = _clamp_segments(segments); apex = (0,0,height/2); h = height/2
-    tris = []
-    for j in range(segments):
-        a0, a1 = 2*math.pi*j/segments, 2*math.pi*(j+1)/segments
-        x0,y0,x1,y1 = radius*math.cos(a0), radius*math.sin(a0), radius*math.cos(a1), radius*math.sin(a1)
-        base0, base1 = (x0,y0,-h), (x1,y1,-h)
-        tris += [(base0, base1, apex), (base1, base0, (0,0,-h))]
-    return tris
-
-
-def _torus_triangles(major_radius, tube_radius, segments=24, tube_segments=12):
-    segments = _clamp_segments(segments, 8, 64); tube_segments = _clamp_segments(tube_segments, 6, 32)
-    tris = []
-    def pt(u, v): return ((major_radius+tube_radius*math.cos(v))*math.cos(u), (major_radius+tube_radius*math.cos(v))*math.sin(u), tube_radius*math.sin(v))
-    for i in range(segments):
-        u0, u1 = 2*math.pi*i/segments, 2*math.pi*(i+1)/segments
-        for j in range(tube_segments):
-            v0, v1 = 2*math.pi*j/tube_segments, 2*math.pi*(j+1)/tube_segments
-            p00, p01, p10, p11 = pt(u0,v0), pt(u0,v1), pt(u1,v0), pt(u1,v1)
-            tris += [(p00, p10, p11), (p00, p11, p01)]
-    return tris
-
-
-def _tube_triangles(outer_radius, inner_radius, height, segments=16):
-    """A hollow pipe/ring/washer: two concentric cylindrical walls joined by
-    flat annular caps top and bottom — genuinely hollow, not an approximation."""
-    segments = _clamp_segments(segments); inner_radius = max(0.001, min(inner_radius, outer_radius - 0.001)); h = height / 2
-    tris = []
-    for j in range(segments):
-        a0, a1 = 2*math.pi*j/segments, 2*math.pi*(j+1)/segments
-        ox0,oy0,ox1,oy1 = outer_radius*math.cos(a0), outer_radius*math.sin(a0), outer_radius*math.cos(a1), outer_radius*math.sin(a1)
-        ix0,iy0,ix1,iy1 = inner_radius*math.cos(a0), inner_radius*math.sin(a0), inner_radius*math.cos(a1), inner_radius*math.sin(a1)
-        o_top0,o_top1,o_bot0,o_bot1 = (ox0,oy0,h),(ox1,oy1,h),(ox0,oy0,-h),(ox1,oy1,-h)
-        i_top0,i_top1,i_bot0,i_bot1 = (ix0,iy0,h),(ix1,iy1,h),(ix0,iy0,-h),(ix1,iy1,-h)
-        tris += [(o_bot0,o_bot1,o_top1),(o_bot0,o_top1,o_top0)]           # outer wall
-        tris += [(i_bot1,i_bot0,i_top0),(i_bot1,i_top0,i_top1)]           # inner wall (reversed so it faces inward)
-        tris += [(o_top0,o_top1,i_top1),(o_top0,i_top1,i_top0)]           # top annulus
-        tris += [(o_bot1,o_bot0,i_bot0),(o_bot1,i_bot0,i_bot1)]           # bottom annulus
-    return tris
-
-
-def _capsule_triangles(radius, height=0.0, segments=16):
-    """A pill/stadium shape: a straight cylindrical section capped with two
-    hemispheres — for handles, pills, rounded rods, fingers, rounded ends."""
-    segments = _clamp_segments(segments); half = max(float(height), 0.0) / 2
-    tris = _cylinder_side_triangles(radius, height, segments) if height > 0 else []
-    tris += [tuple((x, y, z + half) for x, y, z in tri) for tri in _hemisphere_triangles(radius, segments, upper=True)]
-    tris += [tuple((x, y, z - half) for x, y, z in tri) for tri in _hemisphere_triangles(radius, segments, upper=False)]
-    return tris
-
-
-def _shape_radius(s, default=10):
-    if "radius" in s: return float(s["radius"])
-    if "size" in s and not isinstance(s["size"], (list, tuple)): return float(s["size"]) / 2
-    return float(default)
-
-
-def build_local_shape(spec):
-    """Build a shape centered on its own local origin, unrotated/unscaled/unplaced."""
-    shape = spec.get("shape", "box")
-    if shape in ("box", "cube"):
-        bore = spec.get("bore")
-        if bore and isinstance(bore, dict):
-            size = spec.get("size", 20)
-            footprint = (size, size, size) if not isinstance(size, (list, tuple)) else (list(size) + [size[0] if size else 20]*3)[:3]
-            return _box_with_bore(size, float(bore.get("radius", min(footprint[0], footprint[1]) * 0.25)), bore.get("segments", 24), bore.get("axis", "z"))
-        return _box_triangles(spec.get("size", 20))
-    if shape == "wedge": return _wedge_triangles(spec.get("size", 20))
-    if shape == "pyramid": return _pyramid_triangles(spec.get("size", 20), spec.get("height"))
-    if shape == "sphere":
-        r = _shape_radius(spec); return _sphere_triangles(r, _auto_segments(r, spec.get("segments")))
-    if shape == "cylinder":
-        r = _shape_radius(spec); return _cylinder_triangles(r, float(spec.get("height", spec.get("size", 20))), _auto_segments(r, spec.get("segments")))
-    if shape == "cone":
-        r = _shape_radius(spec); return _cone_triangles(r, float(spec.get("height", spec.get("size", 20))), _auto_segments(r, spec.get("segments")))
-    if shape == "torus":
-        r = float(spec.get("radius", 20)); return _torus_triangles(r, float(spec.get("tube", spec.get("minor_radius", 5))), _auto_segments(r, spec.get("segments")), spec.get("tube_segments", 12))
-    if shape == "tube":
-        outer = _shape_radius(spec, 15); inner = float(spec.get("inner_radius", spec.get("inner", outer * 0.6)))
-        return _tube_triangles(outer, inner, float(spec.get("height", 20)), _auto_segments(outer, spec.get("segments")))
-    if shape == "capsule":
-        r = _shape_radius(spec, 8); return _capsule_triangles(r, float(spec.get("height", 0)), _auto_segments(r, spec.get("segments")))
-    raise ValueError(f"Unknown shape '{shape}'")
-
-
-def _rotate_point(p, rotation_deg):
-    x, y, z = p
-    rx, ry, rz = (math.radians(v) for v in rotation_deg)
-    y, z = y*math.cos(rx)-z*math.sin(rx), y*math.sin(rx)+z*math.cos(rx)
-    x, z = x*math.cos(ry)+z*math.sin(ry), -x*math.sin(ry)+z*math.cos(ry)
-    x, y = x*math.cos(rz)-y*math.sin(rz), x*math.sin(rz)+y*math.cos(rz)
-    return (x, y, z)
-
-
-def _place_triangles(tris, scale=(1,1,1), rotation=(0,0,0), position=(0,0,0)):
-    sx, sy, sz = scale
-    out = []
-    for tri in tris:
-        placed = []
-        for (x, y, z) in tri:
-            x, y, z = x*sx, y*sy, z*sz
-            x, y, z = _rotate_point((x, y, z), rotation)
-            placed.append((x+position[0], y+position[1], z+position[2]))
-        out.append(tuple(placed))
-    return out
-
-
-def _rotate_triangles_around(tris, rotation_deg, pivot):
-    px, py, pz = pivot
-    out = []
-    for tri in tris:
-        rotated = []
-        for (x, y, z) in tri:
-            rx, ry, rz = _rotate_point((x-px, y-py, z-pz), rotation_deg)
-            rotated.append((rx+px, ry+py, rz+pz))
-        out.append(tuple(rotated))
-    return out
-
-
-def _vec3(value, default=(0.0, 0.0, 0.0)):
-    if not value: return default
-    values = list(value) + list(default)
-    return tuple(float(v) for v in values[:3])
-
-
-def _mirror_triangles(tris, axis, offset=0.0):
-    """Mirror a set of triangles across an axis-aligned plane (x=offset,
-    y=offset, or z=offset). Mirroring flips handedness, so winding is
-    reversed to keep normals pointing outward after the flip."""
-    idx = {"x": 0, "y": 1, "z": 2}.get(axis, 0)
-    out = []
-    for tri in tris:
-        mirrored = []
-        for p in tri:
-            p = list(p); p[idx] = 2 * offset - p[idx]; mirrored.append(tuple(p))
-        out.append((mirrored[0], mirrored[2], mirrored[1]))
-    return out
-
-
-def run_stl_program(spec):
-    """Interpret the model's ordered build steps ("ops") into world-space
-    triangles. Supports "add" (place a primitive, optionally scaled/rotated),
-    "repeat" (duplicate the previous add with a cumulative rotation and/or
-    translation per copy — radial or linear patterns), and "mirror" (reflect
-    the previous add across an axis-aligned plane — symmetric designs like
-    wings, hulls, or matched brackets). Each op is executed independently: if
-    one is malformed, it's skipped with a recorded note instead of failing
-    the whole model, so a single bad part never throws away an otherwise-good
-    design. Returns (triangles, notes) — notes are pre-formatted, human
-    readable strings (warnings and a final size summary)."""
-    ops = spec.get("ops") if isinstance(spec, dict) else None
-    if not ops:
-        # Back-compat with the earlier, simpler schemas.
-        if isinstance(spec, dict) and spec.get("shapes"): ops = [{"op": "add", **item} for item in spec["shapes"]]
-        elif isinstance(spec, dict) and spec.get("shape"): ops = [{"op": "add", **spec}]
-        else: raise ValueError("STL spec has no ops/shapes/shape to build from")
-
-    triangles, last_placed, notes = [], None, []
-    for index, op in enumerate(ops[:MAX_OPS]):
-        kind = op.get("op", "add")
-        try:
-            if kind == "add":
-                local = build_local_shape(op)
-                placed = _place_triangles(local, _vec3(op.get("scale"), (1, 1, 1)), _vec3(op.get("rotation")), _vec3(op.get("position")))
-                triangles += placed
-                last_placed = placed
-            elif kind == "repeat":
-                if not last_placed: raise ValueError("repeat with nothing preceding it to repeat")
-                count = max(1, min(int(op.get("count", 1)), MAX_REPEAT_COUNT))
-                translate_step, rotate_step, pivot = _vec3(op.get("translate")), _vec3(op.get("rotate")), _vec3(op.get("around"))
-                for i in range(1, count):
-                    step = last_placed
-                    if any(rotate_step): step = _rotate_triangles_around(step, tuple(a*i for a in rotate_step), pivot)
-                    if any(translate_step):
-                        dx, dy, dz = (a*i for a in translate_step)
-                        step = [tuple((x+dx, y+dy, z+dz) for x, y, z in tri) for tri in step]
-                    triangles += step
-            elif kind == "mirror":
-                if not last_placed: raise ValueError("mirror with nothing preceding it to mirror")
-                axis = str(op.get("axis", "x")).lower()
-                if axis not in ("x", "y", "z"): raise ValueError(f"mirror axis must be x/y/z, got '{axis}'")
-                triangles += _mirror_triangles(last_placed, axis, float(op.get("offset", 0)))
-            else:
-                notes.append(f"⚠️ Step {index+1}: unknown op '{kind}' — skipped.")
-        except (ValueError, TypeError, KeyError, ZeroDivisionError, ArithmeticError) as error:
-            notes.append(f"⚠️ Step {index+1} ({kind}): {error} — skipped, rest of the model was still built.")
-        if len(triangles) > MAX_TRIANGLES:
-            raise ValueError("That design is too complex to build (too many triangles) — simplify it")
-    if not triangles:
-        raise ValueError("STL program produced no geometry")
-
-    xs = [p[0] for tri in triangles for p in tri]; ys = [p[1] for tri in triangles for p in tri]; zs = [p[2] for tri in triangles for p in tri]
-    notes.append(f"ℹ️ Model size: {max(xs)-min(xs):.1f} × {max(ys)-min(ys):.1f} × {max(zs)-min(zs):.1f} units, {len(triangles)} triangles.")
-    return triangles, notes
 
 
 def tavily_search(query):
@@ -782,6 +308,7 @@ def index(): return render_template("index.html")
 
 @app.post("/api/login")
 def login():
+    if _throttled(): return jsonify(error="Too many attempts. Wait a few minutes and try again."), 429
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         return jsonify(error="Malformed request body."), 400
@@ -804,6 +331,7 @@ def login():
 
 @app.post("/api/signup")
 def signup():
+    if _throttled(): return jsonify(error="Too many attempts. Wait a few minutes and try again."), 429
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         return jsonify(error="Malformed request body."), 400
@@ -833,6 +361,55 @@ def logout():
 # Student data lives inside the same account store as credentials. When the
 # optional GitHub Gist persistence is configured on Render, this means tasks,
 # timetable and revision data survive deploys without requiring a paid disk.
+DAYS = {"monday", "tuesday", "wednesday", "thursday", "friday"}
+_attempts = {}
+
+
+def _throttled():
+    ip = (request.headers.get("X-Forwarded-For") or request.remote_addr or "").split(",")[0].strip()
+    now = time.time()
+    count, start = _attempts.get(ip, (0, now))
+    if now - start > 300: count, start = 0, now
+    _attempts[ip] = (count + 1, start)
+    return count + 1 > 15
+
+
+def _safe_url(value):
+    value = str(value or "").strip()[:500]
+    return value if re.match(r"^https?://", value, re.I) else ""
+
+
+def _clean_task(t):
+    if not isinstance(t, dict) or not str(t.get("title", "")).strip(): return None
+    created = t.get("created_at")
+    return {"id": str(t.get("id") or uuid.uuid4().hex)[:40], "title": str(t["title"]).strip()[:160],
+            "subject": str(t.get("subject") or "General").strip()[:60], "due": str(t.get("due") or "")[:10],
+            "priority": t.get("priority") if t.get("priority") in {"low", "normal", "high"} else "normal",
+            "done": bool(t.get("done")), "created_at": created if isinstance(created, (int, float)) else time.time()}
+
+
+def _sanitize_student(s, username):
+    """The client sends whole documents back, so everything is re-validated here."""
+    p = s.get("profile") if isinstance(s.get("profile"), dict) else {}
+    s["profile"] = {k: str(p.get(k) or "").strip()[:80] for k in ("display_name", "year_group", "school")}
+    s["profile"]["username"] = username
+    tasks = s.get("tasks") if isinstance(s.get("tasks"), list) else []
+    s["tasks"] = [t for t in map(_clean_task, tasks) if t][:500]
+    lessons = []
+    for t in (s.get("timetable") if isinstance(s.get("timetable"), list) else []):
+        if isinstance(t, dict) and t.get("day") in DAYS and str(t.get("subject", "")).strip():
+            lessons.append({"id": str(t.get("id") or uuid.uuid4().hex)[:40], "day": t["day"], "subject": str(t["subject"]).strip()[:60],
+                            "start": str(t.get("start") or "")[:5], "end": str(t.get("end") or "")[:5], "room": str(t.get("room") or "").strip()[:60]})
+    s["timetable"] = lessons[:200]
+    links = []
+    for l in (s.get("quick_links") if isinstance(s.get("quick_links"), list) else []):
+        if isinstance(l, dict) and str(l.get("title", "")).strip() and _safe_url(l.get("url")):
+            title = str(l["title"]).strip()[:60]
+            links.append({"title": title, "url": _safe_url(l["url"]), "icon": (str(l.get("icon") or title[:1]).strip() or "↗")[:2]})
+    s["quick_links"] = links[:24]
+    s["notes"] = str(s.get("notes") or "")[:5000]
+
+
 def _default_student():
     return {
         "profile": {"display_name": "", "year_group": "", "school": ""},
@@ -857,6 +434,8 @@ def _student_record(username):
         if not record:
             return None, None, None
         record.setdefault("student", _default_student())
+        if not isinstance(record["student"].get("profile"), dict): record["student"]["profile"] = {}
+        record["student"]["profile"]["username"] = record.get("username", username)
         defaults = _default_student()
         for k, v in defaults.items():
             record["student"].setdefault(k, v)
@@ -926,8 +505,9 @@ def update_student():
                 if name:
                     try: progress = max(0, min(100, int(float(item.get("progress", 0)))))
                     except (TypeError, ValueError): progress = 0
-                    courses.append({"name": name[:120], "course": str(item.get("course", "")).strip()[:120], "exam_board": str(item.get("exam_board", item.get("examBoard", ""))).strip()[:80], "specification": str(item.get("specification", item.get("spec_link", ""))).strip()[:500], "progress": progress})
+                    courses.append({"name": name[:120], "course": str(item.get("course", "")).strip()[:120], "exam_board": str(item.get("exam_board", item.get("examBoard", ""))).strip()[:80], "specification": _safe_url(item.get("specification", item.get("spec_link", ""))), "progress": progress})
         current["subjects"] = courses
+    _sanitize_student(current, record.get("username", username))
     if not _save_student(username, current):
         return jsonify(error="Could not save student data."), 500
     return jsonify(ok=True, student=current)
@@ -1008,8 +588,10 @@ def patch_task(task_id):
     tasks = record["student"].setdefault("tasks", [])
     task = next((t for t in tasks if t.get("id") == task_id), None)
     if not task: return jsonify(error="Task not found."), 404
-    for key in ("title", "subject", "due", "priority", "done"):
-        if key in data: task[key] = data[key]
+    for key, limit in (("title", 160), ("subject", 60), ("due", 10)):
+        if key in data and (key != "title" or str(data[key]).strip()): task[key] = str(data[key]).strip()[:limit]
+    if data.get("priority") in {"low", "normal", "high"}: task["priority"] = data["priority"]
+    if "done" in data: task["done"] = bool(data["done"])
     _save_student(username, record["student"])
     return jsonify(task=task)
 
@@ -1050,8 +632,10 @@ def chat():
     if not isinstance(data, dict): return jsonify(error="Malformed request body."), 400
     prompt = str(data.get("prompt", "")).strip()
     if not prompt: return jsonify(error="Enter a request."), 400
+    if len(prompt) > 8000: return jsonify(error="That message is too long. Keep it under 8,000 characters."), 400
     messages = [{"role":"system","content":SYSTEM}]
-    for m in data.get("history", [])[-10:]:
+    history = data.get("history") if isinstance(data.get("history"), list) else []
+    for m in history[-10:]:
         if isinstance(m, dict) and m.get("role") in {"user","assistant"} and isinstance(m.get("content"), str):
             messages.append({"role":m["role"],"content":m["content"]})
     if data.get("web_search"):
@@ -1083,7 +667,10 @@ def chat():
                 if not line: continue
                 try: chunk=json.loads(line)
                 except json.JSONDecodeError: continue
-                piece=(chunk.get("message") or {}).get("content","")
+                msg=chunk.get("message") or {}
+                think=msg.get("thinking","")
+                if think: yield json.dumps({"type":"thinking","text":think},ensure_ascii=False)+"\n"
+                piece=msg.get("content","")
                 if piece: yield json.dumps({"type":"delta","text":piece},ensure_ascii=False)+"\n"
                 if chunk.get("done"): yield json.dumps({"type":"done"})+"\n"; break
         except requests.RequestException as error: yield json.dumps({"type":"error","error":f"Connection to Ollama Cloud dropped: {error}"})+"\n"

@@ -59,7 +59,17 @@ function renderReply(text) {
   const flushPara = () => { if (paraBuffer.length) { html += `<p>${paraBuffer.join('<br>')}</p>`; paraBuffer = []; } };
   const closeList = () => { if (listType) { html += `</${listType}>`; listType = null; } };
 
-  for (const line of lines) {
+  for (let li = 0; li < lines.length; li++) {
+    const line = lines[li];
+    if (/^\|.+\|\s*$/.test(line) && /^\|[\s:|-]+\|\s*$/.test(lines[li + 1] || '')) {
+      flushPara(); closeList();
+      const cells = r => r.trim().replace(/^\||\|$/g, '').split('|').map(c => inlineMd(c.trim()));
+      let t = '<div class="table-wrap"><table><thead><tr>' + cells(line).map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+      li += 2;
+      while (li < lines.length && /^\|.+\|\s*$/.test(lines[li])) { t += '<tr>' + cells(lines[li]).map(c => `<td>${c}</td>`).join('') + '</tr>'; li++; }
+      li--; html += t + '</tbody></table></div>';
+      continue;
+    }
     const codePlaceholder = line.match(/^\u0000CODEBLOCK(\d+)\u0000$/);
     const heading = line.match(/^(#{1,3})\s+(.*)/);
     const bullet = line.match(/^[-*]\s+(.*)/);
@@ -263,6 +273,7 @@ function showApp() {
   document.body.classList.remove('logged-out');
   document.body.classList.add('logged-in');
   initApp();
+  if (typeof Hub !== 'undefined') Hub.load();
 }
 
 function showLogin(message = '') {
@@ -385,6 +396,7 @@ function attachAuthHandlers() {
     state.conversations = {};
     state.activeId = null;
     state.history = [];
+    if (typeof Hub !== 'undefined') Hub.reset();
     showLogin();
   });
 }
@@ -438,13 +450,13 @@ async function loadModels() {
   }
 }
 
-function closeMenus() { $('#modelMenu').classList.remove('open'); }
+function closeMenus() { $('#modelMenu').classList.remove('open'); $('#chatMenu').classList.remove('open'); }
 
 function rebindSuggestions() {
   document.querySelectorAll('.suggestions button').forEach(b => b.onclick = () => {
     promptEl.value = b.textContent;
     autoResize();
-    promptEl.focus();
+    submitPrompt();
   });
 }
 
@@ -645,7 +657,9 @@ async function regenerate(msgIndex, containerEl) {
 }
 
 // ---- Wiring & init ------------------------------------------------------
-$('#modelButton').onclick = (e) => { e.stopPropagation(); $('#modelMenu').classList.toggle('open'); };
+$('#modelButton').onclick = (e) => { e.stopPropagation(); $('#chatMenu').classList.remove('open'); $('#modelMenu').classList.toggle('open'); };
+$('#chatsButton').onclick = (e) => { e.stopPropagation(); $('#modelMenu').classList.remove('open'); $('#chatMenu').classList.toggle('open'); };
+$('#chatMenu').onclick = (e) => { e.stopPropagation(); if (e.target.closest('.history') && !e.target.closest('[data-del]')) $('#chatMenu').classList.remove('open'); };
 $('#modelMenu').onclick = (e) => e.stopPropagation();
 $('#webSearchToggle').onclick = () => {
   if ($('#webSearchToggle').disabled) return;
@@ -657,7 +671,7 @@ document.querySelectorAll('.power-option').forEach(btn => btn.addEventListener('
   document.querySelectorAll('.power-option').forEach(b => b.classList.toggle('active', b === btn));
   $('#powerThumb').style.transform = `translateX(${btn.dataset.index * 100}%)`;
 }));
-$('#newChat').onclick = startNewConversation;
+$('#newChat').onclick = () => { startNewConversation(); if (typeof Hub !== 'undefined') Hub.go('assistant'); };
 document.addEventListener('click', closeMenus);
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenus(); });
 promptEl.addEventListener('input', autoResize);
@@ -687,13 +701,3 @@ function initApp() {
   autoResize();
 }
 
-// A page reload keeps the same tab's sessionStorage, so a valid token found
-// here means "still the same session" — not a persisted auto-login across
-// visits, since sessionStorage never survives the tab/browser closing.
-const existingToken = sessionStorage.getItem(TOKEN_KEY);
-if (existingToken) {
-  state.token = existingToken;
-  showApp();
-} else {
-  showLogin();
-}
