@@ -1,6 +1,4 @@
 """Rian AI Gen 2 — a built-in Ollama-powered student hub."""
-import base64
-import io
 import json
 import math
 import mimetypes
@@ -11,26 +9,14 @@ import textwrap
 import threading
 import time
 import uuid
-import zipfile
 from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path, PurePosixPath
 from urllib.parse import quote
 
 import requests
-from flask import Flask, Response, abort, jsonify, render_template, request, send_file, stream_with_context
+from flask import Flask, Response, jsonify, render_template, request, stream_with_context
 from werkzeug.security import check_password_hash, generate_password_hash
-from docx import Document
-from docx.shared import Pt
-from openpyxl import Workbook
-from openpyxl.styles import Font
-from openpyxl.utils import get_column_letter
-from pptx import Presentation
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-import matplotlib
-matplotlib.use("Agg")  # headless rendering — must be set before importing pyplot
-import matplotlib.pyplot as plt
 
 app = Flask(__name__)
 
@@ -48,9 +34,6 @@ def no_stale_frontend_cache(response):
         response.headers["Expires"] = "0"
     return response
 app.config["MAX_CONTENT_LENGTH"] = 12 * 1024 * 1024
-WORKSPACES = Path(os.environ.get("WORKSPACE_DIR", "data/workspaces"))
-WORKSPACES.mkdir(parents=True, exist_ok=True)
-WORKSPACE_MAX_AGE_SECONDS = 2 * 60 * 60  # ephemeral disk: prune old workspaces so it never fills up
 
 # ---- Authentication --------------------------------------------------------
 # Two different lifetimes, on purpose:
@@ -293,31 +276,11 @@ def looks_like_3d_request(prompt):
     output type here where model capability directly limits build quality."""
     return bool(_3D_REQUEST_PATTERN.search(prompt))
 
-SYSTEM = '''You are Rian AI Gen 2, an expert AI study and software assistant. Turn the request into a concise response plus files. Respond with ONLY valid JSON, no prose before or after it, no markdown code fences, using this schema:
-{"reply":"short helpful Markdown response","files":[{"path":"safe relative filename.ext","kind":"text|docx|xlsx|pptx|pdf|stl|image|chart|base64","content":"content for artifact"}]}
-Create useful, complete files. Use text for code, HTML, CSS, JSON, CSV, SVG (vector images), Markdown and arbitrary plain text.
+SYSTEM = '''You are Rian AI Gen 2, the built-in student AI assistant.
 
-For docx/pdf, content is Markdown-lite: lines starting "# "/"## "/"### " become headings, lines starting "- " become bullets, **bold** spans are rendered bold, and a `| col | col |` table (with a `|---|---|` separator row under the header) becomes a real formatted table; separate paragraphs with blank lines.
-For xlsx, content is JSON rows like [["Header1","Header2"],["value",1]] — the first row is treated as a header and gets bold styling and auto-sized columns automatically.
-For pptx, content is JSON slides like [{"title":"...","body":"one bullet per line, separated by \\n"}] — each line in "body" becomes its own bullet point.
-For a raster/photographic or artistic image, use kind "image" with a .png/.jpg path. content is either a plain English image-generation prompt, or JSON {"prompt":"...","aspect":"square|portrait|landscape"} for more control over framing — use vivid, specific, detailed prompts.
-For an actual DATA chart (bar/line/pie/scatter of real numbers) rather than an artistic picture, use kind "chart" with a .png path. content is JSON: {"type":"bar|line|pie|scatter","title":"...","x_label":"...","y_label":"...","labels":["A","B","C"],"series":[{"name":"Series 1","values":[1,2,3]}]}. Use "chart" whenever the user wants to see numbers plotted — it renders a real, accurate chart from the data instead of an AI-generated approximation of one.
+Return ONLY a helpful plain-text/Markdown response to the user's request. NEVER create, describe, attach, encode, save, preview, download, or return files or file-generation instructions. Do not output JSON wrappers or artifact metadata. If a user asks for a file, explain the content directly in the chat instead and offer a copyable text version when appropriate.
 
-For a 3D model, use kind "stl" with a .stl path. Take real time to think this through — you are the CAD engineer: mentally model the object as an assembly of real, distinct parts and their spatial relationships before writing anything. content is JSON describing a BUILD PROGRAM that Rian AI Gen 2 parses and executes step by step:
-{"plan":"a few sentences: what real-world parts does this object have, roughly what size is each, and how do they connect/align?","ops":[
-  {"op":"add","shape":"box|sphere|cylinder|cone|torus|tube|capsule|wedge|pyramid","size":20,"radius":10,"height":20,"tube":4,"segments":16,"position":[x,y,z],"rotation":[rx,ry,rz],"scale":[sx,sy,sz]},
-  {"op":"repeat","count":6,"rotate":[0,0,60],"around":[0,0,0]}
-]}
-Shape params — "box": size [w,d,h] (or one number for a cube); optionally add "bore":{"axis":"x|y|z","radius":R,"segments":N} to punch a clean round hole straight through the box along that axis (e.g. a screw hole, a mounting hole, a cable pass-through, a pivot hole) — this is a real hole through solid material, not a decoration. "sphere"/"cylinder"/"cone": "radius" (+"height" for cylinder/cone). "torus": "radius" (ring) + "tube" (thickness). "tube": a hollow pipe/ring — "radius" (outer) + "inner_radius" + "height". "capsule": a pill shape — "radius" + "height" (straight section length; total length is height + 2*radius). "wedge": a ramp/doorstop/roof — size [w,d,h], sloped down along x. "pyramid": "size" (+optional "height"). "cylinder" with a low "segments" (e.g. 5, 6, 8) becomes a pentagonal/hexagonal/octagonal prism — use this for nuts, bolts, multi-sided posts, etc. instead of a separate prism shape. Leave "segments" unset to let Forge auto-pick a smooth value from the part's size; only set it explicitly for a deliberately low-poly/faceted look.
-Every shape is centered on its own local origin, then: scaled by "scale" [sx,sy,sz] (stretch into an ellipsoid, plank, etc.), rotated by "rotation" [rx,ry,rz] degrees (X then Y then Z, e.g. tilt a fin or lay a cylinder on its side), then moved to "position" [x,y,z]. All optional, default no scale/rotation, position [0,0,0].
-"repeat" duplicates the shape from the immediately preceding "add" "count"-1 more times: "rotate":[rx,ry,rz] rotates each successive copy further around the "around" pivot (default world origin) — radial patterns (gear teeth, wheel spokes, flower petals, fins around a body). "translate":[dx,dy,dz] offsets each successive copy further along that vector — linear patterns (fence posts, stair treads, table legs, shelf slats, a row of mounting holes). Combine both for a spiral/helix.
-"mirror" reflects the immediately preceding "add" across an axis-aligned plane through the origin (or through "offset" along that axis): {"op":"mirror","axis":"x|y|z","offset":0} — use for symmetric designs (matched wings, a hull's two sides, paired brackets) instead of specifying both halves by hand.
-There is deliberately no general subtract/union/intersect between arbitrary shapes — Rian AI Gen 2 tried a general boolean engine and it produced subtly broken (self-intersecting) geometry on realistic shapes during testing, so it was removed rather than shipped unreliable. Work within what's actually available: "bore" for holes through a box, "tube" for hollow cylinders/pipes/rings, overlapping "add"s for anything that reads fine as visually-merged solids (most non-precision parts don't need true CSG to look and print correctly).
-Design like an engineer, not an illustrator: before writing ops, work out in "plan" what the real object is made of (its distinct functional parts), roughly how big each one is relative to the others, and exactly how they align and connect (shared axis, shared face, a specific offset) — vague ops with parts floating unconnected or wildly mismatched in scale are the main way these builds go wrong. Build real objects from several parts (roughly 6-20 ops is normal for something detailed) — e.g. a mug = a "tube" body + a "torus" or bent-"capsule" handle positioned at the side; a table = one flat box top + 4 cylinder legs via one add + one repeat with translate; a gear = a short cylinder body + one tooth box at its edge + a repeat rotating around the center; a rocket = a cylinder body + a cone nose + a capsule or sphere tip + fin boxes via one add + a radial repeat; a bracket = a box with a "bore" for its mounting hole. Prefer the shape that is actually hollow/rounded/holed when the real object is (a cup or pipe should be a "tube" not a solid cylinder; a pill or rounded handle should be a "capsule" not a box; a mounting plate should use "bore" not a solid slab). Keep coordinates within roughly -200..200. If one of your ops is invalid Forge will skip just that piece and keep the rest, so don't let one uncertain part stop you from building the others.
-
-Use base64 only for true binary payloads that don't fit the kinds above. If the request only needs a text answer, return an empty files list. Never use absolute paths, traversal, or more than 12 files.'''
-
-
+You are especially good at explaining school subjects, making quizzes, exam-style questions, revision plans, study techniques, homework guidance, course planning, and helping students understand questions. Be concise but useful, use clear headings/bullets when helpful, and do not pretend to have access to school systems or private information you were not given.'''
 
 
 
@@ -789,273 +752,6 @@ def run_stl_program(spec):
     return triangles, notes
 
 
-def render_ascii_stl(triangles):
-    lines = ["solid rian_ai_gen2"]
-    for a, b, c in triangles:
-        ax, ay, az = a; bx, by, bz = b; cx, cy, cz = c
-        ux, uy, uz = bx-ax, by-ay, bz-az
-        vx, vy, vz = cx-ax, cy-ay, cz-az
-        nx, ny, nz = uy*vz-uz*vy, uz*vx-ux*vz, ux*vy-uy*vx
-        length = math.sqrt(nx*nx+ny*ny+nz*nz) or 1.0
-        lines += [f" facet normal {nx/length:.6f} {ny/length:.6f} {nz/length:.6f}", "  outer loop"]
-        lines += [f"   vertex {p[0]:.4f} {p[1]:.4f} {p[2]:.4f}" for p in (a, b, c)]
-        lines += ["  endloop", " endfacet"]
-    lines.append("endsolid rian_ai_gen2")
-    return "\n".join(lines)
-
-
-def _apply_bold_runs(paragraph, text):
-    """Split "**bold**" spans out of a line of text and add them as bold runs."""
-    for i, chunk in enumerate(re.split(r"\*\*(.+?)\*\*", text)):
-        if not chunk: continue
-        run = paragraph.add_run(chunk)
-        if i % 2 == 1: run.bold = True
-
-
-_TABLE_SEPARATOR = re.compile(r"^\|?[\s:|-]+\|?$")
-
-
-def parse_markdown_blocks(content):
-    """Small Markdown-lite block parser shared by the docx and pdf writers.
-    Yields ('heading', level, text) | ('bullet', text) | ('table', rows) | ('para', text).
-    A table is a "| a | b |" row immediately followed by a "|---|---|"
-    separator row, then zero or more further "| ... |" rows."""
-    lines = str(content).split("\n")
-    i, n = 0, len(lines)
-    while i < n:
-        stripped = lines[i].strip()
-        if not stripped:
-            i += 1; continue
-        heading_match = re.match(r"^(#{1,3})\s+(.*)", stripped)
-        if heading_match:
-            yield ("heading", len(heading_match.group(1)), heading_match.group(2)); i += 1; continue
-        if stripped.startswith("- "):
-            yield ("bullet", stripped[2:]); i += 1; continue
-        if stripped.startswith("|") and i + 1 < n and "-" in lines[i + 1] and _TABLE_SEPARATOR.match(lines[i + 1].strip()):
-            rows = [[c.strip() for c in stripped.strip("|").split("|")]]
-            i += 2  # header row + separator row
-            while i < n and lines[i].strip().startswith("|"):
-                rows.append([c.strip() for c in lines[i].strip().strip("|").split("|")])
-                i += 1
-            yield ("table", rows); continue
-        yield ("para", stripped); i += 1
-
-
-CHART_COLORS = ["#2fd68f", "#3f8cf2", "#9c6bf0", "#f2b45c", "#f26b6b", "#39c6c6"]
-
-
-def render_chart(spec, path):
-    """Render a real data chart (matplotlib) — for actual data, not AI art."""
-    chart_type = str(spec.get("type", "bar")).lower()
-    labels = spec.get("labels") or []
-    series = spec.get("series") or [{"name": "Series 1", "values": spec.get("values", [])}]
-    if not series or not any(s.get("values") for s in series):
-        raise ValueError("Chart spec has no data")
-
-    fig, ax = plt.subplots(figsize=(7.5, 4.6), dpi=150)
-    fig.patch.set_alpha(0)
-
-    if chart_type == "pie":
-        values = series[0].get("values", [])
-        ax.pie(values, labels=labels or None, autopct="%1.0f%%", colors=CHART_COLORS, textprops={"color": "#1a1a1a"})
-        ax.axis("equal")
-    elif chart_type in ("line", "scatter"):
-        x_values = labels if labels else list(range(len(series[0].get("values", []))))
-        for i, s in enumerate(series):
-            color = CHART_COLORS[i % len(CHART_COLORS)]
-            if chart_type == "line":
-                ax.plot(x_values, s.get("values", []), marker="o", label=s.get("name", f"Series {i+1}"), color=color)
-            else:
-                ax.scatter(x_values, s.get("values", []), label=s.get("name", f"Series {i+1}"), color=color)
-        if len(series) > 1: ax.legend()
-        ax.grid(alpha=0.25)
-    else:  # grouped bar (default)
-        count = len(labels) if labels else max((len(s.get("values", [])) for s in series), default=0)
-        width = 0.8 / max(1, len(series))
-        for i, s in enumerate(series):
-            xs = [j + i * width for j in range(count)]
-            ax.bar(xs, (s.get("values") or [])[:count], width=width, label=s.get("name", f"Series {i+1}"), color=CHART_COLORS[i % len(CHART_COLORS)])
-        if len(series) > 1: ax.legend()
-        offset = (len(series) - 1) * width / 2
-        ax.set_xticks([j + offset for j in range(count)])
-        ax.set_xticklabels(labels[:count] if labels else [str(j) for j in range(count)], rotation=20, ha="right")
-        ax.grid(axis="y", alpha=0.25)
-
-    if spec.get("title"): ax.set_title(str(spec["title"]))
-    if spec.get("x_label"): ax.set_xlabel(str(spec["x_label"]))
-    if spec.get("y_label"): ax.set_ylabel(str(spec["y_label"]))
-    fig.tight_layout()
-    fig.savefig(path, transparent=True)
-    plt.close(fig)
-
-
-def _draw_rich_line(pdf, x, y, text, size, base_font="Helvetica"):
-    """Draw one line of text, rendering **bold** spans in a bold font instead
-    of leaving the literal asterisks in the output (which reportlab's plain
-    drawString has no concept of on its own)."""
-    bold_font = f"{base_font}-Bold"
-    cursor = x
-    for i, chunk in enumerate(re.split(r"\*\*(.+?)\*\*", text)):
-        if not chunk: continue
-        font = bold_font if i % 2 == 1 else base_font
-        pdf.setFont(font, size)
-        pdf.drawString(cursor, y, chunk)
-        cursor += pdf.stringWidth(chunk, font, size)
-
-
-def write_artifact(root, item):
-    """Writes one artifact to disk. Returns a list of non-fatal warning
-    strings (only ever populated for "stl", where a bad build step is
-    skipped rather than failing the whole file)."""
-    path = root / safe_path(item["path"])
-    path.parent.mkdir(parents=True, exist_ok=True)
-    kind, content = item.get("kind", "text"), item.get("content", "")
-    if kind == "text":
-        path.write_text(str(content), encoding="utf-8")
-    elif kind == "base64":
-        path.write_bytes(base64.b64decode(content))
-    elif kind == "image":
-        # content is either a plain prompt string, or JSON {"prompt":...,"aspect":...}
-        # for finer control over framing.
-        prompt, aspect = str(content), "square"
-        try:
-            parsed = json.loads(content)
-            if isinstance(parsed, dict) and "prompt" in parsed:
-                prompt, aspect = str(parsed["prompt"]), str(parsed.get("aspect", "square"))
-        except (json.JSONDecodeError, ValueError):
-            pass
-        width, height = {"portrait": (832, 1216), "landscape": (1216, 832)}.get(aspect, (1024, 1024))
-        prompt = prompt.strip()[:800] or "abstract art"
-        url = POLLINATIONS_URL.format(prompt=quote(prompt)) + f"?width={width}&height={height}&nologo=true&model=flux"
-        response = requests.get(url, timeout=90)
-        response.raise_for_status()
-        if not response.headers.get("content-type", "").startswith("image/") and len(response.content) < 500:
-            raise ValueError("Image generation did not return an image")
-        path.write_bytes(response.content)
-    elif kind == "chart":
-        render_chart(json.loads(content), path)
-    elif kind == "docx":
-        # Lightweight Markdown: "#"-headings, "- " bullets, **bold** spans,
-        # and "| a | b |" tables — instead of dumping everything as identical
-        # plain paragraphs.
-        doc = Document()
-        for block in parse_markdown_blocks(content):
-            tag = block[0]
-            if tag == "heading":
-                doc.add_heading(block[2], level=block[1])
-            elif tag == "bullet":
-                _apply_bold_runs(doc.add_paragraph(style="List Bullet"), block[1])
-            elif tag == "table":
-                rows = block[1]
-                cols = max(len(r) for r in rows)
-                table = doc.add_table(rows=len(rows), cols=cols)
-                table.style = "Table Grid"
-                for r_idx, row in enumerate(rows):
-                    for c_idx in range(cols):
-                        cell_text = row[c_idx] if c_idx < len(row) else ""
-                        cell = table.cell(r_idx, c_idx)
-                        _apply_bold_runs(cell.paragraphs[0], cell_text)
-                        if r_idx == 0:
-                            for run in cell.paragraphs[0].runs: run.bold = True
-            else:
-                _apply_bold_runs(doc.add_paragraph(), block[1])
-        doc.save(path)
-    elif kind == "xlsx":
-        wb = Workbook(); sheet = wb.active; sheet.title = "Sheet1"
-        rows = json.loads(content)
-        for row_index, row in enumerate(rows):
-            sheet.append(row if isinstance(row, list) else [row])
-            if row_index == 0:
-                for cell in sheet[1]: cell.font = Font(bold=True)
-        sheet.freeze_panes = "A2"
-        widths = {}
-        for row in rows:
-            for col_index, value in enumerate(row if isinstance(row, list) else [row]):
-                widths[col_index] = max(widths.get(col_index, 8), min(len(str(value)) + 2, 40))
-        for col_index, width in widths.items():
-            sheet.column_dimensions[get_column_letter(col_index + 1)].width = width
-        wb.save(path)
-    elif kind == "pptx":
-        pres = Presentation()
-        for slide_data in json.loads(content):
-            slide = pres.slides.add_slide(pres.slide_layouts[1])
-            slide.shapes.title.text = slide_data.get("title", "Untitled")
-            body = slide.placeholders[1].text_frame
-            lines = str(slide_data.get("body", "")).split("\n") or [""]
-            body.text = lines[0]
-            for line in lines[1:]:
-                body.add_paragraph().text = line
-        pres.save(path)
-    elif kind == "pdf":
-        pdf = canvas.Canvas(str(path), pagesize=letter)
-        page_width, page_height = letter
-        margin, y = 54, 750
-
-        def new_page_if_needed(needed=20):
-            nonlocal y
-            if y < needed:
-                pdf.showPage(); y = 750
-
-        for block in parse_markdown_blocks(content):
-            tag = block[0]
-            if tag == "heading":
-                font, size, text = "Helvetica-Bold", {1: 17, 2: 14, 3: 12}[block[1]], block[2]
-                pdf.setFont(font, size)
-                for line in textwrap.wrap(text, width=95) or [""]:
-                    new_page_if_needed(size + 10)
-                    pdf.drawString(margin, y, line); y -= (size + 6)
-                y -= 4
-            elif tag == "bullet":
-                wrapped = textwrap.wrap(block[1], width=90) or [""]
-                for i, line in enumerate(wrapped):
-                    new_page_if_needed()
-                    _draw_rich_line(pdf, margin, y, ("• " if i == 0 else "  ") + line, 11); y -= 17
-            elif tag == "table":
-                rows = block[1]; cols = max(len(r) for r in rows)
-                usable = page_width - 2 * margin; col_width = usable / cols
-                chars_per_col = max(4, int(col_width / 5.3))
-                new_page_if_needed(30)
-                pdf.setFont("Helvetica-Bold", 10)
-                for c, cell in enumerate(rows[0]):
-                    pdf.drawString(margin + c * col_width, y, str(cell).replace("**", "")[:chars_per_col])
-                y -= 3; pdf.line(margin, y, margin + usable, y); y -= 15
-                for row in rows[1:]:
-                    new_page_if_needed()
-                    for c in range(cols):
-                        cell = row[c] if c < len(row) else ""
-                        _draw_rich_line(pdf, margin + c * col_width, y, str(cell)[:chars_per_col], 10)
-                    y -= 16
-                y -= 6
-            else:
-                for line in textwrap.wrap(block[1], width=95) or [""]:
-                    new_page_if_needed()
-                    _draw_rich_line(pdf, margin, y, line, 11); y -= 17
-                y -= 4
-        pdf.save()
-    elif kind == "stl":
-        spec = json.loads(content)
-        triangles, warnings = run_stl_program(spec)
-        path.write_text(render_ascii_stl(triangles), encoding="ascii")
-        return warnings
-    else:
-        raise ValueError(f"Unsupported artifact kind: {kind}")
-    return []
-
-
-def prune_old_workspaces():
-    """Ephemeral disk hygiene: delete workspace folders older than the cutoff
-    so a long-running process never silently fills its disk with old ZIPs."""
-    cutoff = time.time() - WORKSPACE_MAX_AGE_SECONDS
-    try:
-        for entry in WORKSPACES.iterdir():
-            if entry.is_dir() and entry.stat().st_mtime < cutoff:
-                for f in sorted(entry.rglob("*"), reverse=True):
-                    (f.rmdir() if f.is_dir() else f.unlink())
-                entry.rmdir()
-    except OSError:
-        pass  # best-effort cleanup; never let this break a request
-
-
 def tavily_search(query):
     """Search the live web via Tavily and return a compact text block the
     model can read as extra context. Raises on failure — the caller decides
@@ -1307,188 +1003,49 @@ def config():
 @require_auth
 def chat():
     if not OLLAMA_API_KEY:
-        return jsonify(error="Rian AI Gen 2 isn't configured yet: set the OLLAMA_API_KEY environment variable on the server to an Ollama Cloud API key (ollama.com/settings/keys), then restart."), 500
-    # get_json(force=True) raises Flask's own HTML 400 page on a malformed
-    # body, which broke the frontend's JSON parsing. silent=True + a manual
-    # check keeps every response on this route JSON, even for bad input.
+        return jsonify(error="Rian AI Gen 2 isn't configured yet: set OLLAMA_API_KEY on Render, then restart."), 500
     data = request.get_json(silent=True)
-    if not isinstance(data, dict):
-        return jsonify(error="Malformed request body."), 400
+    if not isinstance(data, dict): return jsonify(error="Malformed request body."), 400
     prompt = str(data.get("prompt", "")).strip()
     if not prompt: return jsonify(error="Enter a request."), 400
-    prune_old_workspaces()
-
-    messages = [{"role": "system", "content": SYSTEM}] + data.get("history", [])[-10:]
+    messages = [{"role":"system","content":SYSTEM}]
+    for m in data.get("history", [])[-10:]:
+        if isinstance(m, dict) and m.get("role") in {"user","assistant"} and isinstance(m.get("content"), str):
+            messages.append({"role":m["role"],"content":m["content"]})
     if data.get("web_search"):
-        if not TAVILY_API_KEY:
-            return jsonify(error="Web search isn't configured yet: set the TAVILY_API_KEY environment variable on the server (get a free key at app.tavily.com), then restart."), 500
-        try:
-            search_context = tavily_search(prompt)
-            messages.append({"role": "system", "content": f"Live web search results for the user's request — use them to inform your answer, and mention where information came from where it's helpful, but don't fabricate beyond what's here:\n{search_context}"})
-        except (requests.RequestException, ValueError, KeyError) as error:
-            return jsonify(error=f"Web search failed: {error}"), 502
-    messages.append({"role": "user", "content": prompt})
-
+        if not TAVILY_API_KEY: return jsonify(error="Web search isn't configured on this server."), 500
+        try: messages.append({"role":"system","content":f"Relevant live web search context:\n{tavily_search(prompt)}"})
+        except (requests.RequestException, ValueError, KeyError) as error: return jsonify(error=f"Web search failed: {error}"), 502
+    messages.append({"role":"user","content":prompt})
     model_id = data.get("model") or DEFAULT_MODEL
+    if model_id not in {m["id"] for m in MODELS}: model_id=DEFAULT_MODEL
     power = str(data.get("power", DEFAULT_POWER)).lower()
-    if power not in POWER_LEVELS: power = DEFAULT_POWER
-    auto_upgraded_for_3d = looks_like_3d_request(prompt)
-    if auto_upgraded_for_3d:
-        # 3D geometry quality is directly limited by model capability in a way
-        # the other file types mostly aren't, so this overrides whatever the
-        # person picked — regardless of their chosen model or power level —
-        # to the strongest model available at maximum reasoning effort.
-        model_id, power = BEST_MODEL, "max"
-    power_config = POWER_LEVELS[power]
-
-    # Ollama's native /api/chat shape differs from OpenAI-style APIs: no
-    # response_format, generation options nest under "options". stream:true
-    # here (unlike earlier revisions) is what lets Forge show the reply as
-    # it's generated instead of one long wait. "think" triggers the model's
-    # own extended reasoning before it answers — this is what "take its time
-    # and think before building" actually maps to at the API level.
-    payload = {"model": model_id, "messages": messages, "stream": True,
-               "think": power_config["think"],
-               "options": {"temperature": 0.35, "num_predict": power_config["num_predict"]}}
-
-    # Open the upstream connection first — with a couple of retries for
-    # transient failures — so a failure here can still return a normal JSON
-    # error response. Once we start streaming a 200 body below, the status
-    # code can no longer change, so all of this must happen before that.
-    # Timeout scales with power level: Max reasoning + the largest token
-    # budget genuinely needs more wall-clock room than a quick Low-power reply.
-    upstream_timeout = {"low": 150, "medium": 220, "high": 280, "max": 280}[power]
-    upstream, last_error = None, None
+    if power not in POWER_LEVELS: power=DEFAULT_POWER
+    cfg=POWER_LEVELS[power]
+    payload={"model":model_id,"messages":messages,"stream":True,"think":cfg["think"],"options":{"num_predict":cfg["num_predict"]}}
+    upstream=None; last_error=None
     for attempt in range(2):
-        try:
-            candidate = requests.post(OLLAMA_CHAT_URL, headers={"Authorization": f"Bearer {OLLAMA_API_KEY}"}, json=payload, timeout=upstream_timeout, stream=True)
-        except requests.RequestException as error:
-            last_error = error; time.sleep(0.6); continue
-        if candidate.status_code in (502, 503, 504) and attempt == 0:
-            candidate.close(); last_error = requests.HTTPError(f"upstream returned {candidate.status_code}"); time.sleep(0.6); continue
-        upstream = candidate
-        break
-    if upstream is None:
-        return jsonify(error=f"Ollama Cloud is temporarily unavailable ({last_error}). Please retry."), 502
-    if upstream.status_code == 401:
-        upstream.close(); return jsonify(error="Ollama Cloud rejected the API key. Check OLLAMA_API_KEY on the server."), 502
-    if upstream.status_code == 429:
-        upstream.close(); return jsonify(error=f"{model_id} is rate-limited on Ollama Cloud right now. Wait a bit or switch models."), 502
-    try:
-        upstream.raise_for_status()
+        try: candidate=requests.post(OLLAMA_CHAT_URL,headers={"Authorization":f"Bearer {OLLAMA_API_KEY}"},json=payload,timeout={"low":150,"medium":220,"high":280,"max":280}[power],stream=True)
+        except requests.RequestException as error: last_error=error; time.sleep(.6); continue
+        if candidate.status_code in (502,503,504) and attempt==0: candidate.close(); last_error=requests.HTTPError(f"upstream returned {candidate.status_code}"); time.sleep(.6); continue
+        upstream=candidate; break
+    if upstream is None: return jsonify(error=f"Ollama Cloud is temporarily unavailable ({last_error}). Please retry."),502
+    if upstream.status_code==401: upstream.close(); return jsonify(error="Ollama Cloud rejected the API key. Check OLLAMA_API_KEY on Render."),502
+    if upstream.status_code==429: upstream.close(); return jsonify(error=f"{model_id} is rate-limited on Ollama Cloud right now. Please retry shortly."),502
+    try: upstream.raise_for_status()
     except requests.HTTPError:
-        detail = upstream.text[:500]; status = upstream.status_code; upstream.close()
-        return jsonify(error=f"Ollama Cloud rejected this request ({status}). {detail}"), 502
-
+        detail=upstream.text[:500]; status=upstream.status_code; upstream.close(); return jsonify(error=f"Ollama Cloud rejected this request ({status}). {detail}"),502
     def generate():
-        extractor = ReplyStreamExtractor()
-        raw_parts, done_reason = [], None
         try:
-            if auto_upgraded_for_3d:
-                yield json.dumps({"type": "info", "text": f"3D model request detected — auto-using {model_id} at Max power for best build quality."}) + "\n"
-            try:
-                for line in upstream.iter_lines(decode_unicode=True):
-                    if not line: continue
-                    try:
-                        chunk = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-                    message = chunk.get("message") or {}
-                    thinking = message.get("thinking", "")
-                    if thinking:
-                        yield json.dumps({"type": "thinking", "text": thinking}) + "\n"
-                    piece = message.get("content", "")
-                    if piece:
-                        raw_parts.append(piece)
-                        delta = extractor.feed(piece)
-                        if delta: yield json.dumps({"type": "delta", "text": delta}) + "\n"
-                    if chunk.get("done"):
-                        done_reason = chunk.get("done_reason")
-                        break
-            except requests.RequestException as error:
-                yield json.dumps({"type": "error", "error": f"Connection to Ollama Cloud dropped mid-response: {error}"}) + "\n"
-                return
-            finally:
-                upstream.close()
+            for line in upstream.iter_lines(decode_unicode=True):
+                if not line: continue
+                try: chunk=json.loads(line)
+                except json.JSONDecodeError: continue
+                piece=(chunk.get("message") or {}).get("content","")
+                if piece: yield json.dumps({"type":"delta","text":piece},ensure_ascii=False)+"\n"
+                if chunk.get("done"): yield json.dumps({"type":"done"})+"\n"; break
+        except requests.RequestException as error: yield json.dumps({"type":"error","error":f"Connection to Ollama Cloud dropped: {error}"})+"\n"
+        except Exception as error: yield json.dumps({"type":"error","error":f"Generation failed: {error}"})+"\n"
+        finally: upstream.close()
+    return Response(stream_with_context(generate()),mimetype="application/x-ndjson")
 
-            if done_reason == "length":
-                yield json.dumps({"type": "error", "error": "The model ran out of room before finishing its response. Try a shorter request, break it into steps, or switch to a different model."}) + "\n"
-                return
-
-            try:
-                result = decode_model_result("".join(raw_parts))
-            except ValueError as error:
-                yield json.dumps({"type": "error", "error": str(error)}) + "\n"
-                return
-
-            files = result.get("files", [])[:12]
-            workspace_id = uuid.uuid4().hex; root = WORKSPACES / workspace_id; root.mkdir()
-            notes = []
-            for item in files:
-                try:
-                    notes += write_artifact(root, item)
-                except Exception as error:
-                    # Deliberately broad: a single bad file must never throw away an
-                    # otherwise-good response (reply text + any other files) — same
-                    # per-step fault tolerance principle as the STL build program,
-                    # applied to the whole file list.
-                    notes.append(f"⚠️ Couldn't create '{item.get('path', '?')}': {error} — skipped, other files were still made.")
-            manifest = sorted(
-                [{"path": str(p.relative_to(root)).replace("\\", "/"), "bytes": p.stat().st_size,
-                  "isImage": p.suffix.lower() in IMAGE_EXTENSIONS}
-                 for p in root.rglob("*") if p.is_file()],
-                key=lambda f: f["path"],
-            )
-            reply = result.get("reply", "Done.")
-            if notes: reply += "\n\n" + "\n".join(notes)
-            yield json.dumps({"type": "done", "reply": reply, "workspace": workspace_id, "files": manifest, "modelUsed": model_id, "powerUsed": power}) + "\n"
-        except Exception as error:  # never let the stream just hang or die silently
-            yield json.dumps({"type": "error", "error": f"Generation failed: {error}"}) + "\n"
-
-    return Response(stream_with_context(generate()), mimetype="application/x-ndjson")
-
-
-@app.get("/api/download/<workspace_id>")
-@require_auth
-def download(workspace_id):
-    if not re.fullmatch(r"[a-f0-9]{32}", workspace_id): abort(404)
-    root = WORKSPACES / workspace_id
-    if not root.is_dir(): abort(404)
-    payload = io.BytesIO()
-    with zipfile.ZipFile(payload, "w", zipfile.ZIP_DEFLATED) as archive:
-        for file in root.rglob("*"):
-            if file.is_file(): archive.write(file, file.relative_to(root))
-    payload.seek(0)
-    return send_file(payload, as_attachment=True, download_name=f"rian-ai-gen-2-{workspace_id[:8]}.zip", mimetype="application/zip")
-
-
-def resolve_workspace_file(workspace_id, filename):
-    if not re.fullmatch(r"[a-f0-9]{32}", workspace_id): abort(404)
-    root = WORKSPACES / workspace_id
-    if not root.is_dir(): abort(404)
-    try:
-        target = (root / safe_path(filename)).resolve()
-    except ValueError:
-        abort(404)
-    if root.resolve() not in target.parents or not target.is_file(): abort(404)
-    return target
-
-
-@app.get("/api/download/<workspace_id>/<path:filename>")
-@require_auth
-def download_single(workspace_id, filename):
-    target = resolve_workspace_file(workspace_id, filename)
-    return send_file(target, as_attachment=True, download_name=target.name)
-
-
-@app.get("/api/preview/<workspace_id>/<path:filename>")
-@require_auth
-def preview_single(workspace_id, filename):
-    # Same safety checks as the download route, but served inline (not as an
-    # attachment) with a guessed mimetype, so <img> tags can render it directly.
-    target = resolve_workspace_file(workspace_id, filename)
-    mimetype = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
-    return send_file(target, as_attachment=False, mimetype=mimetype)
-
-
-if __name__ == "__main__": app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)

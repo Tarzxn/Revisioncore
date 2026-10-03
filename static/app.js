@@ -98,66 +98,6 @@ function renderReply(text) {
   return `<div class="reply-text">${html}</div>`;
 }
 
-function formatBytes(n) {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-const FILE_ICONS = {
-  '.py':'🐍', '.js':'📜', '.ts':'📜', '.html':'🌐', '.css':'🎨', '.json':'🗂️',
-  '.csv':'📊', '.md':'📝', '.txt':'📄', '.docx':'📃', '.xlsx':'📊', '.pptx':'📽️',
-  '.pdf':'📕', '.stl':'🧊', '.svg':'🖼️', '.png':'🖼️', '.jpg':'🖼️', '.jpeg':'🖼️',
-  '.webp':'🖼️', '.gif':'🖼️',
-};
-function fileIcon(path) {
-  const ext = path.slice(path.lastIndexOf('.')).toLowerCase();
-  return FILE_ICONS[ext] || '📦';
-}
-
-// Keeps each path segment correctly percent-encoded without turning the "/"
-// separators between folders into a literal "%2F" (which broke nested-file
-// downloads, since Flask's <path:filename> route never saw the real slash).
-// Plain <a href> links can't carry an Authorization header, so the auth
-// token rides along as a query parameter for these two routes specifically.
-function workspaceUrl(base, workspace, path) {
-  const segments = path.split('/').map(encodeURIComponent).join('/');
-  const sep = base.includes('?') ? '&' : '?';
-  return `${base}/${workspace}/${segments}${sep}token=${encodeURIComponent(state.token || '')}`;
-}
-
-// Same idea but for the whole-workspace zip route, which has no per-file
-// path segment at all.
-function workspaceZipUrl(workspace) {
-  return `/api/download/${workspace}?token=${encodeURIComponent(state.token || '')}`;
-}
-
-function buildArtifactHtml(data) {
-  if (!data.files || data.files.length === 0) return '';
-  const images = data.files.filter(f => f.isImage);
-  const gallery = images.length ? `
-    <div class="artifact-gallery">
-      ${images.map(f => `
-        <a href="${workspaceUrl('/api/preview', data.workspace, f.path)}" target="_blank" rel="noopener">
-          <img loading="lazy" src="${workspaceUrl('/api/preview', data.workspace, f.path)}" alt="${escapeHtml(f.path)}">
-        </a>`).join('')}
-    </div>` : '';
-  const rows = data.files.map(f => `
-    <li>
-      <span class="ficon">${fileIcon(f.path)}</span>
-      <span class="fname">${escapeHtml(f.path)}</span>
-      <span class="fbytes">${formatBytes(f.bytes)}</span>
-      <a href="${workspaceUrl('/api/download', data.workspace, f.path)}" download>Download</a>
-    </li>`).join('');
-  return `
-    <div class="artifact glass">
-      ${gallery}
-      <div class="artifact-head"><strong>${data.files.length} file${data.files.length === 1 ? '' : 's'} created</strong></div>
-      <ul>${rows}</ul>
-      <a class="download-all" href="${workspaceZipUrl(data.workspace)}">Download all (.zip) ↓</a>
-    </div>`;
-}
-
 function add(role, html) {
   const el = document.createElement('div');
   // User bubbles get the full glass treatment; assistant replies stay
@@ -266,7 +206,7 @@ function redrawConversation() {
     if (m.role === 'user') {
       add('user', escapeHtml(m.content));
     } else {
-      const el = add('assistant', renderReply(m.content) + (m.data ? buildArtifactHtml(m.data) : ''));
+      const el = add('assistant', renderReply(m.content));
       attachCodeCopyButtons(el);
       if (!m.error) attachMessageTools(el, m.content, i);
     }
@@ -490,7 +430,7 @@ async function loadModels() {
       </button>`).join('');
     document.querySelectorAll('.model-choice').forEach(b => b.onclick = () => {
       state.model = b.dataset.id;
-      $('#modelName').textContent = b.dataset.name;
+      const modelNameEl = $('#modelName'); if (modelNameEl) modelNameEl.textContent = b.dataset.name;
       $('#modelMenu').classList.remove('open');
     });
   } catch (e) {
@@ -636,14 +576,15 @@ async function askModel(promptText) {
     if (!finalEvent) throw new Error('The model stopped responding unexpectedly. Please try again.');
 
     pending.classList.remove('typing');
-    pending.innerHTML = renderPending(false) + buildArtifactHtml(finalEvent);
+    const replyText = streamedText.trim() || 'I did not receive a text response. Please try again.';
+    pending.innerHTML = renderReply(replyText);
     attachCodeCopyButtons(pending);
     const msgIndex = conv.messages.length;
-    conv.messages.push({ role: 'assistant', content: finalEvent.reply, data: finalEvent });
-    attachMessageTools(pending, finalEvent.reply, msgIndex);
+    conv.messages.push({ role: 'assistant', content: replyText });
+    attachMessageTools(pending, replyText, msgIndex);
     pending.scrollIntoView({ behavior: 'smooth', block: 'end' });
 
-    state.history.push({ role: 'user', content: promptText }, { role: 'assistant', content: finalEvent.reply });
+    state.history.push({ role: 'user', content: promptText }, { role: 'assistant', content: replyText });
     if (!conv.title) conv.title = titleFor(promptText);
     persistActive();
   } catch (err) {
