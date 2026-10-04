@@ -10,7 +10,6 @@ const HERO_HTML = $('#hero') ? $('#hero').outerHTML : '';
 // because it's not a cookie the browser never auto-attaches it anywhere —
 // every request explicitly carries the token itself.
 const CONV_KEY = 'rianai.gen2.conversations';
-const TOKEN_KEY = 'rianai.gen2.token'; // legacy key; no longer used for authentication
 let authHandlersAttached = false;
 let appInitialized = false;
 
@@ -384,7 +383,7 @@ function attachAuthHandlers() {
 
   $('#logoutButton')?.addEventListener('click', async () => {
     try { await authFetch('/api/logout', { method: 'POST' }); } catch (_) {}
-    sessionStorage.removeItem(TOKEN_KEY);
+    
     sessionStorage.removeItem(CONV_KEY);
     state.token = null;
     state.conversations = {};
@@ -407,7 +406,7 @@ async function validateExistingSession() {
   }
 }
 
-sessionStorage.removeItem(TOKEN_KEY);
+
 attachAuthHandlers();
 validateExistingSession();
 
