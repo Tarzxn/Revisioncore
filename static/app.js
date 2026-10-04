@@ -10,7 +10,7 @@ const HERO_HTML = $('#hero') ? $('#hero').outerHTML : '';
 // because it's not a cookie the browser never auto-attaches it anywhere —
 // every request explicitly carries the token itself.
 const CONV_KEY = 'rianai.gen2.conversations';
-const TOKEN_KEY = 'rianai.gen2.token';
+const TOKEN_KEY = 'rianai.gen2.token'; // legacy key; no longer used for authentication
 let authHandlersAttached = false;
 let appInitialized = false;
 
@@ -259,10 +259,8 @@ function startNewConversation() {
 // explicitly attached to API requests. Forms never perform a browser reload.
 async function authFetch(url, opts = {}) {
   const headers = new Headers(opts.headers || {});
-  if (state.token) headers.set('Authorization', `Bearer ${state.token}`);
-  const response = await fetch(url, { ...opts, headers, credentials: 'same-origin' });
-  if (response.status === 401 && state.token) {
-    sessionStorage.removeItem(TOKEN_KEY);
+  const response = await fetch(url, { ...opts, headers, credentials: 'same-origin', cache: 'no-store' });
+  if (response.status === 401) {
     state.token = null;
     if (!url.endsWith('/api/me')) showLogin('Your session expired. Please sign in again.');
   }
@@ -332,9 +330,7 @@ function attachAuthHandlers() {
         }
         throw new Error(data.error || 'Sign-in failed.');
       }
-      if (!data.token) throw new Error('The server did not return a login session.');
-      state.token = data.token;
-      sessionStorage.setItem(TOKEN_KEY, data.token);
+      state.token = true;
       showApp();
     } catch (err) {
       errorBox.textContent = err.message || 'Could not sign in. Please try again.';
@@ -364,9 +360,7 @@ function attachAuthHandlers() {
       });
       const data = await readJsonSafely(r);
       if (!r.ok) throw new Error(data.error || 'Could not create account.');
-      if (!data.token) throw new Error('The server did not return a login session.');
-      state.token = data.token;
-      sessionStorage.setItem(TOKEN_KEY, data.token);
+      state.token = true;
       showApp();
     } catch (err) {
       errorBox.textContent = err.message || 'Could not create the account.';
@@ -402,20 +396,18 @@ function attachAuthHandlers() {
 }
 
 async function validateExistingSession() {
-  const token = sessionStorage.getItem(TOKEN_KEY);
-  if (!token) { showLogin(); return; }
-  state.token = token;
+  state.token = true;
   try {
     const response = await authFetch('/api/me');
     if (!response.ok) throw new Error('Session invalid');
     showApp();
   } catch (_) {
-    sessionStorage.removeItem(TOKEN_KEY);
     state.token = null;
     showLogin();
   }
 }
 
+sessionStorage.removeItem(TOKEN_KEY);
 attachAuthHandlers();
 validateExistingSession();
 

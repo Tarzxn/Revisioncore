@@ -53,12 +53,13 @@
         <button class="nav-item" data-view="tasks"><span>✓</span> Tasks & deadlines <b id="taskBadge">0</b></button>
         <button class="nav-item" data-view="revision"><span>◈</span> Revision</button>
         <button class="nav-item" data-view="flashcards"><span>▣</span> Flashcards</button>
+        <button class="nav-item" data-view="learn"><span>↗</span> Learn</button>
         <button class="nav-item" data-view="assistant"><span>✦</span> AI study assistant</button>
       </nav>
     </div>
     <div class="sidebar-bottom">
       <button class="nav-item" data-view="settings"><span>⚙</span> Settings</button>
-      <div class="status"><i></i> Account secured <small>Session active in this tab</small></div>
+      <div class="status"><i></i> Account secured <small>Signed in securely</small></div>
       <button id="logoutButton" class="signout">Sign out</button>
     </div>
   </aside>
@@ -89,7 +90,18 @@
 
       <section class="view" id="view-tasks"><div class="section-title"><div><span class="eyebrow">Planning</span><h1>Tasks & deadlines</h1><p>Track homework, coursework, revision and anything else you need to finish.</p></div><button class="primary-button" id="addTaskBtn">＋ Add task</button></div><div class="task-toolbar"><button class="filter active" data-filter="all">All</button><button class="filter" data-filter="open">Open</button><button class="filter" data-filter="high">High priority</button><button class="filter" data-filter="done">Completed</button></div><div id="taskList" class="task-list"></div></section>
 
-      <section class="view" id="view-flashcards"><div class="section-title"><div><span class="eyebrow">Active recall</span><h1>Flashcards</h1><p>Import, organise and study your own question-and-answer cards.</p></div><div class="section-actions"><button class="small-button" id="importFlashcardsBtn">Import</button><button class="primary-button" id="newFlashcardBtn">＋ New card</button></div></div><div class="flashcard-toolbar"><select id="flashcardDeckFilter"><option value="all">All decks</option></select><button class="text-button" id="shuffleFlashcards">Shuffle →</button></div><div id="flashcardStudy" class="flashcard-study glass"><div class="flashcard-empty"><strong>Your cards will appear here.</strong><span>Import a CSV/TXT file or create your first card.</span></div></div><div id="flashcardList" class="flashcard-list"></div></section>
+      <section class="view" id="view-flashcards"><div class="section-title"><div><span class="eyebrow">Active recall</span><h1>Flashcards</h1><p>Import, organise and study your own question-and-answer cards.</p></div><div class="section-actions"><button class="small-button" id="importFlashcardsBtn">Import</button><button class="primary-button" id="newFlashcardBtn">＋ New card</button></div></div><div class="flashcard-toolbar"><select id="flashcardDeckFilter"><option value="all">All decks</option></select><button class="text-button" id="shuffleFlashcards">Shuffle →</button><button class="text-button" id="openLearnFromCards">Learn →</button></div><div id="flashcardStudy" class="flashcard-study glass"><div class="flashcard-empty"><strong>Your cards will appear here.</strong><span>Import a CSV/TXT file or create your first card.</span></div></div><div id="flashcardList" class="flashcard-list"></div></section>
+
+
+      <section class="view" id="view-learn">
+        <div class="section-title"><div><span class="eyebrow">Adaptive study</span><h1>Learn</h1><p>Start easy, build recall, and keep returning to the cards that need you most.</p></div><div class="section-actions"><select id="learnDeckFilter" class="small-select"><option value="all">All decks</option></select><button class="primary-button" id="startLearnBtn">Start session</button></div></div>
+        <div class="learn-layout">
+          <article class="panel glass learn-main" id="learnCard">
+            <div class="learn-start"><div class="learn-symbol">↗</div><h2>Adaptive practice</h2><p>Learn mixes recognition and active recall. Cards you miss return sooner; cards you master are spaced further apart.</p><div class="learn-goal"><button class="goal active" data-goal="10">10 questions</button><button class="goal" data-goal="20">20 questions</button><button class="goal" data-goal="30">30 questions</button></div><button class="primary-button" id="learnStartHero">Begin learning</button></div>
+          </article>
+          <aside class="learn-side"><article class="panel glass"><span class="eyebrow">Progress</span><div class="learn-ring" id="learnRing"><strong id="learnPercent">0%</strong><small>mastery</small></div><div class="learn-stats"><span><b id="learnNew">0</b> New</span><span><b id="learnFamiliar">0</b> Familiar</span><span><b id="learnMastered">0</b> Mastered</span></div></article><article class="panel glass"><span class="eyebrow">How it works</span><p class="setting-note">Recognition questions ease you in. As you improve, Learn asks for recall more often. Incorrect cards are prioritised again.</p></article></aside>
+        </div>
+      </section>
 
       <section class="view" id="view-revision"><div class="section-title"><div><span class="eyebrow">Learning</span><h1>Revision</h1><p>Build a focused subject list and jump into the tools you already use.</p></div><button class="primary-button" id="addSubjectBtn">＋ Add subject</button></div><div id="subjectGrid" class="subject-grid"></div><div class="revision-tools"><article class="panel glass"><span class="tool-icon">▣</span><h3>Flashcards & active recall</h3><p>Import your own cards or build a deck and practise retrieval.</p><button class="text-button" data-go="flashcards">Open flashcards →</button></article><article class="panel glass"><span class="tool-icon">◌</span><h3>Exam question planner</h3><p>Ask for a topic-specific practice set and mark what you need to revisit.</p><button class="text-button" data-go="assistant">Build practice →</button></article><article class="panel glass"><span class="tool-icon">◷</span><h3>Focus sessions</h3><p>Choose one task, set a short session and work without switching context.</p><button class="text-button" id="focusBtn">Start 25 min →</button></article></div></section>
 
@@ -102,6 +114,6 @@
 
 <div id="modal" class="modal" hidden><div class="modal-card glass"><button class="modal-close" id="modalClose">×</button><div id="modalContent"></div></div></div>
 <div id="toast" class="toast" role="status"></div>
-<script src="{{ url_for('static', filename='app.js') }}?v=rian-20261003-8"></script>
-<script src="{{ url_for('static', filename='hub.js') }}?v=rian-20261003-8"></script>
+<script src="{{ url_for('static', filename='app.js') }}?v=rian-20261004-9"></script>
+<script src="{{ url_for('static', filename='hub.js') }}?v=rian-20261004-9"></script>
 </body></html>

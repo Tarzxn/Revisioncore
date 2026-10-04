@@ -1,5 +1,6 @@
 """Rian AI Gen 2 — a built-in Ollama-powered student hub."""
 import json
+import hashlib
 import os
 import re
 import secrets
@@ -12,8 +13,10 @@ from pathlib import Path
 import requests
 from flask import Flask, Response, jsonify, render_template, request, stream_with_context
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # Never allow an old frontend bundle to survive a deployment. This is
 # particularly important for authentication: serving an older auth script
@@ -31,23 +34,21 @@ def no_stale_frontend_cache(response):
 app.config["MAX_CONTENT_LENGTH"] = 12 * 1024 * 1024
 
 # ---- Authentication --------------------------------------------------------
-# Two different lifetimes, on purpose:
-#  - ACCOUNTS (who is allowed to log in) are persisted to disk, hashed, so
-#    people don't have to re-register every time the server restarts — that
-#    would make a login system pointless.
-#  - SESSIONS (being currently logged in) and conversation history are NOT
-#    persisted anywhere durable: session tokens live only in this in-memory
-#    dict (wiped on restart) and are never set as a cookie — the browser
-#    holds its token in sessionStorage, cleared the moment the tab closes, and
-#    sends it explicitly on every request. There is no mechanism for a
-#    returning visitor to be silently auto-logged-in.
+# Accounts and their student data are stored in the account store. Active
+# browser sessions are also persisted as SHA-256 token hashes, so a normal
+# Render wake-up/restart does not sign the student out. The raw session token
+# lives only in an HttpOnly cookie and is never exposed to JavaScript.
 USERS_FILE = Path(os.environ.get("USERS_FILE", "data/users.json"))
 FORGE_USERNAME = os.environ.get("RIAN_USERNAME", os.environ.get("FORGE_USERNAME", "")).strip()  # optional seed account, see seed_admin_account()
 FORGE_PASSWORD = os.environ.get("RIAN_PASSWORD", os.environ.get("FORGE_PASSWORD", "")).strip()
-SESSION_TOKENS = {}  # token -> expiry unix timestamp
-SESSION_USERS = {}   # token -> username (same in-memory lifetime as the token)
-_session_lock = threading.Lock()  # gthread workers mean real concurrent threads touch this dict now
-SESSION_TTL_SECONDS = int(os.environ.get("FORGE_SESSION_HOURS", "12")) * 3600
+SESSION_TOKENS = {}  # token -> expiry unix timestamp (hot cache)
+SESSION_USERS = {}   # token -> username (hot cache)
+_session_lock = threading.Lock()
+# Persistent browser sessions survive a Render wake-up/restart when the account
+# store is backed by the configured GitHub Gist. The raw token is only sent in
+# an HttpOnly cookie; the durable store keeps a SHA-256 hash.
+SESSION_TTL_SECONDS = int(os.environ.get("RIAN_SESSION_DAYS", "30")) * 24 * 3600
+SESSION_COOKIE = "rian_session"
 USERNAME_RE = re.compile(r"^[a-zA-Z0-9_.-]{3,32}$")
 _users_lock = threading.Lock()  # gunicorn now runs with gthread workers, so concurrent requests within one process are real
 
@@ -108,6 +109,13 @@ def _gist_create_if_needed():
     global GITHUB_GIST_ID
     if not GITHUB_TOKEN or GITHUB_GIST_ID: return
     try:
+        existing = requests.get("https://api.github.com/gists?per_page=100", headers=_github_headers(), timeout=10)
+        existing.raise_for_status()
+        for gist in existing.json() if isinstance(existing.json(), list) else []:
+            if gist.get("description") == "Rian AI Gen 2 account store — do not edit by hand" and GITHUB_GIST_FILENAME in (gist.get("files") or {}):
+                GITHUB_GIST_ID = gist.get("id", "")
+                print(f"[Rian AI Gen 2] Reusing existing private account gist: {GITHUB_GIST_ID}")
+                return
         response = requests.post(
             "https://api.github.com/gists",
             headers=_github_headers(),
@@ -184,42 +192,93 @@ print(f"[Rian AI Gen 2] {len(load_users())} account(s) loaded"
       f"{' (synced via GitHub Gist ' + GITHUB_GIST_ID + ')' if GITHUB_TOKEN and GITHUB_GIST_ID else f' from {USERS_FILE.resolve()}'}")
 
 
+def _token_hash(token):
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
 def issue_token(username):
-    token = secrets.token_urlsafe(32)
+    token = secrets.token_urlsafe(48)
+    expires = time.time() + SESSION_TTL_SECONDS
+    with _users_lock:
+        users = load_users()
+        key = username.lower()
+        record = users.get(key)
+        if not record:
+            return token
+        sessions = record.setdefault("sessions", [])
+        now = time.time()
+        sessions[:] = [x for x in sessions if isinstance(x, dict) and float(x.get("expires_at", 0) or 0) > now]
+        sessions.append({"token_hash": _token_hash(token), "created_at": now, "last_seen": now, "expires_at": expires})
+        # Keep a small number of active devices per account.
+        record["sessions"] = sessions[-8:]
+        save_users(users)
+        if GITHUB_TOKEN and GITHUB_GIST_ID:
+            try:
+                with _gist_lock: _gist_save(json.loads(json.dumps(users)))
+            except Exception as error: print(f"[Rian AI Gen 2] Session sync warning: {error}")
     with _session_lock:
-        SESSION_TOKENS[token] = time.time() + SESSION_TTL_SECONDS
+        SESSION_TOKENS[token] = expires
         SESSION_USERS[token] = username
     return token
 
-
 def current_username():
     token = token_from_request()
-    if not is_valid_token(token):
-        return None
-    with _session_lock:
-        return SESSION_USERS.get(token)
-
+    return username_for_token(token) if is_valid_token(token) else None
 
 def token_from_request():
     header = request.headers.get("Authorization", "")
     if header.lower().startswith("bearer "):
         return header[7:].strip()
-    # Plain <a href> downloads/previews can't set custom headers, so those two
-    # routes also accept the token as a query string parameter.
-    return request.args.get("token", "").strip()
+    return request.cookies.get(SESSION_COOKIE, "").strip() or request.args.get("token", "").strip()
 
+def username_for_token(token):
+    global _users_cache
+    if not token: return None
+    with _session_lock:
+        if token in SESSION_USERS: return SESSION_USERS[token]
+    digest = _token_hash(token)
+    now = time.time()
+    with _users_lock:
+        users = load_users()
+        if GITHUB_TOKEN and GITHUB_GIST_ID:
+            remote = _gist_load()
+            if isinstance(remote, dict) and remote != users:
+                _users_cache = remote
+                users = remote
+        for key, record in users.items():
+            for session in record.get("sessions", []) if isinstance(record, dict) else []:
+                if isinstance(session, dict) and session.get("token_hash") == digest:
+                    if float(session.get("expires_at", 0) or 0) <= now:
+                        continue
+                    username = record.get("username", key)
+                    with _session_lock:
+                        SESSION_TOKENS[token] = float(session["expires_at"])
+                        SESSION_USERS[token] = username
+                    return username
+    return None
 
 def is_valid_token(token):
     if not token: return False
     with _session_lock:
         expiry = SESSION_TOKENS.get(token)
-        if expiry is None: return False
-        if time.time() > expiry:
-            SESSION_TOKENS.pop(token, None)
-            SESSION_USERS.pop(token, None)
-            return False
-        return True
+        if expiry is not None:
+            if time.time() <= expiry: return True
+            SESSION_TOKENS.pop(token, None); SESSION_USERS.pop(token, None)
+    return username_for_token(token) is not None
 
+def revoke_token(token):
+    if not token: return
+    digest = _token_hash(token)
+    with _session_lock:
+        SESSION_TOKENS.pop(token, None); SESSION_USERS.pop(token, None)
+    with _users_lock:
+        users = load_users()
+        changed = False
+        for record in users.values():
+            sessions = record.get("sessions", []) if isinstance(record, dict) else []
+            filtered = [x for x in sessions if not (isinstance(x, dict) and x.get("token_hash") == digest)]
+            if len(filtered) != len(sessions):
+                record["sessions"] = filtered; changed = True
+        if changed: save_users(users)
 
 def require_auth(view):
     @wraps(view)
@@ -326,7 +385,10 @@ def login():
         return jsonify(error="Incorrect username or password."), 401
     if not check_password_hash(record["password_hash"], password):
         return jsonify(error="Incorrect username or password."), 401
-    return jsonify(token=issue_token(record["username"]), expiresIn=SESSION_TTL_SECONDS)
+    token = issue_token(record["username"])
+    response = jsonify(ok=True, expiresIn=SESSION_TTL_SECONDS)
+    response.set_cookie(SESSION_COOKIE, token, max_age=SESSION_TTL_SECONDS, httponly=True, secure=bool(request.is_secure), samesite="Lax", path="/")
+    return response
 
 
 @app.post("/api/signup")
@@ -344,16 +406,18 @@ def signup():
     with _users_lock:
         if not create_user(username, password):
             return jsonify(error="That username is already taken."), 409
-    return jsonify(token=issue_token(username), expiresIn=SESSION_TTL_SECONDS)
+    token = issue_token(username)
+    response = jsonify(ok=True, expiresIn=SESSION_TTL_SECONDS)
+    response.set_cookie(SESSION_COOKIE, token, max_age=SESSION_TTL_SECONDS, httponly=True, secure=bool(request.is_secure), samesite="Lax", path="/")
+    return response
 
 
 @app.post("/api/logout")
 def logout():
-    with _session_lock:
-        token = token_from_request()
-        SESSION_TOKENS.pop(token, None)
-        SESSION_USERS.pop(token, None)
-    return jsonify(ok=True)
+    revoke_token(token_from_request())
+    response = jsonify(ok=True)
+    response.delete_cookie(SESSION_COOKIE, path="/")
+    return response
 
 
 
@@ -416,6 +480,21 @@ def _sanitize_student(s, username):
         if not q or not a: continue
         cards.append({"id": str(c.get("id") or uuid.uuid4().hex)[:40], "deck": str(c.get("deck") or "General").strip()[:80] or "General", "subject": str(c.get("subject") or "").strip()[:80], "question": q[:1000], "answer": a[:2000], "created_at": c.get("created_at") if isinstance(c.get("created_at"), (int,float)) else time.time()})
     s["flashcards"] = cards[:5000]
+    progress = {}
+    raw_progress = s.get("learn_progress") if isinstance(s.get("learn_progress"), dict) else {}
+    for cid, st in raw_progress.items():
+        if not isinstance(st, dict): continue
+        try: mastery = max(0, min(2, int(st.get("mastery", 0))))
+        except (TypeError, ValueError): mastery = 0
+        progress[str(cid)[:40]] = {
+            "mastery": mastery,
+            "correct": max(0, int(st.get("correct", 0) or 0)),
+            "incorrect": max(0, int(st.get("incorrect", 0) or 0)),
+            "streak": max(0, int(st.get("streak", 0) or 0)),
+            "due_at": float(st.get("due_at", 0) or 0),
+            "last_seen": float(st.get("last_seen", 0) or 0),
+        }
+    s["learn_progress"] = progress
 
 
 def _default_student():
@@ -432,6 +511,7 @@ def _default_student():
         ],
         "notes": "",
         "flashcards": [],
+        "learn_progress": {},
     }
 
 
@@ -639,6 +719,34 @@ def delete_flashcard(card_id):
     new=[c for c in cards if c.get("id")!=card_id]
     if len(new)==len(cards): return jsonify(error="Flashcard not found."),404
     record["student"]["flashcards"]=new; _save_student(current_username(),record["student"]); return jsonify(ok=True)
+
+
+@app.post("/api/student/learn/answer")
+@require_auth
+def learn_answer():
+    data = request.get_json(silent=True) or {}
+    card_id = str(data.get("card_id") or "").strip()
+    correct = bool(data.get("correct"))
+    if not card_id: return jsonify(error="Card id is required."), 400
+    _, _, record = _student_record(current_username())
+    if not record: return jsonify(error="Account not found."), 404
+    cards = record["student"].setdefault("flashcards", [])
+    if not any(c.get("id") == card_id for c in cards): return jsonify(error="Flashcard not found."), 404
+    progress = record["student"].setdefault("learn_progress", {})
+    st = progress.setdefault(card_id, {"mastery":0,"correct":0,"incorrect":0,"streak":0,"due_at":0,"last_seen":0})
+    now = time.time(); st["last_seen"] = now
+    if correct:
+        st["correct"] = int(st.get("correct",0))+1; st["streak"] = int(st.get("streak",0))+1
+        st["mastery"] = min(2, int(st.get("mastery",0))+1)
+        intervals = {1: 6*3600, 2: 2*86400}
+        st["due_at"] = now + intervals.get(st["mastery"], 6*3600)
+    else:
+        st["incorrect"] = int(st.get("incorrect",0))+1; st["streak"] = 0
+        st["mastery"] = max(0, int(st.get("mastery",0))-1)
+        st["due_at"] = now + 5*60
+    _sanitize_student(record["student"], record.get("username", current_username()))
+    if not _save_student(current_username(), record["student"]): return jsonify(error="Could not save Learn progress."), 500
+    return jsonify(ok=True, progress=st, student=record["student"])
 
 
 @app.post("/api/student/tasks")
