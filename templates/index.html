@@ -93,8 +93,8 @@
       <section class="view" id="view-flashcards">
   <div class="section-title study-set-header"><div><span class="eyebrow">Study set</span><h1>Flashcards</h1><p>Study your cards the way that works best for you.</p></div><div class="section-actions"><button class="small-button" id="importFlashcardsBtn">Import</button><button class="primary-button" id="newFlashcardBtn">＋ Create</button></div></div>
   <div class="set-hero glass"><div class="set-hero-main"><div class="set-icon">▣</div><div><div class="set-kicker" id="flashcardSetKicker">All decks</div><h2 id="flashcardSetTitle">Your flashcards</h2><p id="flashcardSetMeta">Build a set, then choose a study mode.</p></div></div><div class="set-metrics"><span><b id="setCardCount">0</b><small>cards</small></span><span><b id="setMastery">0%</b><small>mastered</small></span><span><b id="setDue">0</b><small>to review</small></span></div></div>
-  <div class="study-mode-tabs" role="tablist" aria-label="Study modes"><button class="study-tab active" data-study-mode="flashcards">Flashcards</button><button class="study-tab" data-study-mode="learn">Learn</button><button class="study-tab" data-study-mode="test">Test</button><button class="study-tab" data-study-mode="match">Match</button></div>
-  <div class="flashcard-toolbar"><select id="flashcardDeckFilter"><option value="all">All decks</option></select><span class="toolbar-spacer"></span><button class="text-button" id="shuffleFlashcards">Shuffle</button><button class="text-button" id="openLearnFromCards">Start Learn</button></div>
+  <div class="study-mode-tabs" role="tablist" aria-label="Study modes"><button class="study-tab active" data-study-mode="flashcards">Flashcards</button><button class="study-tab" data-study-mode="learn">Learn</button><button class="study-tab" data-study-mode="write">Write</button><button class="study-tab" data-study-mode="spell">Spell</button><button class="study-tab" data-study-mode="test">Test</button><button class="study-tab" data-study-mode="match">Match</button></div>
+  <div class="flashcard-toolbar"><select id="flashcardDeckFilter"><option value="all">All decks</option></select><button class="text-button" id="flashcardStarredFilter">☆ Starred</button><span class="toolbar-spacer"></span><button class="text-button" id="shuffleFlashcards">Shuffle</button><button class="text-button" id="playFlashcards">▶ Play</button><button class="text-button" id="flashcardOptions">Options</button><button class="text-button" id="openLearnFromCards">Start Learn</button></div>
   <div id="flashcardStudy" class="flashcard-study glass"><div class="flashcard-empty"><strong>Your cards will appear here.</strong><span>Import a CSV/TXT file or create your first card.</span></div></div>
   <div class="study-tip glass"><span>✦</span><div><strong>Study smarter</strong><p>Use Learn for adaptive practice, Test for exam-style recall, and Match for a quick speed round.</p></div></div>
   <div id="flashcardList" class="flashcard-list"></div>
@@ -122,6 +122,6 @@
 
 <div id="modal" class="modal" hidden><div class="modal-card glass"><button class="modal-close" id="modalClose">×</button><div id="modalContent"></div></div></div>
 <div id="toast" class="toast" role="status"></div>
-<script src="{{ url_for('static', filename='app.js') }}?v=rian-20261004-9"></script>
-<script src="{{ url_for('static', filename='hub.js') }}?v=rian-20261004-9"></script>
+<script src="{{ url_for('static', filename='app.js') }}?v=rian-20261004-11"></script>
+<script src="{{ url_for('static', filename='hub.js') }}?v=rian-20261004-11"></script>
 </body></html>

@@ -478,7 +478,7 @@ def _sanitize_student(s, username):
         if not isinstance(c, dict): continue
         q, a = str(c.get("question") or "").strip(), str(c.get("answer") or "").strip()
         if not q or not a: continue
-        cards.append({"id": str(c.get("id") or uuid.uuid4().hex)[:40], "deck": str(c.get("deck") or "General").strip()[:80] or "General", "subject": str(c.get("subject") or "").strip()[:80], "question": q[:1000], "answer": a[:2000], "created_at": c.get("created_at") if isinstance(c.get("created_at"), (int,float)) else time.time()})
+        cards.append({"id": str(c.get("id") or uuid.uuid4().hex)[:40], "deck": str(c.get("deck") or "General").strip()[:80] or "General", "subject": str(c.get("subject") or "").strip()[:80], "question": q[:1000], "answer": a[:2000], "starred": bool(c.get("starred", False)), "created_at": c.get("created_at") if isinstance(c.get("created_at"), (int,float)) else time.time()})
     s["flashcards"] = cards[:5000]
     progress = {}
     raw_progress = s.get("learn_progress") if isinstance(s.get("learn_progress"), dict) else {}
@@ -649,7 +649,7 @@ def _clean_flashcard(c, deck_default="General"):
     q = str(c.get("question") or "").strip()
     a = str(c.get("answer") or "").strip()
     if not q or not a: return None, "Each flashcard needs both a question and an answer."
-    return {"id": uuid.uuid4().hex, "deck": str(c.get("deck") or deck_default).strip()[:80] or "General", "subject": str(c.get("subject") or "").strip()[:80], "question": q[:1000], "answer": a[:2000], "created_at": time.time()}, None
+    return {"id": uuid.uuid4().hex, "deck": str(c.get("deck") or deck_default).strip()[:80] or "General", "subject": str(c.get("subject") or "").strip()[:80], "question": q[:1000], "answer": a[:2000], "starred": bool(c.get("starred", False)), "created_at": time.time()}, None
 
 
 @app.post("/api/student/flashcards/import")
@@ -708,6 +708,7 @@ def patch_flashcard(card_id):
     if not card: return jsonify(error="Flashcard not found."),404
     for k,limit in (("question",1000),("answer",2000),("deck",80),("subject",80)):
         if k in data: card[k]=str(data[k] or "").strip()[:limit]
+    if "starred" in data: card["starred"] = bool(data.get("starred"))
     if not card.get("question") or not card.get("answer"): return jsonify(error="Question and answer are required."),400
     _save_student(current_username(),record["student"]); return jsonify(card=card)
 

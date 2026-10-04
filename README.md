@@ -1,6 +1,6 @@
 # Rian AI Gen 2 Built In — Student Hub
 
-A polished, Apple-minimal student hub with timetable, tasks, courses, exam-board/specification tracking, flashcards, adaptive Learn practice, focus sessions, school links and a text-only Ollama study assistant.
+A polished, Apple-minimal student hub with timetable, tasks, courses, exam-board/specification tracking, flashcards, adaptive Learn, Write, Spell, Test and Match study modes practice, focus sessions, school links and a text-only Ollama study assistant.
 
 ## Run locally
 1. `pip install -r requirements.txt`
