@@ -90,15 +90,18 @@ def _gist_save(users):
     just means the local file (and, until the next successful sync, whatever
     was already in the gist) stays the source of truth instead."""
     if not (GITHUB_TOKEN and GITHUB_GIST_ID): return
-    try:
-        requests.patch(
-            f"https://api.github.com/gists/{GITHUB_GIST_ID}",
-            headers=_github_headers(),
-            json={"files": {GITHUB_GIST_FILENAME: {"content": json.dumps(users, indent=2)}}},
-            timeout=10,
-        )
-    except requests.RequestException as error:
-        print(f"[Rian AI Gen 2] Warning: could not sync accounts to GitHub Gist: {error}")
+    payload={"files": {GITHUB_GIST_FILENAME: {"content": json.dumps(users, indent=2)}}}
+    last_error=None
+    for attempt in range(2):
+        try:
+            response=requests.patch(f"https://api.github.com/gists/{GITHUB_GIST_ID}",headers=_github_headers(),json=payload,timeout=10)
+            response.raise_for_status()
+            return
+        except requests.RequestException as error:
+            last_error=error
+            if attempt == 0: time.sleep(.35)
+    if last_error:
+        print(f"[Rian AI Gen 2] Warning: could not sync accounts to GitHub Gist: {last_error}")
 
 
 def _gist_create_if_needed():
@@ -156,11 +159,12 @@ def save_users(users):
     tmp.write_text(json.dumps(users, indent=2))
     os.replace(tmp, USERS_FILE)  # atomic: a crash mid-write can't corrupt the account file
     if GITHUB_TOKEN and GITHUB_GIST_ID:
-        def push():
-            with _gist_lock:
-                try: _gist_save(json.loads(json.dumps(users)))
-                except RuntimeError: pass
-        threading.Thread(target=push, daemon=True).start()  # off the request path
+        # Account data (including flashcard sets and learning progress) must be
+        # durable before the request completes. A background-only sync could
+        # lose the last few edits if Render restarts immediately afterwards.
+        with _gist_lock:
+            try: _gist_save(json.loads(json.dumps(users)))
+            except RuntimeError: pass
 
 
 def create_user(username, password):
@@ -480,6 +484,35 @@ def _sanitize_student(s, username):
         if not q or not a: continue
         cards.append({"id": str(c.get("id") or uuid.uuid4().hex)[:40], "deck": str(c.get("deck") or "General").strip()[:80] or "General", "subject": str(c.get("subject") or "").strip()[:80], "question": q[:1000], "answer": a[:2000], "starred": bool(c.get("starred", False)), "created_at": c.get("created_at") if isinstance(c.get("created_at"), (int,float)) else time.time()})
     s["flashcards"] = cards[:5000]
+    # Flashcard sets are first-class account data. Empty sets and their metadata
+    # therefore survive redeploys instead of being inferred only from cards.
+    sets = []
+    seen_set_names = set()
+    raw_sets = s.get("flashcard_sets") if isinstance(s.get("flashcard_sets"), list) else []
+    for fs in raw_sets:
+        if not isinstance(fs, dict): continue
+        name = str(fs.get("name") or "").strip()[:80]
+        if not name or name.casefold() in seen_set_names: continue
+        seen_set_names.add(name.casefold())
+        sets.append({
+            "id": str(fs.get("id") or uuid.uuid4().hex)[:40],
+            "name": name,
+            "description": str(fs.get("description") or "").strip()[:240],
+            "subject": str(fs.get("subject") or "").strip()[:80],
+            "created_at": fs.get("created_at") if isinstance(fs.get("created_at"), (int,float)) else time.time(),
+            "updated_at": fs.get("updated_at") if isinstance(fs.get("updated_at"), (int,float)) else time.time(),
+        })
+    # Migrate older accounts: every deck already present on a card becomes a
+    # persistent set record, including the default General set.
+    for card in cards:
+        name = str(card.get("deck") or "General").strip()[:80] or "General"
+        if name.casefold() not in seen_set_names:
+            seen_set_names.add(name.casefold())
+            sets.append({"id": uuid.uuid4().hex, "name": name, "description": "", "subject": str(card.get("subject") or "")[:80], "created_at": time.time(), "updated_at": time.time()})
+    if not sets:
+        now = time.time()
+        sets = [{"id": uuid.uuid4().hex, "name": "General", "description": "", "subject": "", "created_at": now, "updated_at": now}]
+    s["flashcard_sets"] = sets[:500]
     progress = {}
     raw_progress = s.get("learn_progress") if isinstance(s.get("learn_progress"), dict) else {}
     for cid, st in raw_progress.items():
@@ -511,6 +544,7 @@ def _default_student():
         ],
         "notes": "",
         "flashcards": [],
+        "flashcard_sets": [{"id": uuid.uuid4().hex, "name": "General", "description": "", "subject": "", "created_at": time.time(), "updated_at": time.time()}],
         "learn_progress": {},
     }
 
@@ -652,6 +686,76 @@ def _clean_flashcard(c, deck_default="General"):
     return {"id": uuid.uuid4().hex, "deck": str(c.get("deck") or deck_default).strip()[:80] or "General", "subject": str(c.get("subject") or "").strip()[:80], "question": q[:1000], "answer": a[:2000], "starred": bool(c.get("starred", False)), "created_at": time.time()}, None
 
 
+@app.get("/api/student/flashcard-sets")
+@require_auth
+def flashcard_sets():
+    _, _, record = _student_record(current_username())
+    if not record: return jsonify(error="Account not found."), 404
+    _sanitize_student(record["student"], record.get("username", current_username()))
+    return jsonify(sets=record["student"].get("flashcard_sets", []), student=record["student"])
+
+
+@app.post("/api/student/flashcard-sets")
+@require_auth
+def create_flashcard_set():
+    data = request.get_json(silent=True) or {}
+    name = str(data.get("name") or "").strip()[:80]
+    if not name: return jsonify(error="Set name is required."), 400
+    _, _, record = _student_record(current_username())
+    if not record: return jsonify(error="Account not found."), 404
+    sets = record["student"].setdefault("flashcard_sets", [])
+    if any(str(x.get("name", "")).casefold() == name.casefold() for x in sets if isinstance(x, dict)):
+        return jsonify(error="A set with that name already exists."), 409
+    now = time.time()
+    item = {"id": uuid.uuid4().hex, "name": name, "description": str(data.get("description") or "").strip()[:240], "subject": str(data.get("subject") or "").strip()[:80], "created_at": now, "updated_at": now}
+    sets.append(item)
+    _sanitize_student(record["student"], record.get("username", current_username()))
+    if not _save_student(current_username(), record["student"]): return jsonify(error="Could not save the set."), 500
+    return jsonify(ok=True, set=item, student=record["student"]), 201
+
+
+@app.patch("/api/student/flashcard-sets/<set_id>")
+@require_auth
+def patch_flashcard_set(set_id):
+    data = request.get_json(silent=True) or {}
+    _, _, record = _student_record(current_username())
+    if not record: return jsonify(error="Account not found."), 404
+    sets = record["student"].setdefault("flashcard_sets", [])
+    item = next((x for x in sets if isinstance(x, dict) and x.get("id") == set_id), None)
+    if not item: return jsonify(error="Set not found."), 404
+    if "name" in data:
+        name = str(data.get("name") or "").strip()[:80]
+        if not name: return jsonify(error="Set name is required."), 400
+        if any(x is not item and str(x.get("name", "")).casefold() == name.casefold() for x in sets if isinstance(x, dict)):
+            return jsonify(error="A set with that name already exists."), 409
+        old_name = item["name"]
+        item["name"] = name
+        for card in record["student"].get("flashcards", []):
+            if str(card.get("deck") or "General") == old_name: card["deck"] = name
+    for key, limit in (("description",240),("subject",80)):
+        if key in data: item[key] = str(data.get(key) or "").strip()[:limit]
+    item["updated_at"] = time.time()
+    _sanitize_student(record["student"], record.get("username", current_username()))
+    if not _save_student(current_username(), record["student"]): return jsonify(error="Could not save the set."), 500
+    return jsonify(ok=True, set=item, student=record["student"])
+
+
+@app.delete("/api/student/flashcard-sets/<set_id>")
+@require_auth
+def delete_flashcard_set(set_id):
+    _, _, record = _student_record(current_username())
+    if not record: return jsonify(error="Account not found."), 404
+    sets = record["student"].setdefault("flashcard_sets", [])
+    item = next((x for x in sets if isinstance(x, dict) and x.get("id") == set_id), None)
+    if not item: return jsonify(error="Set not found."), 404
+    if len(sets) <= 1: return jsonify(error="Keep at least one flashcard set."), 400
+    if any(str(c.get("deck") or "General").casefold() == str(item.get("name") or "").casefold() for c in record["student"].get("flashcards", [])):
+        return jsonify(error="Move or delete the cards in this set before deleting it."), 409
+    record["student"]["flashcard_sets"] = [x for x in sets if x is not item]
+    if not _save_student(current_username(), record["student"]): return jsonify(error="Could not delete the set."), 500
+    return jsonify(ok=True, student=record["student"])
+
+
 @app.post("/api/student/flashcards/import")
 @require_auth
 def import_flashcards():
@@ -685,6 +789,9 @@ def import_flashcards():
     if not rows: return jsonify(error="No valid question/answer pairs were found."), 400
     _, _, record = _student_record(current_username())
     cards=record["student"].setdefault("flashcards", [])
+    sets=record["student"].setdefault("flashcard_sets", [])
+    if not any(str(x.get("name","")).casefold()==deck.casefold() for x in sets if isinstance(x,dict)):
+        now=time.time(); sets.append({"id":uuid.uuid4().hex,"name":deck,"description":"","subject":subject,"created_at":now,"updated_at":now})
     existing={(str(c.get("deck","General")).casefold(),str(c.get("question","")).strip().casefold(),str(c.get("answer","")).strip().casefold()) for c in cards if isinstance(c,dict)}
     added=duplicates=invalid=0
     new_cards=[]
@@ -706,8 +813,13 @@ def patch_flashcard(card_id):
     _,_,record=_student_record(current_username()); cards=record["student"].setdefault("flashcards", [])
     card=next((c for c in cards if c.get("id")==card_id),None)
     if not card: return jsonify(error="Flashcard not found."),404
+    old_deck = card.get("deck", "General")
     for k,limit in (("question",1000),("answer",2000),("deck",80),("subject",80)):
         if k in data: card[k]=str(data[k] or "").strip()[:limit]
+    if card.get("deck") != old_deck:
+        sets=record["student"].setdefault("flashcard_sets", [])
+        if not any(str(x.get("name","")).casefold()==str(card.get("deck") or "General").casefold() for x in sets if isinstance(x,dict)):
+            now=time.time(); sets.append({"id":uuid.uuid4().hex,"name":card.get("deck") or "General","description":"","subject":card.get("subject") or "","created_at":now,"updated_at":now})
     if "starred" in data: card["starred"] = bool(data.get("starred"))
     if not card.get("question") or not card.get("answer"): return jsonify(error="Question and answer are required."),400
     _save_student(current_username(),record["student"]); return jsonify(card=card)

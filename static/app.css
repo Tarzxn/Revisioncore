@@ -65,3 +65,45 @@ html{-webkit-text-size-adjust:100%}body{font-size:15px;-webkit-font-smoothing:an
 .test-statement{max-width:650px;margin:30px auto 20px;padding:18px;border:1px solid var(--line);border-radius:16px;background:var(--surface-2);text-align:center}.test-statement strong{font-size:18px;line-height:1.45}.test-statement p{color:var(--muted);font-size:12px}.test-options.tf{max-width:680px}.written-test{display:flex;gap:9px;max-width:680px;margin:0 auto}.written-test input{flex:1;min-width:0;padding:15px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2);color:var(--text);font:inherit;outline:none}.written-test input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(121,229,189,.08)}.spell-listen{text-align:center;margin:35px auto 20px}.spell-listen p{color:var(--muted);font-size:12px}.match-timer{text-align:center;color:var(--accent);font:700 13px var(--mono);margin:12px}.match-tile{user-select:none}.match-tile.selected{box-shadow:0 0 0 2px rgba(121,229,189,.12)}
 .learn-options.tf{grid-template-columns:1fr 1fr}.learn-recall-card .revealed-answer{font-size:20px}.result-actions{flex-wrap:wrap}
 @media(max-width:600px){.config-grid,.test-type-grid{grid-template-columns:1fr}.written-test{flex-direction:column}.set-hero p{white-space:normal}.known-actions{width:100%}.known-button{flex:1}}
+
+/* v12 study workspace: keep every learning mode inside the Flashcards set page. */
+[hidden]{display:none!important}
+.learn-workspace{margin-top:14px}
+.learn-workspace-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin:0 0 14px;padding:2px 2px 0}
+.learn-workspace-head h2{margin:4px 0 4px;font-size:28px;letter-spacing:-.045em}
+.learn-workspace-head p{margin:0;color:var(--muted);font-size:12px;line-height:1.55}
+.learn-workspace-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.learn-workspace .learn-layout{margin:0}
+.learn-workspace .learn-main{min-height:520px}
+.learn-workspace .learn-side{min-width:230px}
+.learn-question{max-width:760px;margin:0 auto;padding:34px 12px 12px}
+.learn-meta{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:11px;margin-bottom:9px}
+.learn-prompt{font-size:32px;line-height:1.2;letter-spacing:-.035em;font-weight:750;text-align:center;margin:54px auto 36px;max-width:680px}
+.learn-options{display:grid;grid-template-columns:1fr 1fr;gap:11px;max-width:680px;margin:0 auto}
+.learn-option{min-height:72px;border:1px solid var(--line);border-radius:16px;background:var(--surface-2);color:var(--text);padding:15px;text-align:left;font:600 13px var(--sans);cursor:pointer;transition:transform .16s ease,border-color .16s ease,background .16s ease}
+.learn-option:hover{transform:translateY(-1px);border-color:var(--line-strong);background:rgba(255,255,255,.055)}
+.learn-option.correct{border-color:rgba(121,229,189,.7);background:rgba(121,229,189,.1)}
+.learn-option.wrong{border-color:rgba(255,143,143,.7);background:rgba(255,143,143,.09)}
+.learn-input{display:block;width:min(680px,100%);margin:0 auto;padding:16px 17px;border:1px solid var(--line);border-radius:15px;background:var(--surface-2);color:var(--text);font:15px var(--sans);outline:none}
+.learn-input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(121,229,189,.08)}
+.learn-footer{display:flex;justify-content:center;gap:8px;margin:14px auto 0;max-width:680px}
+.learn-feedback{max-width:680px;margin:18px auto 0;padding:14px 16px;border-radius:14px;background:var(--surface-2);color:var(--muted);font-size:12px;line-height:1.55;text-align:left}
+.learn-feedback strong{color:var(--text)}
+.learn-progressbar{height:6px;background:var(--surface-2);border-radius:99px;overflow:hidden}
+.learn-progressbar i{display:block;height:100%;border-radius:inherit;background:var(--accent);transition:width .25s ease}
+.learn-start{max-width:590px;margin:auto;text-align:center;padding:52px 22px}
+.learn-start h2{font-size:30px;letter-spacing:-.045em;margin:12px 0 8px}
+.learn-start p{max-width:510px;margin:0 auto;color:var(--muted);line-height:1.65;font-size:13px}
+.learn-goal{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:25px 0 18px}
+.goal{border:1px solid var(--line);background:var(--surface-2);color:var(--muted);padding:10px 15px;border-radius:999px;font:600 11px var(--sans);cursor:pointer}
+.goal.active{color:var(--text);border-color:rgba(121,229,189,.5);background:rgba(121,229,189,.08)}
+.learn-symbol{width:58px;height:58px;margin:auto;border-radius:19px;display:grid;place-items:center;background:rgba(121,229,189,.1);color:var(--accent);font-size:24px}
+.learn-ring{width:124px;height:124px;margin:17px auto;border-radius:50%;display:grid;place-items:center;align-content:center;background:radial-gradient(circle at center,var(--panel2) 57%,transparent 58%),conic-gradient(var(--accent) var(--learn-pct,0%),rgba(255,255,255,.08) 0);position:relative}
+.learn-ring:after{content:"";position:absolute;inset:8px;border-radius:50%;border:1px solid var(--line)}
+.learn-ring strong,.learn-ring small{position:relative;z-index:1}.learn-ring strong{font-size:24px;letter-spacing:-.04em}.learn-ring small{font-size:9px;color:var(--muted);margin-top:2px}
+.learn-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.learn-stats span{padding:10px 6px;border:1px solid var(--line);border-radius:11px;text-align:center;color:var(--muted);font-size:9px}.learn-stats b{display:block;color:var(--text);font-size:15px;margin-bottom:2px}
+.set-hero{overflow:hidden}.set-hero-main{min-width:0}.set-hero h2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.flashcard-toolbar{display:flex;align-items:center;gap:8px;min-height:48px;flex-wrap:wrap}.flashcard-toolbar select{max-width:260px}.flashcard-toolbar .text-button{white-space:nowrap}
+.flashcard-empty{min-height:360px;padding:48px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px}.flashcard-empty strong{font-size:16px}.flashcard-empty span{color:var(--muted);font-size:11px}.flashcard-list{margin-top:14px}.flashcard-row{align-items:start}.flashcard-row-main{min-width:0}.flashcard-row-main strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.flashcard-row-main small{display:block;color:var(--muted);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.study-flip-wrap{user-select:none;-webkit-tap-highlight-color:transparent}.study-face{will-change:transform}.study-face .flashcard-answer,.study-face .flashcard-question{word-break:break-word}.study-face .flashcard-answer{max-width:590px;font-size:24px;line-height:1.45}.study-face .flashcard-question{font-size:27px;line-height:1.35}
+@media(max-width:800px){.learn-workspace-head{align-items:flex-start;flex-direction:column}.learn-workspace-actions{width:100%}.learn-workspace-actions .small-select{flex:1;min-width:0}.learn-workspace .learn-main{min-height:470px}.learn-options{grid-template-columns:1fr}.learn-prompt{font-size:27px;margin-top:40px}.learn-side{min-width:0!important}.flashcard-toolbar{align-items:stretch}.flashcard-toolbar select{flex:1;min-width:160px;max-width:none}}
+@media(max-width:520px){.learn-workspace-head h2{font-size:24px}.learn-question{padding:25px 2px 8px}.learn-prompt{font-size:24px;margin:32px auto 25px}.learn-start{padding:36px 12px}.learn-start h2{font-size:25px}.learn-stats{grid-template-columns:1fr 1fr 1fr}.study-face .flashcard-question{font-size:22px}.study-face .flashcard-answer{font-size:20px}.study-flip-wrap{min-height:300px}}

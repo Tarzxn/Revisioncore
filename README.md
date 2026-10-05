@@ -16,7 +16,7 @@ For Render's free/ephemeral filesystem, configure `GITHUB_TOKEN` with permission
 If you use a Render persistent disk instead, the local `data/` store can also survive restarts.
 
 ## Student features
-- CSV/TXT flashcard import with duplicate detection
+- Persistent account-owned flashcard sets with CSV/TXT import and duplicate detection
 - Flashcard decks, subjects, study mode and progress
 - **Learn** adaptive practice using recognition → active recall, targeted repetition and spaced review
 - Course/exam-board/specification/progress tracking
@@ -29,4 +29,4 @@ If you use a Render persistent disk instead, the local `data/` store can also su
 - Session tokens are random, stored in an HttpOnly cookie, and only their SHA-256 hashes are persisted.
 - Sessions expire after 30 days by default (`RIAN_SESSION_DAYS`).
 - Sign-in/sign-up are rate-limited per IP.
-- Student data and imported flashcards are validated server-side.
+- Student data, flashcard sets, cards and learning progress are validated and persisted server-side; GitHub Gist sync is synchronous so completed study edits are not left waiting in a background task.
