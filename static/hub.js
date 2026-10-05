@@ -219,8 +219,17 @@ const Hub = (() => {
   function renderLearnQuestion(){
     const s=learnSession;if(!s||!s.active.length){finishLearn();return;}
     if(s.phase==='choice' && s.index>=s.active.length){
-      s.phase='typed';s.index=0;s.phaseLabel='Written recall';
-      renderLearnQuestion();return;
+      s.phase='choiceCheckpoint';
+      s.index=0;
+      s.phaseLabel='Round test';
+      renderLearnQuestion();
+      return;
+    }
+    if(s.phase==='choiceCheckpoint'){
+      const total=s.active.length;
+      $('#learnCard').innerHTML=`<div class="learn-start learn-checkpoint"><div class="checkpoint-mark">✓</div><span class="learn-checkpoint-kicker">Round ${s.round} recognition complete</span><h2>Now test yourself</h2><p>You have completed all <strong>${total}</strong> multiple-choice questions. The next stage is a written test on every card from this round.</p><div class="checkpoint-summary"><span><b>${s.choiceCorrect}</b> recognised correctly</span><span><b>${total}</b> to type</span></div><button class="primary-button" id="startWrittenRound">Start written test</button></div>`;
+      $('#startWrittenRound').onclick=()=>{s.phase='typed';s.index=0;s.phaseLabel='Written recall';renderLearnQuestion();};
+      return;
     }
     if(s.phase==='typed' && s.index>=s.active.length){
       if(!s.wrongThisRound.length){finishLearn();return;}
