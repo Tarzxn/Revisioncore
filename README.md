@@ -1,6 +1,6 @@
 # Rian AI Gen 2 Built In — Student Hub
 
-A polished, Apple-minimal student hub with timetable, tasks, courses, exam-board/specification tracking, flashcards, adaptive Learn, Write, Spell, Test and Match study modes practice, focus sessions, school links and a text-only Ollama study assistant.
+A polished, Apple-minimal student hub with timetable, tasks, courses, exam-board/specification tracking, flashcards, round-based adaptive Learn, Write, Spell, Test and Match study modes practice, focus sessions, school links and a text-only Ollama study assistant.
 
 ## Run locally
 1. `pip install -r requirements.txt`
@@ -30,3 +30,7 @@ If you use a Render persistent disk instead, the local `data/` store can also su
 - Sessions expire after 30 days by default (`RIAN_SESSION_DAYS`).
 - Sign-in/sign-up are rate-limited per IP.
 - Student data, flashcard sets, cards and learning progress are validated and persisted server-side; GitHub Gist sync is synchronous so completed study edits are not left waiting in a background task.
+
+
+### Learn v13
+Learn uses deterministic full-set rounds: every active card gets a multiple-choice recognition question and then a typed-recall question for the same card. Cards missed during typed recall move into the next checkpoint round until every selected card has been cleared.

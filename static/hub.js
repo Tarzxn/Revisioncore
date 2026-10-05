@@ -152,17 +152,110 @@ const Hub = (() => {
   function renderMatch(){const s=matchState;if(!s)return;if(s.matches*2===s.tiles.length){const sec=Math.max(1,Math.round((Date.now()-s.started)/1000));$('#matchShell').innerHTML=`<div class="study-result"><div class="result-icon">✦</div><span class="eyebrow">Match complete</span><h2>${s.moves} moves</h2><p>You matched ${s.matches} pairs in ${sec}s.</p><div class="result-actions"><button class="primary-button" id="matchAgain">Play again</button><button class="small-button" id="matchClose">Done</button></div></div>`;$('#matchAgain').onclick=startMatch;$('#matchClose').onclick=closeModal;return;}$('#matchShell').innerHTML=`<div class="test-header"><div><span class="eyebrow">Match</span><h2>Find the pairs</h2></div><span>${s.matches} / ${s.tiles.length/2}</span></div><div class="match-timer">${Math.floor((Date.now()-s.started)/1000)}s</div><div class="match-grid">${s.tiles.map((t,i)=>`<button class="match-tile ${t.matched?'matched':''} ${s.selected===i?'selected':''} ${s.wrong?.includes(i)?'wrong':''}" data-match="${i}" ${t.matched?'disabled':''}>${esc(t.text)}</button>`).join('')}</div><div class="test-footer"><span>Moves: ${s.moves}</span><button class="text-button" id="matchExit">Exit</button></div>`;document.querySelectorAll('[data-match]').forEach(b=>b.onclick=()=>{const i=Number(b.dataset.match);if(s.tiles[i].matched||s.selected===i)return;if(s.selected===null){s.selected=i;renderMatch();return;}s.moves++;const a=s.tiles[s.selected],bb=s.tiles[i];if(a.id===bb.id&&a.type!==bb.type){a.matched=bb.matched=true;s.matches++;s.selected=null;recordCardResult(data.flashcards.find(c=>c.id===a.id),true);renderMatch();}else{const first=s.selected;s.wrong=[first,i];s.selected=null;renderMatch();setTimeout(()=>{s.wrong=[];renderMatch();},420);}});$('#matchExit').onclick=closeModal;}
 
   let learnGoal=10, learnSession=null;
-  function learnStats(){const cards=learnCards();const all=data.flashcards||[],progress=data.learn_progress||{};let mastered=0,familiar=0,newCards=0;cards.forEach(c=>{const m=Number(progress[c.id]?.mastery||0);if(m>=2)mastered++;else if(m===1)familiar++;else newCards++;});const pct=cards.length?Math.round(mastered/cards.length*100):0;if($('#learnNew'))$('#learnNew').textContent=newCards;if($('#learnFamiliar'))$('#learnFamiliar').textContent=familiar;if($('#learnMastered'))$('#learnMastered').textContent=mastered;if($('#learnPercent'))$('#learnPercent').textContent=pct+'%';if($('#learnRing'))$('#learnRing').style.setProperty('--learn-pct',pct+'%');const filter=$('#learnDeckFilter');if(filter){const sets=(data.flashcard_sets||[]).filter(x=>x&&x.name);const old=filter.value||flashcardDeck||'all';filter.innerHTML='<option value="all">All sets</option>'+sets.map(d=>`<option value="${esc(d.name)}">${esc(d.name)}</option>`).join('');filter.value=sets.some(x=>x.name===old)?old:'all';}}
-  function learnCards(){const deck=$('#learnDeckFilter')?.value||'all';return(data.flashcards||[]).filter(c=>deck==='all'||(c.deck||'General')===deck);}
-  function chooseLearnCard(){const cards=learnCards();if(!cards.length)return null;const now=Date.now(),progress=data.learn_progress||{},seen=learnSession?.seen||new Set();const due=cards.filter(c=>!progress[c.id]||Number(progress[c.id].due_at||0)<=now||Number(progress[c.id].mastery||0)<2);const unseen=due.filter(c=>!seen.has(c.id));const pool=unseen.length?unseen:(due.length?due:cards);pool.sort((a,b)=>{const pa=progress[a.id]||{},pb=progress[b.id]||{};return Number(pa.mastery||0)-Number(pb.mastery||0)||Number(pa.due_at||0)-Number(pb.due_at||0)||Math.random()-.5;});return pool[0];}
-  function answerMatches(input,answer){const norm=x=>String(x||'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();const a=norm(answer),b=norm(input);if(!a||!b)return false;if(a===b)return true;const tokens=a.split(' ').filter(Boolean),bt=new Set(b.split(' ').filter(Boolean));const overlap=tokens.filter(x=>bt.has(x)).length/Math.max(tokens.length,1);return overlap>=.78&&b.length>=Math.min(8,a.length*.55);}
-  function questionType(card){const m=Number(data.learn_progress?.[card.id]?.mastery||0);if(m===0)return Math.random()<.7?'choice':'truefalse';const roll=Math.random();return m>=2?(roll<.6?'written':roll<.82?'flash':'truefalse'):(roll<.45?'choice':roll<.78?'written':'flash');}
-  function startLearn(){go('flashcards');showStudyWorkspace('learn');const cards=learnCards();if(!cards.length){toast('Add or import some flashcards first.');showStudyWorkspace('flashcards');return;}learnSession={total:Math.min(learnGoal,Math.max(1,cards.length*2)),answered:0,correct:0,card:null,type:null,locked:false,seen:new Set()};nextLearnQuestion();}
-  function finishLearn(){const score=learnSession?.answered?Math.round(learnSession.correct/learnSession.answered*100):0;$('#learnCard').innerHTML=`<div class="learn-start"><div class="learn-symbol">✓</div><h2>Session complete</h2><p>You answered <strong>${learnSession.correct}</strong> of <strong>${learnSession.answered}</strong> correctly — ${score}% for this session.</p><div class="result-actions"><button class="primary-button" id="learnAgain">Keep going</button><button class="small-button" id="learnBackCards">Back to flashcards</button></div></div>`;$('#learnAgain').onclick=startLearn;$('#learnBackCards').onclick=()=>go('flashcards');learnStats();}
-  function renderLearnQuestion(){const s=learnSession,c=s.card,stats=data.learn_progress?.[c.id]||{},answered=s.answered,pct=Math.round(answered/s.total*100),m=Number(stats.mastery||0),type=s.type;let body='';if(type==='choice'){const others=learnCards().filter(x=>x.id!==c.id).sort(()=>Math.random()-.5).slice(0,3);const opts=[c.answer,...others.map(x=>x.answer)].sort(()=>Math.random()-.5);body=`<div class="learn-options">${opts.map(o=>`<button class="learn-option" data-answer="${esc(o)}">${esc(o)}</button>`).join('')}</div>`;}else if(type==='truefalse'){const truth=Math.random()>.5;const shown=truth?c.answer:(learnCards().find(x=>x.id!==c.id)?.answer||c.answer);s.currentTruth=truth;body=`<div class="learn-recall-card"><div class="flashcard-label">True or false?</div><div class="revealed-answer">${esc(shown)}</div></div><div class="learn-options tf"><button class="learn-option" data-tf="true">True</button><button class="learn-option" data-tf="false">False</button></div>`;}else if(type==='written')body=`<form id="learnAnswerForm"><input class="learn-input" id="learnInput" autocomplete="off" placeholder="Type the answer from memory…"><div class="learn-footer"><button class="primary-button" type="submit">Check answer</button></div></form>`;else body=`<div class="learn-reveal"><div class="learn-recall-card"><div class="flashcard-label">Recall before revealing</div><p>Say the answer in your head, then reveal it.</p><button class="primary-button" id="revealLearnAnswer">Reveal answer</button><div id="revealedLearnAnswer" class="revealed-answer" hidden>${esc(c.answer)}</div></div><div class="learn-footer" id="learnSelfButtons" hidden><button class="small-button" id="learnDontKnow">Still learning</button><button class="primary-button" id="learnKnow">I knew it</button></div></div>`;$('#learnCard').innerHTML=`<div class="learn-question"><div class="learn-meta"><span>${esc(c.deck||'General')} · ${type==='choice'?'Multiple choice':type==='truefalse'?'True / False':type==='written'?'Written recall':'Flashcard'}</span><span>${answered+1} of ${s.total}</span></div><div class="learn-progressbar"><i style="width:${pct}%"></i></div><div class="learn-prompt">${esc(c.question)}</div>${body}<div id="learnFeedback" class="learn-feedback" hidden></div></div>`;if(type==='choice')document.querySelectorAll('.learn-option').forEach(b=>b.onclick=()=>submitLearn(b.dataset.answer,c.answer,b));if(type==='truefalse')document.querySelectorAll('[data-tf]').forEach(b=>b.onclick=()=>submitLearn(b.dataset.tf===String(s.currentTruth),c.answer,b,true));if(type==='written'){$('#learnAnswerForm').onsubmit=e=>{e.preventDefault();submitLearn($('#learnInput').value,c.answer,null);};setTimeout(()=>$('#learnInput')?.focus(),0);}if(type==='flash'){$('#revealLearnAnswer').onclick=()=>{$('#revealedLearnAnswer').hidden=false;$('#revealLearnAnswer').hidden=true;$('#learnSelfButtons').hidden=false;};$('#learnDontKnow').onclick=()=>submitLearn('',c.answer,null,false);$('#learnKnow').onclick=()=>submitLearn(c.answer,c.answer,null,true);}}
-  async function submitLearn(given,expected,button,forced){if(!learnSession||learnSession.locked)return;learnSession.locked=true;const correct=typeof forced==='boolean'?forced:answerMatches(given,expected);if(button)button.classList.add(correct?'correct':'wrong');const feedback=$('#learnFeedback');if(feedback){feedback.hidden=false;feedback.innerHTML=correct?'<strong>Nice.</strong> This card is moving further away in your review schedule.':`<strong>Keep this one in rotation.</strong><br><span>${esc(expected)}</span>`;}try{const r=await auth('/api/student/learn/answer',{method:'POST',body:JSON.stringify({card_id:learnSession.card.id,correct,question_type:learnSession.type})});const j=await r.json().catch(()=>({}));if(r.ok)data=j.student||data;else toast(j.error||'Could not save Learn progress.');}catch(_){toast('Progress could not be saved.');}learnSession.answered++;if(correct)learnSession.correct++;learnStats();setTimeout(()=>{if(learnSession.answered>=learnSession.total){finishLearn();return;}learnSession.locked=false;nextLearnQuestion();},700);}
-  function nextLearnQuestion(){const c=chooseLearnCard();if(!c){finishLearn();return;}learnSession.seen.add(c.id);learnSession.card=c;learnSession.type=questionType(c);renderLearnQuestion();}
-  function initLearn(){learnStats();document.querySelectorAll('.goal').forEach(b=>b.onclick=()=>{document.querySelectorAll('.goal').forEach(x=>x.classList.remove('active'));b.classList.add('active');learnGoal=Number(b.dataset.goal);});$('#learnStartHero').onclick=startLearn;$('#learnExitBtn').onclick=()=>{showStudyWorkspace('flashcards');renderFlashcards();};$('#learnDeckFilter').onchange=()=>{flashcardDeck=$('#learnDeckFilter').value||'all';learnStats();};}
+  function learnStats(){
+    const cards=learnCards(), progress=data.learn_progress||{};
+    let mastered=0,familiar=0,newCards=0;
+    cards.forEach(c=>{const m=Number(progress[c.id]?.mastery||0);if(m>=2)mastered++;else if(m===1)familiar++;else newCards++;});
+    const pct=cards.length?Math.round(mastered/cards.length*100):0;
+    if($('#learnNew'))$('#learnNew').textContent=newCards;
+    if($('#learnFamiliar'))$('#learnFamiliar').textContent=familiar;
+    if($('#learnMastered'))$('#learnMastered').textContent=mastered;
+    if($('#learnPercent'))$('#learnPercent').textContent=pct+'%';
+    if($('#learnRing'))$('#learnRing').style.setProperty('--learn-pct',pct+'%');
+    const filter=$('#learnDeckFilter');
+    if(filter){const sets=(data.flashcard_sets||[]).filter(x=>x&&x.name);const old=filter.value||flashcardDeck||'all';filter.innerHTML='<option value="all">All sets</option>'+sets.map(d=>`<option value="${esc(d.name)}">${esc(d.name)}</option>`).join('');filter.value=sets.some(x=>x.name===old)?old:'all';}
+  }
+  function learnCards(){const deck=$('#learnDeckFilter')?.value||flashcardDeck||'all';return(data.flashcards||[]).filter(c=>deck==='all'||(c.deck||'General')===deck);}
+  function answerMatches(input,answer){
+    const norm=x=>String(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+    const a=norm(answer),b=norm(input);if(!a||!b)return false;if(a===b)return true;
+    const tokens=a.split(' ').filter(Boolean),bt=new Set(b.split(' ').filter(Boolean));
+    const overlap=tokens.filter(x=>bt.has(x)).length/Math.max(tokens.length,1);
+    return overlap>=.9&&b.length>=Math.min(6,a.length*.65);
+  }
+  function startLearn(){
+    go('flashcards');showStudyWorkspace('learn');
+    const source=learnCards();
+    if(!source.length){toast('Add or import some flashcards first.');showStudyWorkspace('flashcards');return;}
+    const mastered=new Set(source.filter(c=>Number(data.learn_progress?.[c.id]?.mastery||0)>=2).map(c=>c.id));
+    const active=source.filter(c=>!mastered.has(c.id));
+    if(!active.length){finishLearn(true);return;}
+    learnSession={
+      source,active,round:1,phase:'choice',index:0,correct:0,answered:0,
+      roundCorrect:0,roundWrong:[],wrongThisRound:[],locked:false,choiceLocked:false,
+      startedAt:Date.now(),goal:active.length,totalTarget:active.length*2
+    };
+    renderLearnQuestion();
+  }
+  function finishLearn(alreadyMastered=false){
+    const s=learnSession;if(!s)return;
+    const score=s.answered?Math.round(s.correct/s.answered*100):100;
+    const completed=s.active?.length||0;
+    $('#learnCard').innerHTML=`<div class="learn-start learn-complete"><div class="learn-symbol">✓</div><span class="learn-checkpoint-kicker">Learning complete</span><h2>${alreadyMastered?'You already know this set':'You nailed the round'}</h2><p>${alreadyMastered?'All selected cards are already mastered.':'Every card in this session has now been recalled by typing.'}</p><div class="learn-result-grid"><div><strong>${score}%</strong><span>accuracy</span></div><div><strong>${s.round}</strong><span>round${s.round===1?'':'s'}</span></div><div><strong>${completed}</strong><span>cards</span></div></div><div class="result-actions"><button class="primary-button" id="learnAgain">Study again</button><button class="small-button" id="learnBackCards">Back to flashcards</button></div></div>`;
+    $('#learnAgain').onclick=startLearn;$('#learnBackCards').onclick=()=>{showStudyWorkspace('flashcards');renderFlashcards();};learnStats();
+  }
+  function learnCheckpoint(){
+    const s=learnSession;
+    const wrong=s.wrongThisRound.slice();
+    if(!wrong.length){finishLearn();return;}
+    s.round++;s.active=wrong;s.index=0;s.phase='choice';s.roundCorrect=0;s.wrongThisRound=[];s.locked=false;
+    $('#learnCard').innerHTML=`<div class="learn-start learn-checkpoint"><div class="checkpoint-mark">↻</div><span class="learn-checkpoint-kicker">Round ${s.round-1} complete</span><h2>Checkpoint</h2><p><strong>${wrong.length}</strong> card${wrong.length===1?' needs':'s need'} another pass. Each card will go through multiple choice again, then you’ll type the answer again.</p><div class="checkpoint-summary"><span><b>${s.active.length}</b> remaining</span><span><b>${s.round-1}</b> round${s.round-1===1?'':'s'} completed</span></div><button class="primary-button" id="continueLearnRound">Start round ${s.round}</button></div>`;
+    $('#continueLearnRound').onclick=renderLearnQuestion;learnStats();
+  }
+  function renderLearnQuestion(){
+    const s=learnSession;if(!s||!s.active.length){finishLearn();return;}
+    if(s.index>=s.active.length){learnCheckpoint();return;}
+    const c=s.active[s.index], total=s.active.length, progress=Math.round(((s.round-1)*total+s.index)/(Math.max(1,total*s.round))*100);
+    const isChoice=s.phase==='choice';
+    let body='';
+    if(isChoice){
+      const pool=s.active.filter(x=>x.id!==c.id);
+      const distractors=[];
+      for(const x of pool){if(!distractors.some(y=>y.answer===x.answer))distractors.push(x);if(distractors.length===3)break;}
+      const options=[c,...distractors].map(x=>x.answer);
+      while(options.length<Math.min(4,s.active.length))options.push(c.answer);
+      const unique=[...new Set(options)].slice(0,4).sort((a,b)=>String(a).localeCompare(String(b)));
+      body=`<div class="learn-options">${unique.map(o=>`<button class="learn-option" data-answer="${esc(o)}">${esc(o)}</button>`).join('')}</div>`;
+    }else{
+      body=`<form id="learnAnswerForm" class="learn-type-form"><input class="learn-input" id="learnInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Type the answer from memory…"><button class="primary-button" type="submit">Check answer</button></form>`;
+    }
+    $('#learnCard').innerHTML=`<div class="learn-question">
+      <div class="learn-meta"><span>Round ${s.round} · ${isChoice?'Multiple choice':'Type the answer'}</span><span>${s.index+1} / ${total}</span></div>
+      <div class="learn-progressbar"><i style="width:${Math.min(100,progress)}%"></i></div>
+      <div class="learn-round-label">${isChoice?'Recognise it first':'Now retrieve it yourself'}</div>
+      <div class="learn-prompt">${esc(c.question)}</div>${body}
+      <div id="learnFeedback" class="learn-feedback" hidden></div>
+      <div class="learn-flow-note">${isChoice?'After this choice, you must type the answer for the same card.':'A correct typed answer clears this card. A miss brings it back in the next round.'}</div>
+    </div>`;
+    if(isChoice)document.querySelectorAll('.learn-option').forEach(b=>b.onclick=()=>submitLearnChoice(b,c));
+    else {$('#learnAnswerForm').onsubmit=e=>{e.preventDefault();submitLearnTyped($('#learnInput').value,c);};setTimeout(()=>$('#learnInput')?.focus(),0);}
+  }
+  function submitLearnChoice(button,card){
+    const s=learnSession;if(!s||s.locked)return;s.locked=true;
+    const ok=answerMatches(button.dataset.answer,card.answer);button.classList.add(ok?'correct':'wrong');
+    document.querySelectorAll('.learn-option').forEach(x=>x.disabled=true);
+    s.choiceResult=ok;
+    const feedback=$('#learnFeedback');if(feedback){feedback.hidden=false;feedback.innerHTML=ok?'<strong>Correct.</strong> Now type the answer from memory.':'<strong>Not quite.</strong> You still need to type the correct answer next.';}
+    setTimeout(()=>{s.phase='typed';s.locked=false;renderLearnQuestion();},520);
+  }
+  async function submitLearnTyped(given,card){
+    const s=learnSession;if(!s||s.locked)return;s.locked=true;
+    const correct=answerMatches(given,card.answer);const feedback=$('#learnFeedback');
+    if(feedback){feedback.hidden=false;feedback.innerHTML=correct?'<strong>Correct.</strong> This card has passed the typed recall.':`<strong>Keep practising.</strong><br><span>Correct answer: ${esc(card.answer)}</span>`;}
+    try{
+      const r=await auth('/api/student/learn/answer',{method:'POST',body:JSON.stringify({card_id:card.id,correct,question_type:'written',round:s.round})});
+      const j=await r.json().catch(()=>({}));if(r.ok)data=j.student||data;else toast(j.error||'Could not save Learn progress.');
+    }catch(_){toast('Progress could not be saved.');}
+    s.answered++;if(correct){s.correct++;s.roundCorrect++;}else{s.wrongThisRound.push(card);}
+    setTimeout(()=>{s.index++;s.phase='choice';s.locked=false;if(s.index>=s.active.length)learnCheckpoint();else renderLearnQuestion();},700);
+  }
+  function initLearn(){
+    learnStats();
+    document.querySelectorAll('.goal').forEach(b=>b.onclick=()=>{document.querySelectorAll('.goal').forEach(x=>x.classList.remove('active'));b.classList.add('active');learnGoal=Number(b.dataset.goal);});
+    $('#learnStartHero').onclick=startLearn;
+    $('#learnExitBtn').onclick=()=>{showStudyWorkspace('flashcards');renderFlashcards();};
+    $('#learnDeckFilter').onchange=()=>{flashcardDeck=$('#learnDeckFilter').value||'all';learnStats();};
+  }
   function openFlashcardOptions(){modal(`<div class="modal-kicker">Flashcards</div><h2>Study options</h2><div class="study-option-list"><label>Show first<select id="flashDirection"><option value="question" ${flashcardDirection==='question'?'selected':''}>Question</option><option value="answer" ${flashcardDirection==='answer'?'selected':''}>Answer</option></select></label><label>Play speed<select id="flashSpeed"><option value="2">2 seconds</option><option value="4" ${flashcardAutoSeconds===4?'selected':''}>4 seconds</option><option value="6" ${flashcardAutoSeconds===6?'selected':''}>6 seconds</option><option value="8" ${flashcardAutoSeconds===8?'selected':''}>8 seconds</option></select></label><label class="check-row"><input id="flashSpeak" type="checkbox" ${flashSpeak?'checked':''}> Read cards aloud during Play</label></div><div class="result-actions"><button class="primary-button" id="saveFlashOptions">Save options</button></div>`);$('#saveFlashOptions').onclick=()=>{flashcardDirection=$('#flashDirection').value;flashcardAutoSeconds=Number($('#flashSpeed').value);flashSpeak=$('#flashSpeak').checked;closeModal();renderFlashcards();};}
   function toggleFlashcardPlay(){if(flashcardAutoplay){clearInterval(flashcardAutoplay);flashcardAutoplay=null;$('#playFlashcards').textContent='▶ Play';return;}const cards=currentFlashcardBase();if(!cards.length)return;flashcardFlipped=false;renderFlashcards();flashcardAutoplay=setInterval(()=>{const current=currentFlashcardBase();if(!current.length){clearInterval(flashcardAutoplay);flashcardAutoplay=null;return;}if(!flashcardFlipped){flashcardFlipped=true;renderFlashcards();if(flashSpeak)speakText(current[flashcardIndex]?.answer);}else{flashcardIndex=(flashcardIndex+1)%current.length;flashcardFlipped=false;renderFlashcards();if(flashSpeak)speakText(current[flashcardIndex]?.question);}},flashcardAutoSeconds*1000);$('#playFlashcards').textContent='❚❚ Pause';}
   function newFlashcardSet(){modal(`<div class="modal-kicker">Study set</div><h2>Create a set</h2><p class="modal-subtitle">Sets are saved to your account, including empty sets.</p><form id="setForm" class="modal-form"><label>Name<input id="setName" maxlength="80" required placeholder="e.g. Biology — Cells"></label><label>Subject<input id="setSubject" maxlength="80" placeholder="Optional"></label><label>Description<textarea id="setDescription" maxlength="240" rows="3" placeholder="What are you learning in this set?"></textarea></label><p id="setError" class="form-error"></p><button class="primary-button" type="submit">Create set</button></form>`);$('#setForm').onsubmit=async e=>{e.preventDefault();const btn=e.target.querySelector('button');btn.disabled=true;const r=await auth('/api/student/flashcard-sets',{method:'POST',body:JSON.stringify({name:$('#setName').value,subject:$('#setSubject').value,description:$('#setDescription').value})});const j=await r.json().catch(()=>({}));if(!r.ok){$('#setError').textContent=j.error||'Could not create the set.';btn.disabled=false;return;}data=j.student||data;flashcardDeck=j.set.name;flashcardIndex=0;flashcardFlipped=false;closeModal();renderAll();toast('Study set created');};setTimeout(()=>$('#setName')?.focus(),0);}
