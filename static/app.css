@@ -265,3 +265,114 @@ body{font-family:var(--sans)}
   .learn-side{grid-template-columns:1fr}.learn-question{padding:23px 16px}.learn-prompt{font-size:25px;margin:14px auto 25px}.learn-options{grid-template-columns:1fr}.learn-type-form{flex-direction:column}.learn-type-form .primary-button{width:100%}.learn-start{padding:55px 18px}.checkpoint-summary{flex-direction:column}.learn-result-grid{grid-template-columns:1fr}.learn-result-grid div{border-right:0;border-bottom:1px solid var(--line)}.learn-result-grid div:last-child{border-bottom:0}
 }
 .learn-all-label{display:inline-flex;align-items:center;justify-content:center;border:1px solid #d8d1f7;background:#f5f2ff;color:#5f46c6;border-radius:8px;padding:9px 13px;font-size:10px;font-weight:750}
+
+/* Final study-system polish: replace any browser-default controls and make every study surface scroll-safe. */
+button,select,input,textarea{font:inherit}
+button{appearance:none;-webkit-appearance:none}
+button:disabled{cursor:not-allowed}
+.sidebar{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.hub-main{min-width:0}
+.view-shell,.view{min-width:0;overflow:visible}
+#view-flashcards{padding-bottom:32px}
+#view-flashcards .set-hero{overflow:visible}
+.study-mode-tabs{min-width:0;scrollbar-width:thin;overscroll-behavior-x:contain}
+.study-mode-tabs .study-tab{flex:0 0 auto;min-height:42px}
+.flashcard-toolbar{width:100%;align-items:center;padding:8px 0 10px;position:relative;z-index:2}
+.flashcard-toolbar select,.small-select{appearance:auto;-webkit-appearance:auto;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:9px;min-height:36px;padding:7px 30px 7px 10px;font-size:12px}
+.flashcard-toolbar .text-button{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:7px 10px;border:1px solid var(--line);background:#fff;border-radius:9px;text-decoration:none;color:#4f5060;font-weight:650}
+.flashcard-toolbar .text-button:hover{background:#f7f7fa;color:var(--accent);border-color:#cfcfe0;text-decoration:none}
+.flashcard-toolbar .text-button.is-active{background:#f0ecff;border-color:#cfc3fa;color:#5b42c6}
+.study-mode-tabs,.flashcard-toolbar{overflow:visible}
+.flashcard-study{min-height:500px;overflow:visible;padding:18px;border-radius:14px}
+.flashcard-stage{min-height:500px;justify-content:flex-start;width:100%;overflow:visible}
+.study-flip-wrap{width:min(760px,100%);min-height:420px;flex:0 0 auto}
+.study-face{background:#fff;border-color:#dddde6;border-radius:16px;box-shadow:0 10px 30px rgba(31,31,45,.06)}
+.study-face .flashcard-question,.study-face .flashcard-answer{max-width:680px;color:#20202b}
+.flashcard-actions,.known-actions,.study-shortcuts{width:min(760px,100%)}
+.flashcard-actions{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap}
+.flashcard-actions .small-button,.known-actions .known-button{min-height:40px}
+.known-actions{margin-top:0}
+.flashcard-list{overflow:visible}
+.flashcard-row{background:#fff;border:1px solid var(--line);border-radius:11px;padding:14px;min-width:0}
+.flashcard-row button{min-height:34px}
+.learn-workspace{width:100%;overflow:visible}
+.learn-workspace-head{display:flex;justify-content:space-between;gap:16px;min-width:0;flex-wrap:wrap}
+.learn-workspace-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.learn-layout{align-items:start;min-width:0}
+.learn-main{overflow:visible;padding:0!important}
+.learn-question{width:100%;max-width:none;padding:38px 42px 30px;min-height:560px;display:flex;flex-direction:column}
+.learn-meta{font-size:12px;color:#777884}
+.learn-progressbar{width:100%;height:4px;margin:0 0 34px;background:#ededf2}
+.learn-progressbar i{background:var(--accent)}
+.learn-phase-pill{align-self:center;border:1px solid #ddd8f7;background:#f7f5ff;color:#5e48bd;border-radius:999px;padding:7px 12px;font-size:10px;font-weight:750;letter-spacing:.02em}
+.learn-prompt{width:min(760px,100%);margin:34px auto 30px;text-align:center;font-size:32px;font-weight:700;color:#24242f}
+.learn-options{width:min(760px,100%);margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.learn-option{min-height:74px;border:1px solid #dedee7;background:#fff;border-radius:11px;color:#292933;font-size:13px;font-weight:650;padding:15px;text-align:left;cursor:pointer;box-shadow:0 1px 2px rgba(31,31,45,.02)}
+.learn-option:hover{border-color:#c1bfd0;background:#fafafd}
+.learn-option:focus-visible{outline:3px solid rgba(107,76,230,.16);outline-offset:2px}
+.learn-option.correct{background:#f1edff;border-color:#907ce9;color:#543ec0}
+.learn-option.wrong{background:#fff1f3;border-color:#df7a85;color:#ad3d4b}
+.learn-type-form{width:min(760px,100%);margin:0 auto;display:flex;gap:10px}
+.learn-input{min-height:50px;background:#fff;border:1px solid #cfcfd9;border-radius:10px;color:#20202b;padding:13px 15px;font-size:15px}
+.learn-type-form .primary-button{min-height:50px;padding-inline:22px}
+.learn-flow-note{margin-top:auto;padding-top:28px;color:#90919d;font-size:11px;text-align:center;line-height:1.5}
+.learn-start{width:100%;max-width:680px;margin:auto;padding:72px 36px}
+.learn-start h2{color:#20202b}
+.learn-start p{line-height:1.7}
+.learn-start .primary-button{min-height:44px}
+.learn-feedback-screen{width:100%;min-height:560px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:50px}
+.learn-feedback-screen .feedback-icon{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;background:#f0ecff;color:var(--accent);font-size:26px;font-weight:800;margin-bottom:20px}
+.learn-feedback-screen.is-wrong .feedback-icon{background:#fff1f3;color:#c04b59}
+.learn-feedback-screen h2{font-size:30px;color:#20202b;margin:8px 0}
+.learn-feedback-screen p{max-width:520px;color:#777884;line-height:1.6}
+.learn-checkpoint .primary-button,.learn-complete .primary-button{min-height:44px}
+.modal{overflow:auto;align-items:center}
+.modal-card{max-height:calc(100vh - 32px);overflow:auto;overscroll-behavior:contain}
+.modal-card:has(.study-modal-shell){max-height:calc(100vh - 32px);overflow:auto}
+.study-modal-shell{min-height:0;max-height:none;overflow:visible}
+.test-options,.match-grid,.test-footer,.written-test,.spell-listen{max-width:760px;margin-left:auto;margin-right:auto}
+.test-options button,.match-grid button,.written-test button,.spell-listen button{appearance:none;-webkit-appearance:none}
+.test-footer{padding-bottom:4px}
+.study-result{padding:40px 10px}
+@media(max-width:900px){
+  .learn-layout{grid-template-columns:1fr}
+  .learn-side{display:grid;grid-template-columns:1fr 1fr}
+  .learn-question{min-height:520px}
+}
+@media(max-width:780px){
+  .sidebar{overflow-x:hidden}
+  .view-shell{padding-bottom:34px}
+  .flashcard-study{padding:12px;min-height:460px}
+  .study-flip-wrap{min-height:340px}
+  .learn-question{padding:28px 20px 24px;min-height:500px}
+  .learn-prompt{font-size:27px}
+}
+@media(max-width:600px){
+  .flashcard-toolbar{display:grid;grid-template-columns:1fr 1fr}
+  .flashcard-toolbar select{grid-column:1/-1;width:100%}
+  .flashcard-toolbar .toolbar-spacer{display:none}
+  .flashcard-toolbar .text-button{width:100%}
+  .learn-side{grid-template-columns:1fr}
+  .learn-options{grid-template-columns:1fr}
+  .learn-type-form{flex-direction:column}
+  .learn-type-form .primary-button{width:100%}
+  .learn-question{padding:22px 14px 20px}
+  .learn-prompt{font-size:24px;margin:28px auto}
+  .learn-start{padding:46px 18px}
+  .learn-feedback-screen{min-height:440px;padding:30px 18px}
+  .set-hero{overflow:visible}
+}
+@media(max-width:430px){
+  .flashcard-actions .small-button{min-width:40px}
+  .known-actions{display:grid;grid-template-columns:1fr 1fr}
+  .known-button{width:100%}
+}
+@media(max-width:780px){
+  .sidebar .nav{display:flex;flex-direction:row;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;min-width:0}
+  .sidebar .nav::-webkit-scrollbar{display:none}
+  .sidebar .nav-item{flex:0 0 68px;min-width:68px}
+}
+@media(max-width:520px){
+  .study-mode-tabs{overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+  .study-mode-tabs::-webkit-scrollbar{display:none}
+}

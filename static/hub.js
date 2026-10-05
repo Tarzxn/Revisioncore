@@ -181,73 +181,89 @@ const Hub = (() => {
     const active=source.filter(c=>!mastered.has(c.id));
     if(!active.length){finishLearn(true);return;}
     learnSession={
-      source,active,round:1,phase:'choice',index:0,correct:0,answered:0,
-      roundCorrect:0,roundWrong:[],wrongThisRound:[],locked:false,choiceLocked:false,
-      startedAt:Date.now(),goal:active.length,totalTarget:active.length*2
+      source,active:[...active],round:1,phase:'choice',index:0,correct:0,answered:0,
+      choiceCorrect:0,wrongThisRound:[],locked:false,startedAt:Date.now(),completed:0,totalQuestions:0,
+      phaseLabel:'Multiple choice'
     };
     renderLearnQuestion();
   }
   function finishLearn(alreadyMastered=false){
     const s=learnSession;if(!s)return;
-    const score=s.answered?Math.round(s.correct/s.answered*100):100;
-    const completed=s.active?.length||0;
-    $('#learnCard').innerHTML=`<div class="learn-start learn-complete"><div class="learn-symbol">✓</div><span class="learn-checkpoint-kicker">Learning complete</span><h2>${alreadyMastered?'You already know this set':'You nailed the round'}</h2><p>${alreadyMastered?'All selected cards are already mastered.':'Every card in this session has now been recalled by typing.'}</p><div class="learn-result-grid"><div><strong>${score}%</strong><span>accuracy</span></div><div><strong>${s.round}</strong><span>round${s.round===1?'':'s'}</span></div><div><strong>${completed}</strong><span>cards</span></div></div><div class="result-actions"><button class="primary-button" id="learnAgain">Study again</button><button class="small-button" id="learnBackCards">Back to flashcards</button></div></div>`;
+    const score=s.totalQuestions?Math.round(s.correct/s.totalQuestions*100):100;
+    const completed=s.completed||0;
+    $('#learnCard').innerHTML=`<div class="learn-start learn-complete"><div class="learn-symbol">✓</div><span class="learn-checkpoint-kicker">Learning complete</span><h2>${alreadyMastered?'You already know this set':'Set complete'}</h2><p>${alreadyMastered?'Every selected card is already mastered.':'You cleared every round and successfully typed every answer.'}</p><div class="learn-result-grid"><div><strong>${score}%</strong><span>accuracy</span></div><div><strong>${s.round}</strong><span>round${s.round===1?'':'s'}</span></div><div><strong>${completed}</strong><span>cards cleared</span></div></div><div class="result-actions"><button class="primary-button" id="learnAgain">Study again</button><button class="small-button" id="learnBackCards">Back to flashcards</button></div></div>`;
     $('#learnAgain').onclick=startLearn;$('#learnBackCards').onclick=()=>{showStudyWorkspace('flashcards');renderFlashcards();};learnStats();
   }
   function learnCheckpoint(){
     const s=learnSession;
-    const wrong=s.wrongThisRound.slice();
+    const wrong=[...s.wrongThisRound];
     if(!wrong.length){finishLearn();return;}
-    s.round++;s.active=wrong;s.index=0;s.phase='choice';s.roundCorrect=0;s.wrongThisRound=[];s.locked=false;
-    $('#learnCard').innerHTML=`<div class="learn-start learn-checkpoint"><div class="checkpoint-mark">↻</div><span class="learn-checkpoint-kicker">Round ${s.round-1} complete</span><h2>Checkpoint</h2><p><strong>${wrong.length}</strong> card${wrong.length===1?' needs':'s need'} another pass. Each card will go through multiple choice again, then you’ll type the answer again.</p><div class="checkpoint-summary"><span><b>${s.active.length}</b> remaining</span><span><b>${s.round-1}</b> round${s.round-1===1?'':'s'} completed</span></div><button class="primary-button" id="continueLearnRound">Start round ${s.round}</button></div>`;
+    s.round++;
+    s.active=wrong;
+    s.index=0;
+    s.phase='choice';
+    s.phaseLabel='Multiple choice';
+    s.wrongThisRound=[];
+    s.choiceCorrect=0;
+    s.locked=false;
+    $('#learnCard').innerHTML=`<div class="learn-start learn-checkpoint"><div class="checkpoint-mark">↻</div><span class="learn-checkpoint-kicker">Round ${s.round-1} complete</span><h2>Keep going</h2><p><strong>${wrong.length}</strong> card${wrong.length===1?' needs':'s need'} another round. You’ll do <strong>all multiple choice first</strong>, then type the answers at the end of the round.</p><div class="checkpoint-summary"><span><b>${wrong.length}</b> to retest</span><span><b>${s.round-1}</b> round${s.round-1===1?'':'s'} completed</span></div><button class="primary-button" id="continueLearnRound">Start round ${s.round}</button></div>`;
     $('#continueLearnRound').onclick=renderLearnQuestion;learnStats();
+  }
+  function learnDistractors(card){
+    const answers=[];
+    for(const c of learnSession.active){if(c.id!==card.id&&!answers.some(x=>x===c.answer))answers.push(c.answer);if(answers.length===3)break;}
+    const fallback=(learnSession.source||[]).filter(c=>c.id!==card.id);
+    for(const c of fallback){if(!answers.includes(c.answer))answers.push(c.answer);if(answers.length===3)break;}
+    return [card.answer,...answers].slice(0,4);
   }
   function renderLearnQuestion(){
     const s=learnSession;if(!s||!s.active.length){finishLearn();return;}
-    if(s.index>=s.active.length){learnCheckpoint();return;}
-    const c=s.active[s.index], total=s.active.length, progress=Math.round(((s.round-1)*total+s.index)/(Math.max(1,total*s.round))*100);
-    const isChoice=s.phase==='choice';
+    if(s.phase==='choice' && s.index>=s.active.length){
+      s.phase='typed';s.index=0;s.phaseLabel='Written recall';
+      renderLearnQuestion();return;
+    }
+    if(s.phase==='typed' && s.index>=s.active.length){
+      if(!s.wrongThisRound.length){finishLearn();return;}
+      learnCheckpoint();return;
+    }
+    const c=s.active[s.index], total=s.active.length;
+    const doneBefore=s.phase==='choice'?s.index:total+s.index;
+    const progress=Math.round((doneBefore/Math.max(1,total*2))*100);
     let body='';
-    if(isChoice){
-      const pool=s.active.filter(x=>x.id!==c.id);
-      const distractors=[];
-      for(const x of pool){if(!distractors.some(y=>y.answer===x.answer))distractors.push(x);if(distractors.length===3)break;}
-      const options=[c,...distractors].map(x=>x.answer);
-      while(options.length<Math.min(4,s.active.length))options.push(c.answer);
-      const unique=[...new Set(options)].slice(0,4).sort((a,b)=>String(a).localeCompare(String(b)));
-      body=`<div class="learn-options">${unique.map(o=>`<button class="learn-option" data-answer="${esc(o)}">${esc(o)}</button>`).join('')}</div>`;
+    if(s.phase==='choice'){
+      const options=learnDistractors(c).sort((a,b)=>String(a).localeCompare(String(b)));
+      body=`<div class="learn-options" role="group" aria-label="Multiple choice answers">${options.map(o=>`<button type="button" class="learn-option" data-answer="${esc(o)}">${esc(o)}</button>`).join('')}</div>`;
     }else{
       body=`<form id="learnAnswerForm" class="learn-type-form"><input class="learn-input" id="learnInput" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Type the answer from memory…"><button class="primary-button" type="submit">Check answer</button></form>`;
     }
     $('#learnCard').innerHTML=`<div class="learn-question">
-      <div class="learn-meta"><span>Round ${s.round} · ${isChoice?'Multiple choice':'Type the answer'}</span><span>${s.index+1} / ${total}</span></div>
+      <div class="learn-meta"><span>Round ${s.round} · ${s.phaseLabel}</span><span>${s.phase==='choice'?s.index+1:Math.min(s.index+1,total)} / ${total}</span></div>
       <div class="learn-progressbar"><i style="width:${Math.min(100,progress)}%"></i></div>
-      <div class="learn-round-label">${isChoice?'Recognise it first':'Now retrieve it yourself'}</div>
+      <div class="learn-phase-pill">${s.phase==='choice'?'1 · Recognise':'2 · Recall'}</div>
       <div class="learn-prompt">${esc(c.question)}</div>${body}
-      <div id="learnFeedback" class="learn-feedback" hidden></div>
-      <div class="learn-flow-note">${isChoice?'After this choice, you must type the answer for the same card.':'A correct typed answer clears this card. A miss brings it back in the next round.'}</div>
+      <div class="learn-flow-note">${s.phase==='choice'?'Complete every multiple-choice card first. The typing round starts only when this round is finished.':'Now type every answer from this round. Anything missed returns in the next round.'}</div>
     </div>`;
-    if(isChoice)document.querySelectorAll('.learn-option').forEach(b=>b.onclick=()=>submitLearnChoice(b,c));
+    if(s.phase==='choice')document.querySelectorAll('.learn-option').forEach(b=>b.onclick=()=>submitLearnChoice(b,c));
     else {$('#learnAnswerForm').onsubmit=e=>{e.preventDefault();submitLearnTyped($('#learnInput').value,c);};setTimeout(()=>$('#learnInput')?.focus(),0);}
   }
   function submitLearnChoice(button,card){
     const s=learnSession;if(!s||s.locked)return;s.locked=true;
     const ok=answerMatches(button.dataset.answer,card.answer);button.classList.add(ok?'correct':'wrong');
     document.querySelectorAll('.learn-option').forEach(x=>x.disabled=true);
-    s.choiceResult=ok;
-    const feedback=$('#learnFeedback');if(feedback){feedback.hidden=false;feedback.innerHTML=ok?'<strong>Correct.</strong> Now type the answer from memory.':'<strong>Not quite.</strong> You still need to type the correct answer next.';}
-    setTimeout(()=>{s.phase='typed';s.locked=false;renderLearnQuestion();},520);
+    if(ok)s.choiceCorrect++;
+    s.totalQuestions++;
+    setTimeout(()=>{s.index++;s.locked=false;renderLearnQuestion();},280);
   }
   async function submitLearnTyped(given,card){
     const s=learnSession;if(!s||s.locked)return;s.locked=true;
-    const correct=answerMatches(given,card.answer);const feedback=$('#learnFeedback');
-    if(feedback){feedback.hidden=false;feedback.innerHTML=correct?'<strong>Correct.</strong> This card has passed the typed recall.':`<strong>Keep practising.</strong><br><span>Correct answer: ${esc(card.answer)}</span>`;}
+    const correct=answerMatches(given,card.answer);
     try{
       const r=await auth('/api/student/learn/answer',{method:'POST',body:JSON.stringify({card_id:card.id,correct,question_type:'written',round:s.round})});
       const j=await r.json().catch(()=>({}));if(r.ok)data=j.student||data;else toast(j.error||'Could not save Learn progress.');
     }catch(_){toast('Progress could not be saved.');}
-    s.answered++;if(correct){s.correct++;s.roundCorrect++;}else{s.wrongThisRound.push(card);}
-    setTimeout(()=>{s.index++;s.phase='choice';s.locked=false;if(s.index>=s.active.length)learnCheckpoint();else renderLearnQuestion();},700);
+    s.totalQuestions++;s.answered++;if(correct){s.correct++;s.completed++;}else{s.wrongThisRound.push(card);}
+    $('#learnCard').innerHTML=`<div class="learn-feedback-screen ${correct?'is-correct':'is-wrong'}"><div class="feedback-icon">${correct?'✓':'↻'}</div><span class="learn-checkpoint-kicker">${correct?'Correct':'Keep practising'}</span><h2>${correct?'Card cleared':'Back in the next round'}</h2><p>${correct?'This answer is complete for this card.':'Correct answer: <strong>'+esc(card.answer)+'</strong>'}</p></div>`;
+    setTimeout(()=>{s.index++;s.locked=false;renderLearnQuestion();},520);
   }
   function initLearn(){
     learnStats();
