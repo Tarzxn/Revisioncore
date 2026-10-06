@@ -26,3 +26,13 @@ services:
         sync: false
       - key: GITHUB_GIST_ID
         sync: false
+      - key: RIAN_AUTH_URL
+        sync: false
+      - key: RIAN_AUTH_SERVICE_KEY
+        sync: false
+      - key: MICROSOFT_CLIENT_ID
+        sync: false
+      - key: MICROSOFT_CLIENT_SECRET
+        sync: false
+      - key: MICROSOFT_REDIRECT_URI
+        sync: false

@@ -34,3 +34,21 @@ If you use a Render persistent disk instead, the local `data/` store can also su
 
 ### Learn v13
 Learn uses deterministic full-set rounds: every active card gets a multiple-choice recognition question and then a typed-recall question for the same card. Cards missed during typed recall move into the next checkpoint round until every selected card has been cleared.
+
+
+## Persistent Cloudflare authentication
+
+For production, Rian can keep passwords and login sessions in a Cloudflare Worker + Workers KV namespace while Render remains the application server. Set `RIAN_AUTH_URL` and `RIAN_AUTH_SERVICE_KEY` on Render. When enabled, Render never receives the user's plaintext password and never stores the password hash; it receives an opaque HttpOnly session token from the Worker and asks the Worker to verify it. The existing GitHub Gist account store remains the durable home for student data/flashcards as a compatibility layer. Cloudflare Workers KV is designed for authentication tokens and user configuration, and Cloudflare encrypts KV values at rest.
+
+See `cloudflare/README.md` for deployment. Cloudflare Secrets should hold the service key.
+
+## Microsoft Teams assignments
+
+Rian includes an optional **Connect Teams** button in Tasks. It uses Microsoft Graph Education assignments to import published assignments from the signed-in student's school Microsoft 365 account. Microsoft documents `GET /education/me/assignments` and the least-privileged delegated permission `EduAssignments.ReadBasic`; personal Microsoft accounts are not supported for this Education API. Your school's Entra administrator may need to approve the permission.
+
+Configure on Render:
+- `MICROSOFT_CLIENT_ID`
+- `MICROSOFT_CLIENT_SECRET`
+- `MICROSOFT_REDIRECT_URI` = `https://YOUR-RENDER-DOMAIN/api/teams/callback`
+
+In Microsoft Entra ID, register a web application, add the exact redirect URI, and grant delegated `EduAssignments.ReadBasic` plus `openid`, `profile`, and `offline_access`. Rian imports assignment title and due date and avoids duplicate imports. It does not submit or modify Teams assignments.

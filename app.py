@@ -11,7 +11,7 @@ from functools import wraps
 from pathlib import Path
 
 import requests
-from flask import Flask, Response, jsonify, render_template, request, stream_with_context
+from flask import Flask, Response, jsonify, render_template, request, stream_with_context, redirect
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -39,7 +39,7 @@ app.config["MAX_CONTENT_LENGTH"] = 12 * 1024 * 1024
 # Render wake-up/restart does not sign the student out. The raw session token
 # lives only in an HttpOnly cookie and is never exposed to JavaScript.
 USERS_FILE = Path(os.environ.get("USERS_FILE", "data/users.json"))
-FORGE_USERNAME = os.environ.get("RIAN_USERNAME", os.environ.get("FORGE_USERNAME", "")).strip()  # optional seed account, see seed_admin_account()
+FORGE_USERNAME = os.environ.get("RIAN_USERNAME", os.environ.get("FORGE_USERNAME", "")).strip()  # optional seed account, see seed_admin_account() if not (CF_AUTH_URL and CF_AUTH_SERVICE_KEY) else None
 FORGE_PASSWORD = os.environ.get("RIAN_PASSWORD", os.environ.get("FORGE_PASSWORD", "")).strip()
 SESSION_TOKENS = {}  # token -> expiry unix timestamp (hot cache)
 SESSION_USERS = {}   # token -> username (hot cache)
@@ -64,6 +64,40 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "").strip()
 GITHUB_GIST_ID = os.environ.get("GITHUB_GIST_ID", "").strip()
 GITHUB_GIST_FILENAME = "rian_ai_gen2_users.json"
 GITHUB_API_VERSION = "2022-11-28"
+CF_AUTH_URL = os.environ.get("RIAN_AUTH_URL", "").strip().rstrip("/")
+CF_AUTH_SERVICE_KEY = os.environ.get("RIAN_AUTH_SERVICE_KEY", "").strip()
+CF_SESSION_CACHE = {}
+CF_SESSION_TTL = 60
+TEAMS_CLIENT_ID = os.environ.get("MICROSOFT_CLIENT_ID", "").strip()
+TEAMS_CLIENT_SECRET = os.environ.get("MICROSOFT_CLIENT_SECRET", "").strip()
+TEAMS_REDIRECT_URI = os.environ.get("MICROSOFT_REDIRECT_URI", "").strip()
+TEAMS_STATES = {}
+
+
+
+
+
+def _cf_request(path, payload):
+    if not (CF_AUTH_URL and CF_AUTH_SERVICE_KEY):
+        return None
+    try:
+        response = requests.post(f"{CF_AUTH_URL}{path}", headers={"Content-Type":"application/json", "X-Rian-Service-Key":CF_AUTH_SERVICE_KEY}, json=payload, timeout=8)
+        data = response.json() if response.content else {}
+        return response.status_code, data
+    except requests.RequestException as error:
+        print(f"[Rian AI Gen 2] Cloudflare auth request failed: {error}")
+        return None
+
+def _ensure_local_shadow(username):
+    # Student data still lives in the existing account store/Gist. The password
+    # itself never needs to be copied to Render when Cloudflare auth is enabled.
+    with _users_lock:
+        users = load_users()
+        key = username.lower()
+        if key not in users:
+            users[key] = {"username": username, "password_hash": "CLOUDFLARE_MANAGED", "created_at": time.time()}
+            save_users(users)
+        return users[key]
 
 
 def _github_headers():
@@ -187,7 +221,7 @@ def seed_admin_account():
 
 
 _gist_create_if_needed()
-seed_admin_account()
+seed_admin_account() if not (CF_AUTH_URL and CF_AUTH_SERVICE_KEY) else None
 # A startup diagnostic, not an error: if this reads 0 accounts on every
 # restart even though people have signed up, accounts aren't actually
 # persisting (no GitHub sync configured and USERS_FILE isn't on persistent
@@ -237,6 +271,17 @@ def token_from_request():
 def username_for_token(token):
     global _users_cache
     if not token: return None
+    if CF_AUTH_URL and CF_AUTH_SERVICE_KEY:
+        cached = CF_SESSION_CACHE.get(token)
+        if cached and cached[1] > time.time(): return cached[0]
+        result = _cf_request("/verify", {"token": token})
+        if result and result[0] == 200 and result[1].get("valid"):
+            username = str(result[1].get("username", "")).strip()
+            if username:
+                _ensure_local_shadow(username)
+                CF_SESSION_CACHE[token] = (username, time.time() + CF_SESSION_TTL)
+                return username
+        return None
     with _session_lock:
         if token in SESSION_USERS: return SESSION_USERS[token]
     digest = _token_hash(token)
@@ -251,38 +296,31 @@ def username_for_token(token):
         for key, record in users.items():
             for session in record.get("sessions", []) if isinstance(record, dict) else []:
                 if isinstance(session, dict) and session.get("token_hash") == digest:
-                    if float(session.get("expires_at", 0) or 0) <= now:
-                        continue
+                    if float(session.get("expires_at", 0) or 0) <= now: continue
                     username = record.get("username", key)
                     with _session_lock:
-                        SESSION_TOKENS[token] = float(session["expires_at"])
-                        SESSION_USERS[token] = username
+                        SESSION_TOKENS[token] = float(session["expires_at"]); SESSION_USERS[token] = username
                     return username
     return None
 
 def is_valid_token(token):
-    if not token: return False
-    with _session_lock:
-        expiry = SESSION_TOKENS.get(token)
-        if expiry is not None:
-            if time.time() <= expiry: return True
-            SESSION_TOKENS.pop(token, None); SESSION_USERS.pop(token, None)
     return username_for_token(token) is not None
 
 def revoke_token(token):
     if not token: return
+    if CF_AUTH_URL and CF_AUTH_SERVICE_KEY:
+        _cf_request("/logout", {"token": token}); CF_SESSION_CACHE.pop(token, None); return
     digest = _token_hash(token)
     with _session_lock:
         SESSION_TOKENS.pop(token, None); SESSION_USERS.pop(token, None)
     with _users_lock:
-        users = load_users()
-        changed = False
+        users = load_users(); changed = False
         for record in users.values():
             sessions = record.get("sessions", []) if isinstance(record, dict) else []
             filtered = [x for x in sessions if not (isinstance(x, dict) and x.get("token_hash") == digest)]
-            if len(filtered) != len(sessions):
-                record["sessions"] = filtered; changed = True
+            if len(filtered) != len(sessions): record["sessions"] = filtered; changed = True
         if changed: save_users(users)
+
 
 def require_auth(view):
     @wraps(view)
@@ -372,48 +410,48 @@ def index(): return render_template("index.html")
 @app.post("/api/login")
 def login():
     if _throttled(): return jsonify(error="Too many attempts. Wait a few minutes and try again."), 429
-    data = request.get_json(silent=True)
-    if not isinstance(data, dict):
-        return jsonify(error="Malformed request body."), 400
-    username = str(data.get("username", "")).strip()
-    password = str(data.get("password", ""))
+    data = request.get_json(silent=True) or {}
+    username = str(data.get("username", "")).strip(); password = str(data.get("password", ""))
+    if CF_AUTH_URL and CF_AUTH_SERVICE_KEY:
+        result = _cf_request("/login", {"username": username, "password": password})
+        if result and result[0] == 200:
+            _ensure_local_shadow(result[1]["username"])
+            CF_SESSION_CACHE[result[1]["token"]] = (result[1]["username"], time.time() + min(CF_SESSION_TTL, int(result[1].get("expiresIn", SESSION_TTL_SECONDS))))
+            response = jsonify(ok=True, expiresIn=result[1].get("expiresIn", SESSION_TTL_SECONDS))
+            response.set_cookie(SESSION_COOKIE, result[1]["token"], max_age=int(result[1].get("expiresIn", SESSION_TTL_SECONDS)), httponly=True, secure=bool(request.is_secure), samesite="Lax", path="/")
+            return response
+        if result and result[0] == 401: return jsonify(error=result[1].get("error", "Incorrect username or password.")), 401
+        return jsonify(error="Cloudflare authentication service is unavailable. Check RIAN_AUTH_URL and RIAN_AUTH_SERVICE_KEY."), 503
     users = load_users()
-    if not users:
-        return jsonify(error='No accounts exist yet — use "Create account" below to set one up.'), 404
+    if not users: return jsonify(error='No accounts exist yet — use "Create account" below to set one up.'), 404
     record = users.get(username.lower())
-    # check_password_hash is constant-time; run it even on a missing user
-    # (against a dummy hash) so a failed lookup and a wrong password take the
-    # same amount of time either way, and username existence can't be timed.
     if not record:
-        check_password_hash(generate_password_hash("dummy"), password)
-        return jsonify(error="Incorrect username or password."), 401
-    if not check_password_hash(record["password_hash"], password):
-        return jsonify(error="Incorrect username or password."), 401
-    token = issue_token(record["username"])
-    response = jsonify(ok=True, expiresIn=SESSION_TTL_SECONDS)
-    response.set_cookie(SESSION_COOKIE, token, max_age=SESSION_TTL_SECONDS, httponly=True, secure=bool(request.is_secure), samesite="Lax", path="/")
-    return response
+        check_password_hash(generate_password_hash("dummy"), password); return jsonify(error="Incorrect username or password."), 401
+    if record.get("password_hash") == "CLOUDFLARE_MANAGED" or not check_password_hash(record["password_hash"], password): return jsonify(error="Incorrect username or password."), 401
+    token = issue_token(record["username"]); response = jsonify(ok=True, expiresIn=SESSION_TTL_SECONDS)
+    response.set_cookie(SESSION_COOKIE, token, max_age=SESSION_TTL_SECONDS, httponly=True, secure=bool(request.is_secure), samesite="Lax", path="/"); return response
 
 
 @app.post("/api/signup")
 def signup():
     if _throttled(): return jsonify(error="Too many attempts. Wait a few minutes and try again."), 429
-    data = request.get_json(silent=True)
-    if not isinstance(data, dict):
-        return jsonify(error="Malformed request body."), 400
-    username = str(data.get("username", "")).strip()
-    password = str(data.get("password", ""))
-    if not USERNAME_RE.match(username):
-        return jsonify(error="Username must be 3-32 characters: letters, numbers, dots, hyphens, or underscores only."), 400
-    if len(password) < 8:
-        return jsonify(error="Password must be at least 8 characters."), 400
+    data = request.get_json(silent=True) or {}
+    username = str(data.get("username", "")).strip(); password = str(data.get("password", ""))
+    if not USERNAME_RE.match(username): return jsonify(error="Username must be 3-32 characters: letters, numbers, dots, hyphens, or underscores only."), 400
+    if len(password) < 8: return jsonify(error="Password must be at least 8 characters."), 400
+    if CF_AUTH_URL and CF_AUTH_SERVICE_KEY:
+        result = _cf_request("/signup", {"username": username, "password": password})
+        if result and result[0] == 200:
+            _ensure_local_shadow(result[1]["username"])
+            CF_SESSION_CACHE[result[1]["token"]] = (result[1]["username"], time.time() + min(CF_SESSION_TTL, int(result[1].get("expiresIn", SESSION_TTL_SECONDS))))
+            response = jsonify(ok=True, expiresIn=result[1].get("expiresIn", SESSION_TTL_SECONDS))
+            response.set_cookie(SESSION_COOKIE, result[1]["token"], max_age=int(result[1].get("expiresIn", SESSION_TTL_SECONDS)), httponly=True, secure=bool(request.is_secure), samesite="Lax", path="/"); return response
+        if result and result[0] == 409: return jsonify(error="That username is already taken."), 409
+        return jsonify(error="Cloudflare authentication service is unavailable. Check RIAN_AUTH_URL and RIAN_AUTH_SERVICE_KEY."), 503
     with _users_lock:
-        if not create_user(username, password):
-            return jsonify(error="That username is already taken."), 409
-    token = issue_token(username)
-    response = jsonify(ok=True, expiresIn=SESSION_TTL_SECONDS)
-    response.set_cookie(SESSION_COOKIE, token, max_age=SESSION_TTL_SECONDS, httponly=True, secure=bool(request.is_secure), samesite="Lax", path="/")
-    return response
+        if not create_user(username, password): return jsonify(error="That username is already taken."), 409
+    token = issue_token(username); response = jsonify(ok=True, expiresIn=SESSION_TTL_SECONDS)
+    response.set_cookie(SESSION_COOKIE, token, max_age=SESSION_TTL_SECONDS, httponly=True, secure=bool(request.is_secure), samesite="Lax", path="/"); return response
 
 
 @app.post("/api/logout")
@@ -453,7 +491,8 @@ def _clean_task(t):
     return {"id": str(t.get("id") or uuid.uuid4().hex)[:40], "title": str(t["title"]).strip()[:160],
             "subject": str(t.get("subject") or "General").strip()[:60], "due": str(t.get("due") or "")[:10],
             "priority": t.get("priority") if t.get("priority") in {"low", "normal", "high"} else "normal",
-            "done": bool(t.get("done")), "created_at": created if isinstance(created, (int, float)) else time.time()}
+            "done": bool(t.get("done")), "created_at": created if isinstance(created, (int, float)) else time.time(),
+            "source": str(t.get("source") or "manual")[:30], "external_id": str(t.get("external_id") or "")[:200], "web_url": _safe_url(t.get("web_url"))}
 
 
 def _sanitize_student(s, username):
@@ -860,6 +899,64 @@ def learn_answer():
     _sanitize_student(record["student"], record.get("username", current_username()))
     if not _save_student(current_username(), record["student"]): return jsonify(error="Could not save Learn progress."), 500
     return jsonify(ok=True, progress=st, student=record["student"])
+
+
+@app.get("/api/teams/connect")
+@require_auth
+def teams_connect():
+    if not (TEAMS_CLIENT_ID and TEAMS_CLIENT_SECRET and TEAMS_REDIRECT_URI):
+        return jsonify(error="Microsoft Teams integration is not configured on this Render service."), 503
+    username = current_username()
+    state = secrets.token_urlsafe(32)
+    TEAMS_STATES[state] = (username, time.time() + 600)
+    from urllib.parse import urlencode
+    params = {
+        "client_id": TEAMS_CLIENT_ID,
+        "response_type": "code",
+        "redirect_uri": TEAMS_REDIRECT_URI,
+        "response_mode": "query",
+        "scope": "openid profile offline_access EduAssignments.ReadBasic",
+        "state": state,
+    }
+    return redirect("https://login.microsoftonline.com/common/oauth2/v2.0/authorize?" + urlencode(params))
+
+
+@app.get("/api/teams/callback")
+def teams_callback():
+    state = request.args.get("state", "")
+    entry = TEAMS_STATES.pop(state, None)
+    if not entry or entry[1] < time.time(): return "Teams connection expired. Return to Rian AI and try again.", 400
+    username = entry[0]
+    if request.args.get("error"):
+        return redirect("/?teams=cancelled#tasks")
+    code = request.args.get("code", "")
+    if not code: return "Microsoft did not return an authorization code.", 400
+    token_response = requests.post("https://login.microsoftonline.com/common/oauth2/v2.0/token", data={
+        "client_id": TEAMS_CLIENT_ID, "client_secret": TEAMS_CLIENT_SECRET, "grant_type": "authorization_code",
+        "code": code, "redirect_uri": TEAMS_REDIRECT_URI, "scope": "openid profile offline_access EduAssignments.ReadBasic"
+    }, timeout=15)
+    if not token_response.ok: return "Microsoft sign-in could not be completed. Check your Entra app configuration.", 502
+    token = token_response.json().get("access_token", "")
+    if not token: return "Microsoft did not return an access token.", 502
+    graph = requests.get("https://graph.microsoft.com/v1.0/education/me/assignments?$orderby=dueDateTime%20asc", headers={"Authorization": f"Bearer {token}"}, timeout=20)
+    if not graph.ok: return "Microsoft connected, but Rian could not read your Teams assignments. Your school may need to grant EduAssignments.ReadBasic.", 502
+    payload = graph.json(); assignments = payload.get("value", []) if isinstance(payload, dict) else []
+    _, _, record = _student_record(username)
+    if not record: return "Account not found.", 404
+    tasks = record["student"].setdefault("tasks", [])
+    existing = {str(t.get("external_id")) for t in tasks if t.get("source") == "microsoft_teams"}
+    imported = 0
+    for a in assignments:
+        aid = str(a.get("id") or "").strip(); title = str(a.get("displayName") or "Teams assignment").strip()
+        if not aid or not title or aid in existing: continue
+        due_raw = a.get("dueDateTime") or ""
+        due = str(due_raw)[:10] if due_raw else ""
+        task = {"id": uuid.uuid4().hex, "title": title[:160], "subject": "Microsoft Teams", "due": due,
+                "priority": "high" if due and due <= time.strftime("%Y-%m-%d") else "normal", "done": False,
+                "created_at": time.time(), "source": "microsoft_teams", "external_id": aid, "web_url": _safe_url(a.get("webUrl"))}
+        tasks.append(task); imported += 1
+    _sanitize_student(record["student"], username); _save_student(username, record["student"])
+    return redirect(f"/?teams=connected&imported={imported}#tasks")
 
 
 @app.post("/api/student/tasks")
