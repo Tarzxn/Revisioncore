@@ -7,9 +7,9 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.7
-      - key: SUPABASE_URL
+      - key: GITHUB_TOKEN
         sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
+      - key: GITHUB_GIST_ID
         sync: false
       - key: RIAN_SESSION_DAYS
         value: 30

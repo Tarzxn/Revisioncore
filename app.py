@@ -34,14 +34,15 @@ def no_stale_frontend_cache(response):
 app.config["MAX_CONTENT_LENGTH"] = 12 * 1024 * 1024
 
 # ---- Authentication --------------------------------------------------------
-# Durable authentication is stored in Supabase PostgreSQL. Render's filesystem
-# is ephemeral, so no account, password hash, session or student data depends on
-# local files surviving a restart/redeploy. The browser only receives an opaque,
-# HttpOnly session cookie; plaintext passwords never leave the login/signup POST.
+# GitHub Gist is the durable store for accounts, password hashes, hashed
+# sessions, and student data. Render's filesystem is only a local cache and is
+# NOT treated as durable when Gist is configured. If Gist is configured but
+# unavailable, writes fail closed instead of pretending data was saved.
 USERS_FILE = Path(os.environ.get("USERS_FILE", "data/users.json"))
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip().rstrip("/")
-SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip()
-SUPABASE_TABLE = os.environ.get("SUPABASE_TABLE", "rian_users").strip() or "rian_users"
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "").strip()
+GITHUB_GIST_ID = os.environ.get("GITHUB_GIST_ID", "").strip()
+GITHUB_GIST_FILENAME = os.environ.get("GITHUB_GIST_FILENAME", "rian_ai_gen2_users.json").strip() or "rian_ai_gen2_users.json"
+GITHUB_API_VERSION = "2022-11-28"
 FORGE_USERNAME = os.environ.get("RIAN_USERNAME", os.environ.get("FORGE_USERNAME", "")).strip()
 FORGE_PASSWORD = os.environ.get("RIAN_PASSWORD", os.environ.get("FORGE_PASSWORD", "")).strip()
 SESSION_TOKENS = {}
@@ -52,6 +53,7 @@ SESSION_COOKIE = "rian_session"
 USERNAME_RE = re.compile(r"^[a-zA-Z0-9_.-]{3,32}$")
 _users_lock = threading.RLock()
 _users_cache = None
+_gist_lock = threading.Lock()
 DUMMY_PASSWORD_HASH = generate_password_hash("rian-invalid-login-check")
 
 TEAMS_CLIENT_ID = os.environ.get("MICROSOFT_CLIENT_ID", "").strip()
@@ -60,145 +62,118 @@ TEAMS_REDIRECT_URI = os.environ.get("MICROSOFT_REDIRECT_URI", "").strip()
 TEAMS_STATES = {}
 
 
-def _supabase_headers():
+def _gist_enabled():
+    return bool(GITHUB_TOKEN and GITHUB_GIST_ID)
+
+
+def _github_headers():
     return {
-        "apikey": SUPABASE_SERVICE_ROLE_KEY,
-        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": GITHUB_API_VERSION,
         "Content-Type": "application/json",
-        "Accept": "application/json",
     }
 
 
-def _supabase_enabled():
-    return bool(SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)
-
-
-def _supabase_url():
-    return f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}"
-
-
-def _supabase_load():
-    if not _supabase_enabled():
+def _gist_load():
+    """Read the account store from GitHub. Raises on configured-store errors."""
+    if not _gist_enabled():
         return None
-    try:
-        response = requests.get(
-            _supabase_url(),
-            headers=_supabase_headers(),
-            params={"select": "username_key,username,password_hash,student,sessions,created_at,updated_at", "limit": "1000"},
-            timeout=12,
-        )
-        response.raise_for_status()
-        rows = response.json()
-        if not isinstance(rows, list):
-            raise ValueError("Supabase returned an invalid account response")
-        users = {}
-        for row in rows:
-            key = str(row.get("username_key", "")).strip().lower()
-            if not key:
-                continue
-            record = {
-                "username": str(row.get("username", key)),
-                "password_hash": str(row.get("password_hash", "")),
-                "created_at": row.get("created_at") or time.time(),
-                "student": row.get("student") if isinstance(row.get("student"), dict) else {},
-                "sessions": row.get("sessions") if isinstance(row.get("sessions"), list) else [],
-            }
-            users[key] = record
-        return users
-    except (requests.RequestException, ValueError, TypeError) as error:
-        print(f"[Rian AI Gen 2] Supabase account read failed: {error}")
-        return None
+    response = requests.get(
+        f"https://api.github.com/gists/{GITHUB_GIST_ID}",
+        headers=_github_headers(), timeout=12,
+    )
+    if response.status_code == 404:
+        raise RuntimeError("Configured GITHUB_GIST_ID was not found or the token cannot access it.")
+    response.raise_for_status()
+    files = response.json().get("files", {})
+    file_data = files.get(GITHUB_GIST_FILENAME)
+    if not file_data:
+        # A newly created gist can be empty. Treat that as an empty store.
+        return {}
+    if file_data.get("truncated"):
+        raise RuntimeError("GitHub Gist account file was truncated; refusing to load incomplete data.")
+    content = file_data.get("content", "{}")
+    data = json.loads(content)
+    if not isinstance(data, dict):
+        raise RuntimeError("GitHub Gist account file must contain a JSON object.")
+    return data
 
 
-def _supabase_save(users):
-    if not _supabase_enabled():
-        return False
-    rows = []
-    now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-
-    def created_timestamp(value):
-        if isinstance(value, (int, float)):
-            return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(value))
-        value = str(value or "").strip()
-        return value if value else now
-    for key, record in users.items():
-        if not isinstance(record, dict):
-            continue
-        rows.append({
-            "username_key": str(key).lower()[:64],
-            "username": str(record.get("username", key))[:32],
-            "password_hash": str(record.get("password_hash", "")),
-            "student": record.get("student") if isinstance(record.get("student"), dict) else {},
-            "sessions": record.get("sessions") if isinstance(record.get("sessions"), list) else [],
-            "created_at": created_timestamp(record.get("created_at")),
-            "updated_at": now,
-        })
-    try:
-        if rows:
-            response = requests.post(
-                _supabase_url(),
-                headers={**_supabase_headers(), "Prefer": "resolution=merge-duplicates,return=minimal"},
-                params={"on_conflict": "username_key"},
-                json=rows,
-                timeout=15,
+def _gist_save(users):
+    """Persist the complete account store; raises if GitHub did not confirm it."""
+    if not _gist_enabled():
+        raise RuntimeError("GitHub Gist persistence is not configured. Set GITHUB_TOKEN and GITHUB_GIST_ID.")
+    content = json.dumps(users, ensure_ascii=False, separators=(",", ":"))
+    payload = {"files": {GITHUB_GIST_FILENAME: {"content": content}}}
+    last_error = None
+    for attempt in range(3):
+        try:
+            response = requests.patch(
+                f"https://api.github.com/gists/{GITHUB_GIST_ID}",
+                headers=_github_headers(), json=payload, timeout=15,
             )
             response.raise_for_status()
-        return True
-    except requests.RequestException as error:
-        print(f"[Rian AI Gen 2] Supabase account write failed: {error}")
-        return False
+            return
+        except requests.RequestException as error:
+            last_error = error
+            if attempt < 2:
+                time.sleep(0.4 * (attempt + 1))
+    raise RuntimeError(f"Could not confirm saving to GitHub Gist: {last_error}")
 
 
 def _local_load():
     try:
-        data = json.loads(USERS_FILE.read_text()) if USERS_FILE.exists() else {}
+        data = json.loads(USERS_FILE.read_text(encoding="utf-8")) if USERS_FILE.exists() else {}
         return data if isinstance(data, dict) else {}
     except (json.JSONDecodeError, OSError, TypeError):
         return {}
 
 
 def load_users():
-    """Load the durable account store once per process.
+    """Load once per process from the durable Gist, or local files for development.
 
-    Supabase is authoritative when configured. If the table is empty on first
-    launch, an existing local users.json is used as a one-time migration source.
+    A configured but unreachable Gist is an error, never a silent local fallback.
     """
     global _users_cache
     if _users_cache is not None:
         return _users_cache
-    remote = _supabase_load()
-    if remote is not None:
-        if remote:
-            _users_cache = remote
-        else:
-            legacy = _local_load()
-            _users_cache = legacy
-            if legacy:
-                _supabase_save(legacy)
-                print(f"[Rian AI Gen 2] Migrated {len(legacy)} local account(s) to Supabase.")
+    if _gist_enabled():
+        try:
+            remote = _gist_load()
+        except (requests.RequestException, ValueError, TypeError, RuntimeError) as error:
+            print(f"[Rian AI Gen 2] GitHub Gist read failed: {error}")
+            raise RuntimeError("The configured GitHub Gist account store is unavailable. Check GITHUB_TOKEN and GITHUB_GIST_ID.") from error
+        legacy = _local_load()
+        # One-time migration only when the remote store is genuinely empty.
+        if not remote and legacy:
+            with _gist_lock:
+                _gist_save(legacy)
+            remote = legacy
+            print(f"[Rian AI Gen 2] Migrated {len(legacy)} local account(s) to GitHub Gist.")
+        _users_cache = remote
         return _users_cache
-    # A configured-but-unreachable Supabase database must never silently fall
-    # back to Render's ephemeral disk in production: that could make a successful
-    # login appear to work and then disappear after a restart.
-    if _supabase_enabled():
-        raise RuntimeError("Supabase is configured but could not be reached. Refusing to use ephemeral Render storage.")
     _users_cache = _local_load()
+    print("[Rian AI Gen 2] WARNING: GitHub Gist is not configured; local storage will not survive Render redeploys.")
     return _users_cache
 
 
 def save_users(users):
+    """Persist remote-first; only update the local shadow after durable save succeeds."""
     global _users_cache
-    _users_cache = users
+    snapshot = json.loads(json.dumps(users))
+    if _gist_enabled():
+        with _gist_lock:
+            _gist_save(snapshot)
     USERS_FILE.parent.mkdir(parents=True, exist_ok=True)
     tmp = USERS_FILE.with_suffix(".tmp")
-    tmp.write_text(json.dumps(users, indent=2))
+    tmp.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2), encoding="utf-8")
     os.replace(tmp, USERS_FILE)
-    if _supabase_enabled() and not _supabase_save(users):
-        raise RuntimeError("Could not save account data to Supabase. Your data was not confirmed as durable.")
+    _users_cache = snapshot
 
 
 def create_user(username, password):
-    """Caller must hold _users_lock. Returns False if the username is taken."""
+    """Caller must hold _users_lock. Returns False if username is taken."""
     users = load_users()
     key = username.lower()
     if key in users:
@@ -221,10 +196,12 @@ def seed_admin_account():
         create_user(FORGE_USERNAME, FORGE_PASSWORD)
 
 
-if not _supabase_enabled():
-    print("[Rian AI Gen 2] WARNING: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are not configured; local account persistence is development-only.")
+if _gist_enabled():
+    print(f"[Rian AI Gen 2] GitHub Gist persistence enabled (gist {GITHUB_GIST_ID}).")
+else:
+    print("[Rian AI Gen 2] WARNING: GITHUB_TOKEN and/or GITHUB_GIST_ID missing; Render local storage is not durable.")
 seed_admin_account()
-print(f"[Rian AI Gen 2] {len(load_users())} account(s) loaded {'from Supabase' if _supabase_enabled() else 'from local storage'}")
+print(f"[Rian AI Gen 2] {len(load_users())} account(s) loaded {'from GitHub Gist' if _gist_enabled() else 'from local storage'}")
 
 
 def _token_hash(token):
@@ -414,7 +391,7 @@ def login():
     record = users.get(username.lower())
     if not record:
         check_password_hash(DUMMY_PASSWORD_HASH, password); return jsonify(error="Incorrect username or password."), 401
-    if record.get("password_hash") == "CLOUDFLARE_MANAGED" or not check_password_hash(record["password_hash"], password): return jsonify(error="Incorrect username or password."), 401
+    if not record.get("password_hash") or not check_password_hash(record["password_hash"], password): return jsonify(error="Incorrect username or password. If this account was previously managed by Cloudflare, create a new account or reset its password before migrating it."), 401
     token = issue_token(record["username"]); response = jsonify(ok=True, expiresIn=SESSION_TTL_SECONDS)
     response.set_cookie(SESSION_COOKIE, token, max_age=SESSION_TTL_SECONDS, httponly=True, secure=bool(request.is_secure), samesite="Lax", path="/"); return response
 
@@ -445,7 +422,7 @@ def logout():
 
 
 # ---- Student hub data ------------------------------------------------------
-# Student data lives inside the same durable Supabase account row as credentials,
+# Student data lives inside each user record in the durable GitHub Gist account store,
 # so tasks, timetable, flashcards and revision data survive Render redeploys.
 DAYS = {"monday", "tuesday", "wednesday", "thursday", "friday"}
 _attempts = {}
