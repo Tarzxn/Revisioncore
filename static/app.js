@@ -4,11 +4,10 @@ const promptEl = $('#prompt');
 const sendBtn = $('#send');
 const HERO_HTML = $('#hero') ? $('#hero').outerHTML : '';
 
-// Conversations AND the auth token both live in sessionStorage, never
-// localStorage and never a cookie: sessionStorage is wiped the moment the
-// tab/browser closes, so nothing is "remembered" past that point, and
-// because it's not a cookie the browser never auto-attaches it anywhere —
-// every request explicitly carries the token itself.
+// Authentication is a server-issued HttpOnly cookie. The browser automatically
+// sends it with same-origin API requests, so a normal tab close, Render restart,
+// or redeploy does not sign the student out while the 30-day session remains valid.
+// Conversation drafts are separate client-side state and never contain the auth token.
 const CONV_KEY = 'rianai.gen2.conversations';
 let authHandlersAttached = false;
 let appInitialized = false;
@@ -254,8 +253,8 @@ function startNewConversation() {
 }
 
 // ---- Authentication --------------------------------------------------
-// One auth implementation only. Tokens remain in sessionStorage and are
-// explicitly attached to API requests. Forms never perform a browser reload.
+// One auth implementation only. The session token is HttpOnly and is never
+// exposed to JavaScript. Forms use fetch and never perform a browser reload.
 async function authFetch(url, opts = {}) {
   const headers = new Headers(opts.headers || {});
   const response = await fetch(url, { ...opts, headers, credentials: 'same-origin', cache: 'no-store' });

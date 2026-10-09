@@ -2,33 +2,20 @@ services:
   - type: web
     name: rian-ai-gen-2
     runtime: python
-    # No "plan" pinned and no persistent disk here on purpose — accounts
-    # persist for free via the optional GitHub Gist sync below (GITHUB_TOKEN
-    # / GITHUB_GIST_ID) instead of requiring a paid disk. If you'd rather pay
-    # for a real persistent disk instead of using Gist sync, add a `disk:`
-    # block (name/mountPath: data/ under the repo root/sizeGB) and a paid
-    # `plan` in the Render dashboard or here — Render's free plan can't
-    # attach a disk at all.
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app --workers 1 --worker-class gthread --threads 8 --timeout 340
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.7
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: RIAN_SESSION_DAYS
+        value: 30
       - key: OLLAMA_API_KEY
         sync: false
       - key: TAVILY_API_KEY
-        sync: false
-      - key: RIAN_USERNAME
-        sync: false
-      - key: RIAN_PASSWORD
-        sync: false
-      - key: GITHUB_TOKEN
-        sync: false
-      - key: GITHUB_GIST_ID
-        sync: false
-      - key: RIAN_AUTH_URL
-        sync: false
-      - key: RIAN_AUTH_SERVICE_KEY
         sync: false
       - key: MICROSOFT_CLIENT_ID
         sync: false

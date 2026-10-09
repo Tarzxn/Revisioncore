@@ -34,204 +34,202 @@ def no_stale_frontend_cache(response):
 app.config["MAX_CONTENT_LENGTH"] = 12 * 1024 * 1024
 
 # ---- Authentication --------------------------------------------------------
-# Accounts and their student data are stored in the account store. Active
-# browser sessions are also persisted as SHA-256 token hashes, so a normal
-# Render wake-up/restart does not sign the student out. The raw session token
-# lives only in an HttpOnly cookie and is never exposed to JavaScript.
+# Durable authentication is stored in Supabase PostgreSQL. Render's filesystem
+# is ephemeral, so no account, password hash, session or student data depends on
+# local files surviving a restart/redeploy. The browser only receives an opaque,
+# HttpOnly session cookie; plaintext passwords never leave the login/signup POST.
 USERS_FILE = Path(os.environ.get("USERS_FILE", "data/users.json"))
-FORGE_USERNAME = os.environ.get("RIAN_USERNAME", os.environ.get("FORGE_USERNAME", "")).strip()  # optional seed account, see seed_admin_account() if not (CF_AUTH_URL and CF_AUTH_SERVICE_KEY) else None
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip().rstrip("/")
+SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+SUPABASE_TABLE = os.environ.get("SUPABASE_TABLE", "rian_users").strip() or "rian_users"
+FORGE_USERNAME = os.environ.get("RIAN_USERNAME", os.environ.get("FORGE_USERNAME", "")).strip()
 FORGE_PASSWORD = os.environ.get("RIAN_PASSWORD", os.environ.get("FORGE_PASSWORD", "")).strip()
-SESSION_TOKENS = {}  # token -> expiry unix timestamp (hot cache)
-SESSION_USERS = {}   # token -> username (hot cache)
+SESSION_TOKENS = {}
+SESSION_USERS = {}
 _session_lock = threading.Lock()
-# Persistent browser sessions survive a Render wake-up/restart when the account
-# store is backed by the configured GitHub Gist. The raw token is only sent in
-# an HttpOnly cookie; the durable store keeps a SHA-256 hash.
 SESSION_TTL_SECONDS = int(os.environ.get("RIAN_SESSION_DAYS", "30")) * 24 * 3600
 SESSION_COOKIE = "rian_session"
 USERNAME_RE = re.compile(r"^[a-zA-Z0-9_.-]{3,32}$")
-_users_lock = threading.Lock()  # gunicorn now runs with gthread workers, so concurrent requests within one process are real
+_users_lock = threading.RLock()
+_users_cache = None
+DUMMY_PASSWORD_HASH = generate_password_hash("rian-invalid-login-check")
 
-# Optional free persistence for accounts across redeploys on hosts (like
-# Render's free tier) that don't offer a persistent disk at all: sync
-# users.json to a private GitHub Gist instead, using a personal access token
-# you already have from having a GitHub account — no new paid service, no new
-# signup. This is layered on top of the local file, never replaces it: every
-# read/write still touches the local file too, and any GitHub failure is
-# swallowed and falls back to whatever's local, so a network hiccup or an
-# unset token never breaks login.
-GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "").strip()
-GITHUB_GIST_ID = os.environ.get("GITHUB_GIST_ID", "").strip()
-GITHUB_GIST_FILENAME = "rian_ai_gen2_users.json"
-GITHUB_API_VERSION = "2022-11-28"
-CF_AUTH_URL = os.environ.get("RIAN_AUTH_URL", "").strip().rstrip("/")
-CF_AUTH_SERVICE_KEY = os.environ.get("RIAN_AUTH_SERVICE_KEY", "").strip()
-CF_SESSION_CACHE = {}
-CF_SESSION_TTL = 60
 TEAMS_CLIENT_ID = os.environ.get("MICROSOFT_CLIENT_ID", "").strip()
 TEAMS_CLIENT_SECRET = os.environ.get("MICROSOFT_CLIENT_SECRET", "").strip()
 TEAMS_REDIRECT_URI = os.environ.get("MICROSOFT_REDIRECT_URI", "").strip()
 TEAMS_STATES = {}
 
 
+def _supabase_headers():
+    return {
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
 
 
+def _supabase_enabled():
+    return bool(SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)
 
-def _cf_request(path, payload):
-    if not (CF_AUTH_URL and CF_AUTH_SERVICE_KEY):
+
+def _supabase_url():
+    return f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}"
+
+
+def _supabase_load():
+    if not _supabase_enabled():
         return None
     try:
-        response = requests.post(f"{CF_AUTH_URL}{path}", headers={"Content-Type":"application/json", "X-Rian-Service-Key":CF_AUTH_SERVICE_KEY}, json=payload, timeout=8)
-        data = response.json() if response.content else {}
-        return response.status_code, data
-    except requests.RequestException as error:
-        print(f"[Rian AI Gen 2] Cloudflare auth request failed: {error}")
-        return None
-
-def _ensure_local_shadow(username):
-    # Student data still lives in the existing account store/Gist. The password
-    # itself never needs to be copied to Render when Cloudflare auth is enabled.
-    with _users_lock:
-        users = load_users()
-        key = username.lower()
-        if key not in users:
-            users[key] = {"username": username, "password_hash": "CLOUDFLARE_MANAGED", "created_at": time.time()}
-            save_users(users)
-        return users[key]
-
-
-def _github_headers():
-    return {"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": GITHUB_API_VERSION}
-
-
-def _gist_load():
-    """Best-effort read from the configured gist. Returns None (never raises)
-    if sync isn't configured or the call fails, so callers fall back to the
-    local file instead."""
-    if not (GITHUB_TOKEN and GITHUB_GIST_ID): return None
-    try:
-        response = requests.get(f"https://api.github.com/gists/{GITHUB_GIST_ID}", headers=_github_headers(), timeout=10)
-        response.raise_for_status()
-        file_data = response.json().get("files", {}).get(GITHUB_GIST_FILENAME)
-        if not file_data or file_data.get("truncated"): return None
-        return json.loads(file_data["content"])
-    except (requests.RequestException, json.JSONDecodeError, KeyError, ValueError, TypeError):
-        return None
-
-
-def _gist_save(users):
-    """Best-effort push to the configured gist. Never raises — a failed sync
-    just means the local file (and, until the next successful sync, whatever
-    was already in the gist) stays the source of truth instead."""
-    if not (GITHUB_TOKEN and GITHUB_GIST_ID): return
-    payload={"files": {GITHUB_GIST_FILENAME: {"content": json.dumps(users, indent=2)}}}
-    last_error=None
-    for attempt in range(2):
-        try:
-            response=requests.patch(f"https://api.github.com/gists/{GITHUB_GIST_ID}",headers=_github_headers(),json=payload,timeout=10)
-            response.raise_for_status()
-            return
-        except requests.RequestException as error:
-            last_error=error
-            if attempt == 0: time.sleep(.35)
-    if last_error:
-        print(f"[Rian AI Gen 2] Warning: could not sync accounts to GitHub Gist: {last_error}")
-
-
-def _gist_create_if_needed():
-    """If a token is set but no gist ID, create a new private gist once and
-    print its ID. The operator needs to copy that into a GITHUB_GIST_ID env
-    var — without it, every restart would create a brand new empty gist
-    instead of reusing the same one, which defeats the point."""
-    global GITHUB_GIST_ID
-    if not GITHUB_TOKEN or GITHUB_GIST_ID: return
-    try:
-        existing = requests.get("https://api.github.com/gists?per_page=100", headers=_github_headers(), timeout=10)
-        existing.raise_for_status()
-        for gist in existing.json() if isinstance(existing.json(), list) else []:
-            if gist.get("description") == "Rian AI Gen 2 account store — do not edit by hand" and GITHUB_GIST_FILENAME in (gist.get("files") or {}):
-                GITHUB_GIST_ID = gist.get("id", "")
-                print(f"[Rian AI Gen 2] Reusing existing private account gist: {GITHUB_GIST_ID}")
-                return
-        response = requests.post(
-            "https://api.github.com/gists",
-            headers=_github_headers(),
-            json={"description": "Rian AI Gen 2 account store — do not edit by hand", "public": False,
-                  "files": {GITHUB_GIST_FILENAME: {"content": "{}"}}},
-            timeout=10,
+        response = requests.get(
+            _supabase_url(),
+            headers=_supabase_headers(),
+            params={"select": "username_key,username,password_hash,student,sessions,created_at,updated_at", "limit": "1000"},
+            timeout=12,
         )
         response.raise_for_status()
-        GITHUB_GIST_ID = response.json()["id"]
-        print(f"[Rian AI Gen 2] Created a private gist for account storage: {GITHUB_GIST_ID}")
-        print(f"[Rian AI Gen 2] IMPORTANT: set GITHUB_GIST_ID={GITHUB_GIST_ID} as an env var now — "
-              f"without it, the next restart creates a new, empty gist instead of reusing this one.")
-    except (requests.RequestException, KeyError, ValueError) as error:
-        print(f"[Rian AI Gen 2] Warning: could not create a gist for account storage: {error}. Falling back to local-file-only persistence.")
+        rows = response.json()
+        if not isinstance(rows, list):
+            raise ValueError("Supabase returned an invalid account response")
+        users = {}
+        for row in rows:
+            key = str(row.get("username_key", "")).strip().lower()
+            if not key:
+                continue
+            record = {
+                "username": str(row.get("username", key)),
+                "password_hash": str(row.get("password_hash", "")),
+                "created_at": row.get("created_at") or time.time(),
+                "student": row.get("student") if isinstance(row.get("student"), dict) else {},
+                "sessions": row.get("sessions") if isinstance(row.get("sessions"), list) else [],
+            }
+            users[key] = record
+        return users
+    except (requests.RequestException, ValueError, TypeError) as error:
+        print(f"[Rian AI Gen 2] Supabase account read failed: {error}")
+        return None
 
 
-_users_cache = None
-_gist_lock = threading.Lock()
+def _supabase_save(users):
+    if not _supabase_enabled():
+        return False
+    rows = []
+    now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+    def created_timestamp(value):
+        if isinstance(value, (int, float)):
+            return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(value))
+        value = str(value or "").strip()
+        return value if value else now
+    for key, record in users.items():
+        if not isinstance(record, dict):
+            continue
+        rows.append({
+            "username_key": str(key).lower()[:64],
+            "username": str(record.get("username", key))[:32],
+            "password_hash": str(record.get("password_hash", "")),
+            "student": record.get("student") if isinstance(record.get("student"), dict) else {},
+            "sessions": record.get("sessions") if isinstance(record.get("sessions"), list) else [],
+            "created_at": created_timestamp(record.get("created_at")),
+            "updated_at": now,
+        })
+    try:
+        if rows:
+            response = requests.post(
+                _supabase_url(),
+                headers={**_supabase_headers(), "Prefer": "resolution=merge-duplicates,return=minimal"},
+                params={"on_conflict": "username_key"},
+                json=rows,
+                timeout=15,
+            )
+            response.raise_for_status()
+        return True
+    except requests.RequestException as error:
+        print(f"[Rian AI Gen 2] Supabase account write failed: {error}")
+        return False
+
+
+def _local_load():
+    try:
+        data = json.loads(USERS_FILE.read_text()) if USERS_FILE.exists() else {}
+        return data if isinstance(data, dict) else {}
+    except (json.JSONDecodeError, OSError, TypeError):
+        return {}
 
 
 def load_users():
-    """Accounts are read once (gist, else local file) and then served from memory, so requests
-    never wait on GitHub and concurrent edits all share one dict instead of overwriting each other."""
+    """Load the durable account store once per process.
+
+    Supabase is authoritative when configured. If the table is empty on first
+    launch, an existing local users.json is used as a one-time migration source.
+    """
     global _users_cache
-    if _users_cache is None:
-        remote = _gist_load()
-        if remote is not None:
+    if _users_cache is not None:
+        return _users_cache
+    remote = _supabase_load()
+    if remote is not None:
+        if remote:
             _users_cache = remote
         else:
-            try: _users_cache = json.loads(USERS_FILE.read_text()) if USERS_FILE.exists() else {}
-            except (json.JSONDecodeError, OSError): _users_cache = {}
+            legacy = _local_load()
+            _users_cache = legacy
+            if legacy:
+                _supabase_save(legacy)
+                print(f"[Rian AI Gen 2] Migrated {len(legacy)} local account(s) to Supabase.")
+        return _users_cache
+    # A configured-but-unreachable Supabase database must never silently fall
+    # back to Render's ephemeral disk in production: that could make a successful
+    # login appear to work and then disappear after a restart.
+    if _supabase_enabled():
+        raise RuntimeError("Supabase is configured but could not be reached. Refusing to use ephemeral Render storage.")
+    _users_cache = _local_load()
     return _users_cache
 
 
 def save_users(users):
+    global _users_cache
+    _users_cache = users
     USERS_FILE.parent.mkdir(parents=True, exist_ok=True)
     tmp = USERS_FILE.with_suffix(".tmp")
     tmp.write_text(json.dumps(users, indent=2))
-    os.replace(tmp, USERS_FILE)  # atomic: a crash mid-write can't corrupt the account file
-    if GITHUB_TOKEN and GITHUB_GIST_ID:
-        # Account data (including flashcard sets and learning progress) must be
-        # durable before the request completes. A background-only sync could
-        # lose the last few edits if Render restarts immediately afterwards.
-        with _gist_lock:
-            try: _gist_save(json.loads(json.dumps(users)))
-            except RuntimeError: pass
+    os.replace(tmp, USERS_FILE)
+    if _supabase_enabled() and not _supabase_save(users):
+        raise RuntimeError("Could not save account data to Supabase. Your data was not confirmed as durable.")
 
 
 def create_user(username, password):
     """Caller must hold _users_lock. Returns False if the username is taken."""
     users = load_users()
     key = username.lower()
-    if key in users: return False
-    users[key] = {"username": username, "password_hash": generate_password_hash(password), "created_at": time.time()}
+    if key in users:
+        return False
+    users[key] = {
+        "username": username,
+        "password_hash": generate_password_hash(password),
+        "created_at": time.time(),
+        "student": {},
+        "sessions": [],
+    }
     save_users(users)
     return True
 
 
 def seed_admin_account():
-    """Optional convenience: FORGE_USERNAME/FORGE_PASSWORD, if both set, are
-    created as a standing account on startup — same as it worked before
-    self-signup existed — so existing deployments keep working unchanged."""
-    if not FORGE_USERNAME or not FORGE_PASSWORD: return
+    if not FORGE_USERNAME or not FORGE_PASSWORD:
+        return
     with _users_lock:
         create_user(FORGE_USERNAME, FORGE_PASSWORD)
 
 
-_gist_create_if_needed()
-seed_admin_account() if not (CF_AUTH_URL and CF_AUTH_SERVICE_KEY) else None
-# A startup diagnostic, not an error: if this reads 0 accounts on every
-# restart even though people have signed up, accounts aren't actually
-# persisting (no GitHub sync configured and USERS_FILE isn't on persistent
-# storage — e.g. a Render free-tier service with no disk attached).
-print(f"[Rian AI Gen 2] {len(load_users())} account(s) loaded"
-      f"{' (synced via GitHub Gist ' + GITHUB_GIST_ID + ')' if GITHUB_TOKEN and GITHUB_GIST_ID else f' from {USERS_FILE.resolve()}'}")
+if not _supabase_enabled():
+    print("[Rian AI Gen 2] WARNING: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are not configured; local account persistence is development-only.")
+seed_admin_account()
+print(f"[Rian AI Gen 2] {len(load_users())} account(s) loaded {'from Supabase' if _supabase_enabled() else 'from local storage'}")
 
 
 def _token_hash(token):
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
 
 def issue_token(username):
     token = secrets.token_urlsafe(48)
@@ -246,80 +244,76 @@ def issue_token(username):
         now = time.time()
         sessions[:] = [x for x in sessions if isinstance(x, dict) and float(x.get("expires_at", 0) or 0) > now]
         sessions.append({"token_hash": _token_hash(token), "created_at": now, "last_seen": now, "expires_at": expires})
-        # Keep a small number of active devices per account.
         record["sessions"] = sessions[-8:]
         save_users(users)
-        if GITHUB_TOKEN and GITHUB_GIST_ID:
-            try:
-                with _gist_lock: _gist_save(json.loads(json.dumps(users)))
-            except Exception as error: print(f"[Rian AI Gen 2] Session sync warning: {error}")
     with _session_lock:
         SESSION_TOKENS[token] = expires
         SESSION_USERS[token] = username
     return token
 
+
 def current_username():
     token = token_from_request()
     return username_for_token(token) if is_valid_token(token) else None
+
 
 def token_from_request():
     header = request.headers.get("Authorization", "")
     if header.lower().startswith("bearer "):
         return header[7:].strip()
-    return request.cookies.get(SESSION_COOKIE, "").strip() or request.args.get("token", "").strip()
+    return request.cookies.get(SESSION_COOKIE, "").strip()
+
 
 def username_for_token(token):
-    global _users_cache
-    if not token: return None
-    if CF_AUTH_URL and CF_AUTH_SERVICE_KEY:
-        cached = CF_SESSION_CACHE.get(token)
-        if cached and cached[1] > time.time(): return cached[0]
-        result = _cf_request("/verify", {"token": token})
-        if result and result[0] == 200 and result[1].get("valid"):
-            username = str(result[1].get("username", "")).strip()
-            if username:
-                _ensure_local_shadow(username)
-                CF_SESSION_CACHE[token] = (username, time.time() + CF_SESSION_TTL)
-                return username
+    if not token:
         return None
     with _session_lock:
-        if token in SESSION_USERS: return SESSION_USERS[token]
+        expiry = SESSION_TOKENS.get(token)
+        cached_user = SESSION_USERS.get(token)
+        if cached_user and expiry and expiry > time.time():
+            return cached_user
+        SESSION_TOKENS.pop(token, None)
+        SESSION_USERS.pop(token, None)
     digest = _token_hash(token)
     now = time.time()
     with _users_lock:
         users = load_users()
-        if GITHUB_TOKEN and GITHUB_GIST_ID:
-            remote = _gist_load()
-            if isinstance(remote, dict) and remote != users:
-                _users_cache = remote
-                users = remote
         for key, record in users.items():
             for session in record.get("sessions", []) if isinstance(record, dict) else []:
                 if isinstance(session, dict) and session.get("token_hash") == digest:
-                    if float(session.get("expires_at", 0) or 0) <= now: continue
+                    expires_at = float(session.get("expires_at", 0) or 0)
+                    if expires_at <= now:
+                        continue
                     username = record.get("username", key)
                     with _session_lock:
-                        SESSION_TOKENS[token] = float(session["expires_at"]); SESSION_USERS[token] = username
+                        SESSION_TOKENS[token] = expires_at
+                        SESSION_USERS[token] = username
                     return username
     return None
+
 
 def is_valid_token(token):
     return username_for_token(token) is not None
 
+
 def revoke_token(token):
-    if not token: return
-    if CF_AUTH_URL and CF_AUTH_SERVICE_KEY:
-        _cf_request("/logout", {"token": token}); CF_SESSION_CACHE.pop(token, None); return
+    if not token:
+        return
     digest = _token_hash(token)
     with _session_lock:
-        SESSION_TOKENS.pop(token, None); SESSION_USERS.pop(token, None)
+        SESSION_TOKENS.pop(token, None)
+        SESSION_USERS.pop(token, None)
     with _users_lock:
-        users = load_users(); changed = False
+        users = load_users()
+        changed = False
         for record in users.values():
             sessions = record.get("sessions", []) if isinstance(record, dict) else []
             filtered = [x for x in sessions if not (isinstance(x, dict) and x.get("token_hash") == digest)]
-            if len(filtered) != len(sessions): record["sessions"] = filtered; changed = True
-        if changed: save_users(users)
+            if len(filtered) != len(sessions):
+                record["sessions"] = filtered
+                changed = True
+        if changed:
+            save_users(users)
 
 
 def require_auth(view):
@@ -412,21 +406,14 @@ def login():
     if _throttled(): return jsonify(error="Too many attempts. Wait a few minutes and try again."), 429
     data = request.get_json(silent=True) or {}
     username = str(data.get("username", "")).strip(); password = str(data.get("password", ""))
-    if CF_AUTH_URL and CF_AUTH_SERVICE_KEY:
-        result = _cf_request("/login", {"username": username, "password": password})
-        if result and result[0] == 200:
-            _ensure_local_shadow(result[1]["username"])
-            CF_SESSION_CACHE[result[1]["token"]] = (result[1]["username"], time.time() + min(CF_SESSION_TTL, int(result[1].get("expiresIn", SESSION_TTL_SECONDS))))
-            response = jsonify(ok=True, expiresIn=result[1].get("expiresIn", SESSION_TTL_SECONDS))
-            response.set_cookie(SESSION_COOKIE, result[1]["token"], max_age=int(result[1].get("expiresIn", SESSION_TTL_SECONDS)), httponly=True, secure=bool(request.is_secure), samesite="Lax", path="/")
-            return response
-        if result and result[0] == 401: return jsonify(error=result[1].get("error", "Incorrect username or password.")), 401
-        return jsonify(error="Cloudflare authentication service is unavailable. Check RIAN_AUTH_URL and RIAN_AUTH_SERVICE_KEY."), 503
-    users = load_users()
+    try:
+        users = load_users()
+    except RuntimeError:
+        return jsonify(error="Account storage is temporarily unavailable. Please try again shortly."), 503
     if not users: return jsonify(error='No accounts exist yet — use "Create account" below to set one up.'), 404
     record = users.get(username.lower())
     if not record:
-        check_password_hash(generate_password_hash("dummy"), password); return jsonify(error="Incorrect username or password."), 401
+        check_password_hash(DUMMY_PASSWORD_HASH, password); return jsonify(error="Incorrect username or password."), 401
     if record.get("password_hash") == "CLOUDFLARE_MANAGED" or not check_password_hash(record["password_hash"], password): return jsonify(error="Incorrect username or password."), 401
     token = issue_token(record["username"]); response = jsonify(ok=True, expiresIn=SESSION_TTL_SECONDS)
     response.set_cookie(SESSION_COOKIE, token, max_age=SESSION_TTL_SECONDS, httponly=True, secure=bool(request.is_secure), samesite="Lax", path="/"); return response
@@ -439,17 +426,11 @@ def signup():
     username = str(data.get("username", "")).strip(); password = str(data.get("password", ""))
     if not USERNAME_RE.match(username): return jsonify(error="Username must be 3-32 characters: letters, numbers, dots, hyphens, or underscores only."), 400
     if len(password) < 8: return jsonify(error="Password must be at least 8 characters."), 400
-    if CF_AUTH_URL and CF_AUTH_SERVICE_KEY:
-        result = _cf_request("/signup", {"username": username, "password": password})
-        if result and result[0] == 200:
-            _ensure_local_shadow(result[1]["username"])
-            CF_SESSION_CACHE[result[1]["token"]] = (result[1]["username"], time.time() + min(CF_SESSION_TTL, int(result[1].get("expiresIn", SESSION_TTL_SECONDS))))
-            response = jsonify(ok=True, expiresIn=result[1].get("expiresIn", SESSION_TTL_SECONDS))
-            response.set_cookie(SESSION_COOKIE, result[1]["token"], max_age=int(result[1].get("expiresIn", SESSION_TTL_SECONDS)), httponly=True, secure=bool(request.is_secure), samesite="Lax", path="/"); return response
-        if result and result[0] == 409: return jsonify(error="That username is already taken."), 409
-        return jsonify(error="Cloudflare authentication service is unavailable. Check RIAN_AUTH_URL and RIAN_AUTH_SERVICE_KEY."), 503
-    with _users_lock:
-        if not create_user(username, password): return jsonify(error="That username is already taken."), 409
+    try:
+        with _users_lock:
+            if not create_user(username, password): return jsonify(error="That username is already taken."), 409
+    except RuntimeError:
+        return jsonify(error="Account storage is temporarily unavailable. Please try again shortly."), 503
     token = issue_token(username); response = jsonify(ok=True, expiresIn=SESSION_TTL_SECONDS)
     response.set_cookie(SESSION_COOKIE, token, max_age=SESSION_TTL_SECONDS, httponly=True, secure=bool(request.is_secure), samesite="Lax", path="/"); return response
 
@@ -464,9 +445,8 @@ def logout():
 
 
 # ---- Student hub data ------------------------------------------------------
-# Student data lives inside the same account store as credentials. When the
-# optional GitHub Gist persistence is configured on Render, this means tasks,
-# timetable and revision data survive deploys without requiring a paid disk.
+# Student data lives inside the same durable Supabase account row as credentials,
+# so tasks, timetable, flashcards and revision data survive Render redeploys.
 DAYS = {"monday", "tuesday", "wednesday", "thursday", "friday"}
 _attempts = {}
 
@@ -605,15 +585,19 @@ def _student_record(username):
 
 
 def _save_student(username, student):
-    with _users_lock:
-        users = load_users()
-        key = username.lower()
-        if key not in users:
-            return False
-        users[key].setdefault("student", _default_student())
-        users[key]["student"] = student
-        save_users(users)
-        return True
+    try:
+        with _users_lock:
+            users = load_users()
+            key = username.lower()
+            if key not in users:
+                return False
+            users[key].setdefault("student", _default_student())
+            users[key]["student"] = student
+            save_users(users)
+            return True
+    except RuntimeError as error:
+        print(f"[Rian AI Gen 2] Durable student-data save failed: {error}")
+        return False
 
 
 @app.get("/api/me")
@@ -861,7 +845,8 @@ def patch_flashcard(card_id):
             now=time.time(); sets.append({"id":uuid.uuid4().hex,"name":card.get("deck") or "General","description":"","subject":card.get("subject") or "","created_at":now,"updated_at":now})
     if "starred" in data: card["starred"] = bool(data.get("starred"))
     if not card.get("question") or not card.get("answer"): return jsonify(error="Question and answer are required."),400
-    _save_student(current_username(),record["student"]); return jsonify(card=card)
+    if not _save_student(current_username(),record["student"]): return jsonify(error="Could not save the flashcard."), 503
+    return jsonify(card=card)
 
 
 @app.delete("/api/student/flashcards/<card_id>")
@@ -870,7 +855,9 @@ def delete_flashcard(card_id):
     _,_,record=_student_record(current_username()); cards=record["student"].setdefault("flashcards", [])
     new=[c for c in cards if c.get("id")!=card_id]
     if len(new)==len(cards): return jsonify(error="Flashcard not found."),404
-    record["student"]["flashcards"]=new; _save_student(current_username(),record["student"]); return jsonify(ok=True)
+    record["student"]["flashcards"]=new
+    if not _save_student(current_username(),record["student"]): return jsonify(error="Could not delete the flashcard."), 503
+    return jsonify(ok=True)
 
 
 @app.post("/api/student/learn/answer")
@@ -955,7 +942,8 @@ def teams_callback():
                 "priority": "high" if due and due <= time.strftime("%Y-%m-%d") else "normal", "done": False,
                 "created_at": time.time(), "source": "microsoft_teams", "external_id": aid, "web_url": _safe_url(a.get("webUrl"))}
         tasks.append(task); imported += 1
-    _sanitize_student(record["student"], username); _save_student(username, record["student"])
+    _sanitize_student(record["student"], username)
+    if not _save_student(username, record["student"]): return "Could not save imported Teams assignments.", 503
     return redirect(f"/?teams=connected&imported={imported}#tasks")
 
 
@@ -978,7 +966,7 @@ def add_task():
         "created_at": time.time(),
     }
     record["student"].setdefault("tasks", []).append(task)
-    _save_student(username, record["student"])
+    if not _save_student(username, record["student"]): return jsonify(error="Could not save the task."), 503
     return jsonify(task=task), 201
 
 
@@ -996,7 +984,7 @@ def patch_task(task_id):
         if key in data and (key != "title" or str(data[key]).strip()): task[key] = str(data[key]).strip()[:limit]
     if data.get("priority") in {"low", "normal", "high"}: task["priority"] = data["priority"]
     if "done" in data: task["done"] = bool(data["done"])
-    _save_student(username, record["student"])
+    if not _save_student(username, record["student"]): return jsonify(error="Could not save the task."), 503
     return jsonify(task=task)
 
 
@@ -1011,7 +999,7 @@ def delete_task(task_id):
     record["student"]["tasks"] = [t for t in tasks if t.get("id") != task_id]
     if len(record["student"]["tasks"]) == before:
         return jsonify(error="Task not found."), 404
-    _save_student(username, record["student"])
+    if not _save_student(username, record["student"]): return jsonify(error="Could not delete the task."), 503
     return jsonify(ok=True)
 
 

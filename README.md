@@ -1,54 +1,60 @@
-# Rian AI Gen 2 Built In — Student Hub
+# Rian AI Gen 2 Built In
 
-A polished, Apple-minimal student hub with timetable, tasks, courses, exam-board/specification tracking, flashcards, round-based adaptive Learn, Write, Spell, Test and Match study modes practice, focus sessions, school links and a text-only Ollama study assistant.
+Render-ready Flask student hub with Quizlet-style flashcards/Learn, Microsoft Teams assignment import, server-side Ollama, and durable free-tier account storage using Supabase PostgreSQL.
 
-## Run locally
-1. `pip install -r requirements.txt`
-2. `export OLLAMA_API_KEY=...` (optional: `TAVILY_API_KEY` to enable web search)
-3. `flask --app app run`, then choose **Create an account**.
+## Architecture
 
-## Deploy on Render
-Build with `pip install -r requirements.txt` and start with the Gunicorn command in `render.yaml`. The app uses a secure HttpOnly session cookie and persists session hashes with the account record.
+`Browser → Render Flask → Supabase PostgreSQL`
 
-### Keeping accounts logged in across Render wake-ups
-For Render's free/ephemeral filesystem, configure `GITHUB_TOKEN` with permission to create/update private gists. The app automatically discovers an existing Rian account gist or creates one and reuses it on later starts. `GITHUB_GIST_ID` can be supplied explicitly, but is no longer required when the token can list gists.
+The browser receives only an opaque, `HttpOnly` session cookie. Passwords are hashed with Werkzeug before storage. Student data, flashcards, Learn progress, tasks and sessions are stored in the same Supabase account row, so they survive Render restarts and redeploys.
 
-If you use a Render persistent disk instead, the local `data/` store can also survive restarts.
+There is **no Cloudflare dependency** in this version and no GitHub Gist dependency.
 
-## Student features
-- Persistent account-owned flashcard sets with CSV/TXT import and duplicate detection
-- Flashcard decks, subjects, study mode and progress
-- **Learn** adaptive practice using recognition → active recall, targeted repetition and spaced review
-- Course/exam-board/specification/progress tracking
-- Timetable, tasks and quick links
-- Apple-style light/dark/system-ready interface
-- Server-side Ollama AI; responses are text-only and never generate files
+## Supabase setup
 
-## Security
-- Passwords use Werkzeug password hashing.
-- Session tokens are random, stored in an HttpOnly cookie, and only their SHA-256 hashes are persisted.
-- Sessions expire after 30 days by default (`RIAN_SESSION_DAYS`).
-- Sign-in/sign-up are rate-limited per IP.
-- Student data, flashcard sets, cards and learning progress are validated and persisted server-side; GitHub Gist sync is synchronous so completed study edits are not left waiting in a background task.
+1. Create a Supabase project on the free tier.
+2. Open **SQL Editor**.
+3. Paste the complete contents of `supabase.sql` and run it.
+4. In Supabase, open **Project Settings → API**.
+5. Copy the project URL and the **service-role key**.
+6. Put them into Render as:
 
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
 
-### Learn v13
-Learn uses deterministic full-set rounds: every active card gets a multiple-choice recognition question and then a typed-recall question for the same card. Cards missed during typed recall move into the next checkpoint round until every selected card has been cleared.
+Never put the service-role key into frontend JavaScript or expose it to students.
 
+## Render environment variables
 
-## Persistent Cloudflare authentication
+Required:
 
-For production, Rian can keep passwords and login sessions in a Cloudflare Worker + Workers KV namespace while Render remains the application server. Set `RIAN_AUTH_URL` and `RIAN_AUTH_SERVICE_KEY` on Render. When enabled, Render never receives the user's plaintext password and never stores the password hash; it receives an opaque HttpOnly session token from the Worker and asks the Worker to verify it. The existing GitHub Gist account store remains the durable home for student data/flashcards as a compatibility layer. Cloudflare Workers KV is designed for authentication tokens and user configuration, and Cloudflare encrypts KV values at rest.
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `OLLAMA_API_KEY`
 
-See `cloudflare/README.md` for deployment. Cloudflare Secrets should hold the service key.
+Optional:
 
-## Microsoft Teams assignments
-
-Rian includes an optional **Connect Teams** button in Tasks. It uses Microsoft Graph Education assignments to import published assignments from the signed-in student's school Microsoft 365 account. Microsoft documents `GET /education/me/assignments` and the least-privileged delegated permission `EduAssignments.ReadBasic`; personal Microsoft accounts are not supported for this Education API. Your school's Entra administrator may need to approve the permission.
-
-Configure on Render:
+- `TAVILY_API_KEY`
 - `MICROSOFT_CLIENT_ID`
 - `MICROSOFT_CLIENT_SECRET`
-- `MICROSOFT_REDIRECT_URI` = `https://YOUR-RENDER-DOMAIN/api/teams/callback`
+- `MICROSOFT_REDIRECT_URI`
+- `RIAN_SESSION_DAYS` (defaults to 30)
 
-In Microsoft Entra ID, register a web application, add the exact redirect URI, and grant delegated `EduAssignments.ReadBasic` plus `openid`, `profile`, and `offline_access`. Rian imports assignment title and due date and avoids duplicate imports. It does not submit or modify Teams assignments.
+Do **not** add the old Cloudflare variables `RIAN_AUTH_URL` or `RIAN_AUTH_SERVICE_KEY`.
+
+## Teams
+
+The existing Microsoft Graph Education integration remains server-side. Configure the Microsoft Entra application and set the three Microsoft environment variables above if Teams assignment importing is wanted.
+
+## Local development
+
+Without Supabase variables, the app can run against `data/users.json` for development. Production should always configure Supabase; if Supabase is configured but unavailable, the app refuses to silently fall back to ephemeral Render storage.
+
+## Deploy
+
+The included `render.yaml` uses:
+
+```text
+pip install -r requirements.txt
+gunicorn app:app --workers 1 --worker-class gthread --threads 8 --timeout 340
+```
