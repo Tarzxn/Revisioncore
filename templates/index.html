@@ -66,7 +66,7 @@
   <main class="hub-main">
     <header class="topbar">
       <div><div class="mobile-brand"><span class="brand-mark">R</span> Rian AI Gen 2 Built In</div><span id="pageKicker">Student overview</span><h2 id="pageTitle">Good morning</h2></div>
-      <div class="top-actions"><button class="icon-button" id="refreshHub" title="Refresh">↻</button><div class="date-chip" id="todayLabel">Today</div></div>
+      <div class="top-actions"><button class="command-trigger" id="commandOpen" aria-haspopup="dialog" aria-controls="commandPalette"><span class="command-search-icon">⌕</span><span>Search anything</span><kbd>Ctrl K</kbd></button><button class="icon-button" id="refreshHub" title="Refresh hub" aria-label="Refresh hub">↻</button><div class="date-chip" id="todayLabel">Today</div></div>
     </header>
 
     <div class="view-shell">
@@ -115,6 +115,15 @@
 
 <div id="modal" class="modal" hidden><div class="modal-card glass"><button class="modal-close" id="modalClose">×</button><div id="modalContent"></div></div></div>
 <div id="toast" class="toast" role="status"></div>
-<script src="{{ url_for('static', filename='app.js') }}?v=rian-20261006-14"></script>
-<script src="{{ url_for('static', filename='hub.js') }}?v=rian-20261006-14"></script>
+<div id="commandPalette" class="command-overlay" hidden>
+  <section class="command-dialog" role="dialog" aria-modal="true" aria-labelledby="commandTitle">
+    <div class="command-search-row"><span aria-hidden="true">⌕</span><input id="commandInput" type="search" autocomplete="off" placeholder="Search pages and actions…" aria-label="Search pages and actions"><kbd>ESC</kbd></div>
+    <div class="command-label" id="commandTitle">QUICK ACTIONS</div>
+    <div id="commandResults" class="command-results"></div>
+    <div class="command-foot"><span>↑ ↓ to navigate</span><span><kbd>↵</kbd> to open</span><span><kbd>Ctrl K</kbd> anytime</span></div>
+  </section>
+</div>
+<script src="{{ url_for('static', filename='app.js') }}?v=rian-20261010-19"></script>
+<script src="{{ url_for('static', filename='hub.js') }}?v=rian-20261010-19"></script>
+<script src="{{ url_for('static', filename='polish.js') }}?v=rian-20261010-19"></script>
 </body></html>
