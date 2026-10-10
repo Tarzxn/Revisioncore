@@ -21,7 +21,7 @@ const Hub = (() => {
     $('#sidebarName').textContent=name; $('#sidebarUsername').textContent='@'+(p.username||'student'); $('#avatarInitial').textContent=name.charAt(0).toUpperCase();
     $('#welcomeTitle').textContent=`Good ${new Date().getHours()<12?'morning':new Date().getHours()<18?'afternoon':'evening'}, ${name.split(' ')[0]}.`;
     $('#welcomeSub').textContent=p.year_group ? `${p.year_group}${p.school?' · '+p.school:''} · ${dayName}` : `It’s ${dayName}. Add your year group in Settings to personalise this message.`;
-    $('#pageTitle').textContent=`${dayName}`; $('#todayLabel').textContent=today.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    $('#pageTitle').textContent=`${dayName}`; $('#todayLabel').textContent=today.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); const dashboardDate=$('#dashboardDate'); if(dashboardDate)dashboardDate.textContent=today.toLocaleDateString('en-GB',{day:'numeric'});
     renderCourseEditor(); renderQuickLinkEditor();
   }
   function renderStats(){
