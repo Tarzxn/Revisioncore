@@ -42,9 +42,19 @@ class CurriculumTests(unittest.TestCase):
             for q in topic['questions']:
                 self.assertNotIn(q['id'],ids);ids.add(q['id'])
                 self.assertGreater(q['marks'],0);self.assertTrue(q['prompt']);self.assertTrue(q['answer'])
-        self.assertEqual(len(ids),130)
+        self.assertEqual(data['version'],4)
+        self.assertEqual(len(data['topics']),90)
+        self.assertEqual(len(ids),450)
+        self.assertEqual(sum(len(t['cards']) for t in data['topics']),540)
+        self.assertEqual(sum(len(t['worked_examples']) for t in data['topics']),180)
         self.assertEqual({t['course_id'] for t in data['topics']},{'4MA1','4BI1','4CH1','4PH1','J277','0445'})
         for t in data['topics']:
+            self.assertEqual(len(t['key_terms']),3)
+            self.assertEqual(len(t['worked_examples']),2)
+            self.assertEqual(len(t['questions']),5)
+            self.assertGreaterEqual(len(t['sections']),3)
+            self.assertTrue(t['misconception'])
+            self.assertNotIn('Explain the key idea',str(t['questions']))
             for q in t['questions']:self.assertEqual(sum(p['marks'] for p in q['mark_scheme']),q['marks'])
 
 
