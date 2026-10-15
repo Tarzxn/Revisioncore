@@ -8,6 +8,10 @@
   if (!overlay || !input || !results) return;
 
   const commands = [
+{title:'Revision notes',detail:'Read lessons and edit your notebook',icon:'▧',group:'Navigate',run:()=>Hub.go('notes')},
+{title:'Exam practice',detail:'Target tests, timed mocks and marking',icon:'✎',group:'Navigate',run:()=>Hub.go('exam')},
+{title:'Study planner',detail:'Exam dates and a weekly revision plan',icon:'◷',group:'Navigate',run:()=>Hub.go('planner')},
+{title:'Progress',detail:'Topic scores and study time',icon:'↗',group:'Navigate',run:()=>Hub.go('insights')},
     { title: 'Overview', detail: 'Your dashboard and today at a glance', icon: '⌂', group: 'Navigate', run: () => Hub.go('home') },
     { title: 'Timetable', detail: 'See your lessons and schedule', icon: '▤', group: 'Navigate', run: () => Hub.go('timetable') },
     { title: 'Tasks & deadlines', detail: 'Manage homework and upcoming work', icon: '✓', group: 'Navigate', run: () => Hub.go('tasks') },

@@ -1,0 +1,1183 @@
+{
+  "version": 1,
+  "description": "Original starter lessons. General GCSE coverage; check your exam-board specification.",
+  "topics": [
+    {
+      "id": "topic-1",
+      "subject": "Biology",
+      "title": "Cell structure",
+      "level": "GCSE foundation & higher overview",
+      "board": "General GCSE",
+      "minutes": 6,
+      "sections": [
+        {
+          "heading": "The essentials",
+          "body": "Cells are the basic units of living organisms. Animal cells contain a nucleus, cytoplasm, a cell membrane, mitochondria and ribosomes. Plant cells also have a cellulose cell wall, a permanent vacuole and often chloroplasts."
+        },
+        {
+          "heading": "Understand the detail",
+          "body": "The nucleus contains genetic material and controls cell activity. Ribosomes build proteins. Mitochondria are the site of most aerobic respiration. Chloroplasts absorb light for photosynthesis."
+        },
+        {
+          "heading": "Apply your knowledge",
+          "body": "Bacterial cells have cytoplasm, a cell membrane and a cell wall, but no membrane-bound nucleus. Their genetic material is a circular DNA molecule; some have plasmids."
+        }
+      ],
+      "tip": "Do not confuse a cell wall with a cell membrane. Both plant and animal cells respire.",
+      "cards": [
+        {
+          "question": "Name two structures found in typical plant cells but not animal cells.",
+          "answer": "Any two: cellulose cell wall; chloroplasts; permanent vacuole."
+        },
+        {
+          "question": "What is an important exam tip for cell structure?",
+          "answer": "Do not confuse a cell wall with a cell membrane. Both plant and animal cells respire."
+        }
+      ],
+      "questions": [
+        {
+          "id": "q-1",
+          "prompt": "Name two structures found in typical plant cells but not animal cells.",
+          "answer": "Any two: cellulose cell wall; chloroplasts; permanent vacuole.",
+          "marks": 2,
+          "criteria": [
+            "cell wall",
+            "chloroplasts",
+            "permanent vacuole"
+          ],
+          "difficulty": "Core",
+          "type": "written"
+        },
+        {
+          "id": "q-1-b",
+          "prompt": "Explain two key ideas about cell structure, using an example where possible.",
+          "answer": "The nucleus contains genetic material and controls cell activity. Ribosomes build proteins. Mitochondria are the site of most aerobic respiration. Chloroplasts absorb light for photosynthesis.",
+          "marks": 2,
+          "criteria": [
+            "One accurate relevant idea.",
+            "A second accurate idea with an explanation or example."
+          ],
+          "difficulty": "Develop",
+          "type": "self"
+        }
+      ]
+    },
+    {
+      "id": "topic-2",
+      "subject": "Biology",
+      "title": "Transport in cells",
+      "level": "GCSE foundation & higher overview",
+      "board": "General GCSE",
+      "minutes": 6,
+      "sections": [
+        {
+          "heading": "The essentials",
+          "body": "Diffusion is the net movement of particles from a region of higher concentration to lower concentration. It requires no metabolic energy. A larger concentration gradient, higher temperature and larger surface area usually increase the rate."
+        },
+        {
+          "heading": "Understand the detail",
+          "body": "Osmosis is the net movement of water across a partially permeable membrane from a dilute solution to a more concentrated solution. In a concentrated solution an animal cell loses water and shrinks."
+        },
+        {
+          "heading": "Apply your knowledge",
+          "body": "Active transport moves substances against a concentration gradient, from lower to higher concentration, and requires energy from respiration. Root hair cells use it to absorb mineral ions from dilute soil solutions."
+        }
+      ],
+      "tip": "Specify water and a partially permeable membrane when defining osmosis.",
+      "cards": [
+        {
+          "question": "Explain why active transport requires energy.",
+          "answer": "It moves substances against their concentration gradient, from lower concentration to higher concentration, using energy from respiration."
+        },
+        {
+          "question": "What is an important exam tip for transport in cells?",
+          "answer": "Specify water and a partially permeable membrane when defining osmosis."
+        }
+      ],
+      "questions": [
+        {
+          "id": "q-2",
+          "prompt": "Explain why active transport requires energy.",
+          "answer": "It moves substances against their concentration gradient, from lower concentration to higher concentration, using energy from respiration.",
+          "marks": 2,
+          "criteria": [
+            "against",
+            "concentration gradient"
+          ],
+          "difficulty": "Core",
+          "type": "written"
+        },
+        {
+          "id": "q-2-b",
+          "prompt": "Explain two key ideas about transport in cells, using an example where possible.",
+          "answer": "Osmosis is the net movement of water across a partially permeable membrane from a dilute solution to a more concentrated solution. In a concentrated solution an animal cell loses water and shrinks.",
+          "marks": 2,
+          "criteria": [
+            "One accurate relevant idea.",
+            "A second accurate idea with an explanation or example."
+          ],
+          "difficulty": "Develop",
+          "type": "self"
+        }
+      ]
+    },
+    {
+      "id": "topic-3",
+      "subject": "Biology",
+      "title": "Photosynthesis",
+      "level": "GCSE foundation & higher overview",
+      "board": "General GCSE",
+      "minutes": 6,
+      "sections": [
+        {
+          "heading": "The essentials",
+          "body": "Photosynthesis transfers energy from light into chemical energy stored in glucose. The word equation is carbon dioxide + water → glucose + oxygen. Chlorophyll absorbs the light."
+        },
+        {
+          "heading": "Understand the detail",
+          "body": "Glucose can be used in respiration, stored as starch, made into cellulose or combined with nitrate ions to make amino acids. Light intensity, carbon dioxide concentration and temperature can limit the rate."
+        },
+        {
+          "heading": "Apply your knowledge",
+          "body": "Test a leaf for starch by heating in water, then ethanol in a water bath to remove chlorophyll, rinsing and adding iodine. A blue-black colour indicates starch. Ethanol is flammable: keep it away from flames."
+        }
+      ],
+      "tip": "A plateau on a rate graph means another factor may be limiting; it does not mean photosynthesis has stopped.",
+      "cards": [
+        {
+          "question": "State the two reactants in photosynthesis.",
+          "answer": "Carbon dioxide and water."
+        },
+        {
+          "question": "What is an important exam tip for photosynthesis?",
+          "answer": "A plateau on a rate graph means another factor may be limiting; it does not mean photosynthesis has stopped."
+        }
+      ],
+      "questions": [
+        {
+          "id": "q-3",
+          "prompt": "State the two reactants in photosynthesis.",
+          "answer": "Carbon dioxide and water.",
+          "marks": 2,
+          "criteria": [
+            "carbon dioxide",
+            "water"
+          ],
+          "difficulty": "Core",
+          "type": "written"
+        },
+        {
+          "id": "q-3-b",
+          "prompt": "Explain two key ideas about photosynthesis, using an example where possible.",
+          "answer": "Glucose can be used in respiration, stored as starch, made into cellulose or combined with nitrate ions to make amino acids. Light intensity, carbon dioxide concentration and temperature can limit the rate.",
+          "marks": 2,
+          "criteria": [
+            "One accurate relevant idea.",
+            "A second accurate idea with an explanation or example."
+          ],
+          "difficulty": "Develop",
+          "type": "self"
+        }
+      ]
+    },
+    {
+      "id": "topic-4",
+      "subject": "Biology",
+      "title": "Enzymes",
+      "level": "GCSE foundation & higher overview",
+      "board": "General GCSE",
+      "minutes": 6,
+      "sections": [
+        {
+          "heading": "The essentials",
+          "body": "Enzymes are biological catalysts, usually proteins. Their active sites bind specific substrates. The enzyme is unchanged overall and can be reused."
+        },
+        {
+          "heading": "Understand the detail",
+          "body": "Increasing temperature initially speeds reactions. Above the optimum, the active site changes shape and the enzyme denatures. A substrate then fits less well. Extreme pH can also alter the active site."
+        },
+        {
+          "heading": "Apply your knowledge",
+          "body": "Amylase breaks starch into sugars, proteases break proteins into amino acids, and lipases break lipids into fatty acids and glycerol. Bile neutralises stomach acid and emulsifies fats; it is not an enzyme."
+        }
+      ],
+      "tip": "Low temperature slows enzymes rather than normally denaturing them.",
+      "cards": [
+        {
+          "question": "Explain why an enzyme stops working at a very high temperature.",
+          "answer": "The enzyme denatures. Its active site changes shape so the substrate no longer fits."
+        },
+        {
+          "question": "What is an important exam tip for enzymes?",
+          "answer": "Low temperature slows enzymes rather than normally denaturing them."
+        }
+      ],
+      "questions": [
+        {
+          "id": "q-4",
+          "prompt": "Explain why an enzyme stops working at a very high temperature.",
+          "answer": "The enzyme denatures. Its active site changes shape so the substrate no longer fits.",
+          "marks": 3,
+          "criteria": [
+            "active site",
+            "shape",
+            "substrate"
+          ],
+          "difficulty": "Core",
+          "type": "written"
+        },
+        {
+          "id": "q-4-b",
+          "prompt": "Explain two key ideas about enzymes, using an example where possible.",
+          "answer": "Increasing temperature initially speeds reactions. Above the optimum, the active site changes shape and the enzyme denatures. A substrate then fits less well. Extreme pH can also alter the active site.",
+          "marks": 2,
+          "criteria": [
+            "One accurate relevant idea.",
+            "A second accurate idea with an explanation or example."
+          ],
+          "difficulty": "Develop",
+          "type": "self"
+        }
+      ]
+    },
+    {
+      "id": "topic-5",
+      "subject": "Chemistry",
+      "title": "Atomic structure",
+      "level": "GCSE foundation & higher overview",
+      "board": "General GCSE",
+      "minutes": 6,
+      "sections": [
+        {
+          "heading": "The essentials",
+          "body": "An atom has a small central nucleus containing protons and neutrons, surrounded by electrons. Protons have relative charge +1, neutrons 0 and electrons −1. Protons and neutrons each have relative mass about 1; an electron has a much smaller mass."
+        },
+        {
+          "heading": "Understand the detail",
+          "body": "Atomic number is the number of protons. Mass number is the sum of protons and neutrons. A neutral atom has equal numbers of protons and electrons. Ions form by gaining or losing electrons."
+        },
+        {
+          "heading": "Apply your knowledge",
+          "body": "Isotopes are atoms of the same element with the same number of protons but different numbers of neutrons. Relative atomic mass is the weighted mean mass of atoms compared with one twelfth of carbon-12."
+        }
+      ],
+      "tip": "Ion formation changes electrons, not the number of protons.",
+      "cards": [
+        {
+          "question": "An atom has atomic number 11 and mass number 23. Give its numbers of protons, neutrons and electrons.",
+          "answer": "11 protons, 12 neutrons and 11 electrons."
+        },
+        {
+          "question": "What is an important exam tip for atomic structure?",
+          "answer": "Ion formation changes electrons, not the number of protons."
+        }
+      ],
+      "questions": [
+        {
+          "id": "q-5",
+          "prompt": "An atom has atomic number 11 and mass number 23. Give its numbers of protons, neutrons and electrons.",
+          "answer": "11 protons, 12 neutrons and 11 electrons.",
+          "marks": 3,
+          "criteria": [
+            "11",
+            "12",
+            "11"
+          ],
+          "difficulty": "Core",
+          "type": "written"
+        },
+        {
+          "id": "q-5-b",
+          "prompt": "Explain two key ideas about atomic structure, using an example where possible.",
+          "answer": "Atomic number is the number of protons. Mass number is the sum of protons and neutrons. A neutral atom has equal numbers of protons and electrons. Ions form by gaining or losing electrons.",
+          "marks": 2,
+          "criteria": [
+            "One accurate relevant idea.",
+            "A second accurate idea with an explanation or example."
+          ],
+          "difficulty": "Develop",
+          "type": "self"
+        }
+      ]
+    },
+    {
+      "id": "topic-6",
+      "subject": "Chemistry",
+      "title": "Bonding",
+      "level": "GCSE foundation & higher overview",
+      "board": "General GCSE",
+      "minutes": 6,
+      "sections": [
+        {
+          "heading": "The essentials",
+          "body": "Ionic bonding is the electrostatic attraction between oppositely charged ions. Metals lose electrons to form positive ions; non-metals gain electrons to form negative ions. Ionic compounds form giant lattices."
+        },
+        {
+          "heading": "Understand the detail",
+          "body": "Covalent bonds are shared pairs of electrons between atoms. Small molecular substances often have low melting points because intermolecular forces are relatively weak. The covalent bonds inside their molecules are strong."
+        },
+        {
+          "heading": "Apply your knowledge",
+          "body": "Metallic bonding is attraction between positive metal ions and delocalised electrons. Metals conduct electricity because these electrons can move through the structure. Solid ionic compounds do not conduct; molten or dissolved ones have mobile ions."
+        }
+      ],
+      "tip": "When a simple molecular substance melts, describe overcoming intermolecular forces rather than breaking covalent bonds.",
+      "cards": [
+        {
+          "question": "Explain why molten sodium chloride conducts electricity but solid sodium chloride does not.",
+          "answer": "It contains charged ions. They can move in the molten state, but are fixed in position in the solid lattice."
+        },
+        {
+          "question": "What is an important exam tip for bonding?",
+          "answer": "When a simple molecular substance melts, describe overcoming intermolecular forces rather than breaking covalent bonds."
+        }
+      ],
+      "questions": [
+        {
+          "id": "q-6",
+          "prompt": "Explain why molten sodium chloride conducts electricity but solid sodium chloride does not.",
+          "answer": "It contains charged ions. They can move in the molten state, but are fixed in position in the solid lattice.",
+          "marks": 2,
+          "criteria": [
+            "ions",
+            "move"
+          ],
+          "difficulty": "Core",
+          "type": "written"
+        },
+        {
+          "id": "q-6-b",
+          "prompt": "Explain two key ideas about bonding, using an example where possible.",
+          "answer": "Covalent bonds are shared pairs of electrons between atoms. Small molecular substances often have low melting points because intermolecular forces are relatively weak. The covalent bonds inside their molecules are strong.",
+          "marks": 2,
+          "criteria": [
+            "One accurate relevant idea.",
+            "A second accurate idea with an explanation or example."
+          ],
+          "difficulty": "Develop",
+          "type": "self"
+        }
+      ]
+    },
+    {
+      "id": "topic-7",
+      "subject": "Chemistry",
+      "title": "Rates of reaction",
+      "level": "GCSE foundation & higher overview",
+      "board": "General GCSE",
+      "minutes": 6,
+      "sections": [
+        {
+          "heading": "The essentials",
+          "body": "Reaction rate measures how quickly reactants are used up or products are formed. Mean rate = quantity changed ÷ time. A gas syringe or a balance can track a reaction over time."
+        },
+        {
+          "heading": "Understand the detail",
+          "body": "Particles must collide with enough energy for a reaction. Higher temperature makes particles move faster and increases the fraction with sufficient energy. Higher concentration or gas pressure increases collision frequency."
+        },
+        {
+          "heading": "Apply your knowledge",
+          "body": "Greater surface area exposes more particles to collision. A catalyst provides an alternative pathway with lower activation energy and is not consumed overall. Compare reactions while controlling all variables except the one investigated."
+        }
+      ],
+      "tip": "Use the gradient of a tangent for instantaneous rate, not the height of the curve.",
+      "cards": [
+        {
+          "question": "Explain why increasing concentration increases reaction rate.",
+          "answer": "There are more reactant particles per unit volume, so successful collisions occur more frequently."
+        },
+        {
+          "question": "What is an important exam tip for rates of reaction?",
+          "answer": "Use the gradient of a tangent for instantaneous rate, not the height of the curve."
+        }
+      ],
+      "questions": [
+        {
+          "id": "q-7",
+          "prompt": "Explain why increasing concentration increases reaction rate.",
+          "answer": "There are more reactant particles per unit volume, so successful collisions occur more frequently.",
+          "marks": 2,
+          "criteria": [
+            "particles",
+            "collisions"
+          ],
+          "difficulty": "Core",
+          "type": "written"
+        },
+        {
+          "id": "q-7-b",
+          "prompt": "Explain two key ideas about rates of reaction, using an example where possible.",
+          "answer": "Particles must collide with enough energy for a reaction. Higher temperature makes particles move faster and increases the fraction with sufficient energy. Higher concentration or gas pressure increases collision frequency.",
+          "marks": 2,
+          "criteria": [
+            "One accurate relevant idea.",
+            "A second accurate idea with an explanation or example."
+          ],
+          "difficulty": "Develop",
+          "type": "self"
+        }
+      ]
+    },
+    {
+      "id": "topic-8",
+      "subject": "Chemistry",
+      "title": "Acids and neutralisation",
+      "level": "GCSE foundation & higher overview",
+      "board": "General GCSE",
+      "minutes": 6,
+      "sections": [
+        {
+          "heading": "The essentials",
+          "body": "An acid produces hydrogen ions in aqueous solution. An alkali produces hydroxide ions in aqueous solution. The pH scale describes acidity: below 7 acidic, 7 neutral, above 7 alkaline at ordinary school laboratory temperatures."
+        },
+        {
+          "heading": "Understand the detail",
+          "body": "Acid + base → salt + water. Acid + metal → salt + hydrogen. Acid + carbonate → salt + water + carbon dioxide. Hydrochloric acid makes chlorides; sulfuric acid makes sulfates; nitric acid makes nitrates."
+        },
+        {
+          "heading": "Apply your knowledge",
+          "body": "To make a soluble salt from an insoluble base, add excess base to warm acid, filter off unreacted solid, gently evaporate some water and allow crystals to form. Dry the crystals."
+        }
+      ],
+      "tip": "Strong means extensively ionised; concentrated means a large amount of solute per volume. These are different ideas.",
+      "cards": [
+        {
+          "question": "Give the products when hydrochloric acid reacts with calcium carbonate.",
+          "answer": "Calcium chloride, water and carbon dioxide."
+        },
+        {
+          "question": "What is an important exam tip for acids and neutralisation?",
+          "answer": "Strong means extensively ionised; concentrated means a large amount of solute per volume. These are different ideas."
+        }
+      ],
+      "questions": [
+        {
+          "id": "q-8",
+          "prompt": "Give the products when hydrochloric acid reacts with calcium carbonate.",
+          "answer": "Calcium chloride, water and carbon dioxide.",
+          "marks": 3,
+          "criteria": [
+            "calcium chloride",
+            "water",
+            "carbon dioxide"
+          ],
+          "difficulty": "Core",
+          "type": "written"
+        },
+        {
+          "id": "q-8-b",
+          "prompt": "Explain two key ideas about acids and neutralisation, using an example where possible.",
+          "answer": "Acid + base → salt + water. Acid + metal → salt + hydrogen. Acid + carbonate → salt + water + carbon dioxide. Hydrochloric acid makes chlorides; sulfuric acid makes sulfates; nitric acid makes nitrates.",
+          "marks": 2,
+          "criteria": [
+            "One accurate relevant idea.",
+            "A second accurate idea with an explanation or example."
+          ],
+          "difficulty": "Develop",
+          "type": "self"
+        }
+      ]
+    },
+    {
+      "id": "topic-9",
+      "subject": "Physics",
+      "title": "Energy transfers",
+      "level": "GCSE foundation & higher overview",
+      "board": "General GCSE",
+      "minutes": 6,
+      "sections": [
+        {
+          "heading": "The essentials",
+          "body": "Energy is conserved: it cannot be created or destroyed. It is transferred between stores, including kinetic, gravitational potential, elastic, thermal, chemical and nuclear stores."
+        },
+        {
+          "heading": "Understand the detail",
+          "body": "Kinetic energy = ½mv². Gravitational potential energy change = mgΔh. Power = energy transferred ÷ time. Use kilograms, metres, seconds, joules and watts in these equations."
+        },
+        {
+          "heading": "Apply your knowledge",
+          "body": "Efficiency = useful energy output ÷ total energy input. Multiply by 100 for a percentage. Dissipated energy often spreads to the surroundings as heating and becomes less useful. Insulation reduces unwanted energy transfers."
+        }
+      ],
+      "tip": "A force is not an energy store. Doubling speed quadruples kinetic energy at constant mass.",
+      "cards": [
+        {
+          "question": "Calculate the kinetic energy of a 2 kg object moving at 3 m/s.",
+          "answer": "E = ½ × 2 × 3² = 9 J."
+        },
+        {
+          "question": "What is an important exam tip for energy transfers?",
+          "answer": "A force is not an energy store. Doubling speed quadruples kinetic energy at constant mass."
+        }
+      ],
+      "questions": [
+        {
+          "id": "q-9",
+          "prompt": "Calculate the kinetic energy of a 2 kg object moving at 3 m/s.",
+          "answer": "E = ½ × 2 × 3² = 9 J.",
+          "marks": 2,
+          "criteria": [
+            "9"
+          ],
+          "difficulty": "Core",
+          "type": "written"
+        },
+        {
+          "id": "q-9-b",
+          "prompt": "Explain two key ideas about energy transfers, using an example where possible.",
+          "answer": "Kinetic energy = ½mv². Gravitational potential energy change = mgΔh. Power = energy transferred ÷ time. Use kilograms, metres, seconds, joules and watts in these equations.",
+          "marks": 2,
+          "criteria": [
+            "One accurate relevant idea.",
+            "A second accurate idea with an explanation or example."
+          ],
+          "difficulty": "Develop",
+          "type": "self"
+        }
+      ]
+    },
+    {
+      "id": "topic-10",
+      "subject": "Physics",
+      "title": "Electric circuits",
+      "level": "GCSE foundation & higher overview",
+      "board": "General GCSE",
+      "minutes": 6,
+      "sections": [
+        {
+          "heading": "The essentials",
+          "body": "Current is the rate of flow of charge: Q = It. Potential difference is energy transferred per unit charge: V = E/Q. Resistance relates potential difference and current: V = IR."
+        },
+        {
+          "heading": "Understand the detail",
+          "body": "In a series circuit current is the same everywhere and potential differences add. In a parallel circuit the potential difference across each branch is the same, and branch currents add to the total current."
+        },
+        {
+          "heading": "Apply your knowledge",
+          "body": "Electrical power P = VI, and for a resistive component P = I²R. Resistance of a filament lamp rises as it gets hotter. An ohmic conductor has constant resistance at constant temperature."
+        }
+      ],
+      "tip": "Connect an ammeter in series and a voltmeter in parallel with the component.",
+      "cards": [
+        {
+          "question": "A 6 V supply produces 0.5 A through a resistor. Calculate its resistance.",
+          "answer": "R = V/I = 6/0.5 = 12 Ω."
+        },
+        {
+          "question": "What is an important exam tip for electric circuits?",
+          "answer": "Connect an ammeter in series and a voltmeter in parallel with the component."
+        }
+      ],
+      "questions": [
+        {
+          "id": "q-10",
+          "prompt": "A 6 V supply produces 0.5 A through a resistor. Calculate its resistance.",
+          "answer": "R = V/I = 6/0.5 = 12 Ω.",
+          "marks": 2,
+          "criteria": [
+            "12"
+          ],
+          "difficulty": "Core",
+          "type": "written"
+        },
+        {
+          "id": "q-10-b",
+          "prompt": "Explain two key ideas about electric circuits, using an example where possible.",
+          "answer": "In a series circuit current is the same everywhere and potential differences add. In a parallel circuit the potential difference across each branch is the same, and branch currents add to the total current.",
+          "marks": 2,
+          "criteria": [
+            "One accurate relevant idea.",
+            "A second accurate idea with an explanation or example."
+          ],
+          "difficulty": "Develop",
+          "type": "self"
+        }
+      ]
+    },
+    {
+      "id": "topic-11",
+      "subject": "Physics",
+      "title": "Forces and motion",
+      "level": "GCSE foundation & higher overview",
+      "board": "General GCSE",
+      "minutes": 6,
+      "sections": [
+        {
+          "heading": "The essentials",
+          "body": "Speed = distance ÷ time. Velocity is speed in a given direction. Acceleration = change in velocity ÷ time. The gradient of a distance-time graph is speed; the gradient of a velocity-time graph is acceleration."
+        },
+        {
+          "heading": "Understand the detail",
+          "body": "Resultant force = mass × acceleration. Balanced forces mean zero acceleration, so an object remains at rest or continues with constant velocity. Weight = mass × gravitational field strength."
+        },
+        {
+          "heading": "Apply your knowledge",
+          "body": "Stopping distance = thinking distance + braking distance. Tiredness and distractions increase thinking distance. Wet roads, worn tyres and greater speed can increase braking distance. The area under a velocity-time graph gives displacement."
+        }
+      ],
+      "tip": "Zero resultant force does not necessarily mean zero velocity.",
+      "cards": [
+        {
+          "question": "A 4 kg object accelerates at 3 m/s². Calculate the resultant force.",
+          "answer": "F = ma = 4 × 3 = 12 N."
+        },
+        {
+          "question": "What is an important exam tip for forces and motion?",
+          "answer": "Zero resultant force does not necessarily mean zero velocity."
+        }
+      ],
+      "questions": [
+        {
+          "id": "q-11",
+          "prompt": "A 4 kg object accelerates at 3 m/s². Calculate the resultant force.",
+          "answer": "F = ma = 4 × 3 = 12 N.",
+          "marks": 2,
+          "criteria": [
+            "12"
+          ],
+          "difficulty": "Core",
+          "type": "written"
+        },
+        {
+          "id": "q-11-b",
+          "prompt": "Explain two key ideas about forces and motion, using an example where possible.",
+          "answer": "Resultant force = mass × acceleration. Balanced forces mean zero acceleration, so an object remains at rest or continues with constant velocity. Weight = mass × gravitational field strength.",
+          "marks": 2,
+          "criteria": [
+            "One accurate relevant idea.",
+            "A second accurate idea with an explanation or example."
+          ],
+          "difficulty": "Develop",
+          "type": "self"
+        }
+      ]
+    },
+    {
+      "id": "topic-12",
+      "subject": "Physics",
+      "title": "Waves",
+      "level": "GCSE foundation & higher overview",
+      "board": "General GCSE",
+      "minutes": 6,
+      "sections": [
+        {
+          "heading": "The essentials",
+          "body": "Waves transfer energy without a net transfer of matter. In transverse waves oscillations are perpendicular to travel. In longitudinal waves oscillations are parallel to travel; sound waves in air are longitudinal."
+        },
+        {
+          "heading": "Understand the detail",
+          "body": "Wave speed = frequency × wavelength. Frequency is measured in hertz, wavelength in metres and speed in metres per second. Period = 1/frequency."
+        },
+        {
+          "heading": "Apply your knowledge",
+          "body": "Electromagnetic waves are transverse and travel at the same speed in a vacuum. The spectrum in increasing frequency is radio, microwave, infrared, visible, ultraviolet, X-ray, gamma. Refraction occurs when wave speed changes at a boundary."
+        }
+      ],
+      "tip": "Use consistent units. Convert centimetres into metres before substituting into v = fλ.",
+      "cards": [
+        {
+          "question": "Calculate the speed of a wave of frequency 20 Hz and wavelength 0.5 m.",
+          "answer": "v = fλ = 20 × 0.5 = 10 m/s."
+        },
+        {
+          "question": "What is an important exam tip for waves?",
+          "answer": "Use consistent units. Convert centimetres into metres before substituting into v = fλ."
+        }
+      ],
+      "questions": [
+        {
+          "id": "q-12",
+          "prompt": "Calculate the speed of a wave of frequency 20 Hz and wavelength 0.5 m.",
+          "answer": "v = fλ = 20 × 0.5 = 10 m/s.",
+          "marks": 2,
+          "criteria": [
+            "10"
+          ],
+          "difficulty": "Core",
+          "type": "written"
+        },
+        {
+          "id": "q-12-b",
+          "prompt": "Explain two key ideas about waves, using an example where possible.",
+          "answer": "Wave speed = frequency × wavelength. Frequency is measured in hertz, wavelength in metres and speed in metres per second. Period = 1/frequency.",
+          "marks": 2,
+          "criteria": [
+            "One accurate relevant idea.",
+            "A second accurate idea with an explanation or example."
+          ],
+          "difficulty": "Develop",
+          "type": "self"
+        }
+      ]
+    },
+    {
+      "id": "topic-13",
+      "subject": "Mathematics",
+      "title": "Quadratic equations",
+      "level": "GCSE foundation & higher overview",
+      "board": "General GCSE",
+      "minutes": 6,
+      "sections": [
+        {
+          "heading": "The essentials",
+          "body": "A quadratic contains a squared variable as its highest power. To solve by factorising, first write the equation in the form ax² + bx + c = 0."
+        },
+        {
+          "heading": "Understand the detail",
+          "body": "For x² + 5x + 6 = 0, find two numbers with product 6 and sum 5. Then (x + 2)(x + 3) = 0, giving x = −2 or x = −3."
+        },
+        {
+          "heading": "Apply your knowledge",
+          "body": "The quadratic formula is x = (−b ± √(b² − 4ac))/(2a). The discriminant b² − 4ac identifies two distinct real roots if positive, one repeated root if zero and no real roots if negative."
+        }
+      ],
+      "tip": "Set the quadratic equal to zero before using the zero-product rule. Keep both roots unless context rules one out.",
+      "cards": [
+        {
+          "question": "Solve x² − 5x + 6 = 0.",
+          "answer": "(x − 2)(x − 3) = 0, so x = 2 or x = 3."
+        },
+        {
+          "question": "What is an important exam tip for quadratic equations?",
+          "answer": "Set the quadratic equal to zero before using the zero-product rule. Keep both roots unless context rules one out."
+        }
+      ],
+      "questions": [
+        {
+          "id": "q-13",
+          "prompt": "Solve x² − 5x + 6 = 0.",
+          "answer": "(x − 2)(x − 3) = 0, so x = 2 or x = 3.",
+          "marks": 2,
+          "criteria": [
+            "2",
+            "3"
+          ],
+          "difficulty": "Core",
+          "type": "written"
+        },
+        {
+          "id": "q-13-b",
+          "prompt": "Explain two key ideas about quadratic equations, using an example where possible.",
+          "answer": "For x² + 5x + 6 = 0, find two numbers with product 6 and sum 5. Then (x + 2)(x + 3) = 0, giving x = −2 or x = −3.",
+          "marks": 2,
+          "criteria": [
+            "One accurate relevant idea.",
+            "A second accurate idea with an explanation or example."
+          ],
+          "difficulty": "Develop",
+          "type": "self"
+        }
+      ]
+    },
+    {
+      "id": "topic-14",
+      "subject": "Mathematics",
+      "title": "Pythagoras and trigonometry",
+      "level": "GCSE foundation & higher overview",
+      "board": "General GCSE",
+      "minutes": 6,
+      "sections": [
+        {
+          "heading": "The essentials",
+          "body": "For a right-angled triangle, a² + b² = c² where c is the hypotenuse opposite the right angle. Use subtraction when finding a shorter side."
+        },
+        {
+          "heading": "Understand the detail",
+          "body": "For acute angles in a right-angled triangle: sin θ = opposite/hypotenuse, cos θ = adjacent/hypotenuse, tan θ = opposite/adjacent. Label the sides relative to the chosen angle."
+        },
+        {
+          "heading": "Apply your knowledge",
+          "body": "To find an angle, use an inverse trigonometric function. For example, if opposite = 3 and adjacent = 4 then θ = tan⁻¹(3/4) ≈ 36.9°. Check your calculator is in degree mode."
+        }
+      ],
+      "tip": "Pythagoras applies to right-angled triangles. Round only the final answer.",
+      "cards": [
+        {
+          "question": "Find the hypotenuse of a right-angled triangle whose shorter sides are 6 cm and 8 cm.",
+          "answer": "c = √(6² + 8²) = √100 = 10 cm."
+        },
+        {
+          "question": "What is an important exam tip for pythagoras and trigonometry?",
+          "answer": "Pythagoras applies to right-angled triangles. Round only the final answer."
+        }
+      ],
+      "questions": [
+        {
+          "id": "q-14",
+          "prompt": "Find the hypotenuse of a right-angled triangle whose shorter sides are 6 cm and 8 cm.",
+          "answer": "c = √(6² + 8²) = √100 = 10 cm.",
+          "marks": 2,
+          "criteria": [
+            "10"
+          ],
+          "difficulty": "Core",
+          "type": "written"
+        },
+        {
+          "id": "q-14-b",
+          "prompt": "Explain two key ideas about pythagoras and trigonometry, using an example where possible.",
+          "answer": "For acute angles in a right-angled triangle: sin θ = opposite/hypotenuse, cos θ = adjacent/hypotenuse, tan θ = opposite/adjacent. Label the sides relative to the chosen angle.",
+          "marks": 2,
+          "criteria": [
+            "One accurate relevant idea.",
+            "A second accurate idea with an explanation or example."
+          ],
+          "difficulty": "Develop",
+          "type": "self"
+        }
+      ]
+    },
+    {
+      "id": "topic-15",
+      "subject": "Mathematics",
+      "title": "Probability",
+      "level": "GCSE foundation & higher overview",
+      "board": "General GCSE",
+      "minutes": 6,
+      "sections": [
+        {
+          "heading": "The essentials",
+          "body": "Probability lies between 0 and 1. The probabilities of all mutually exclusive exhaustive outcomes add to 1. P(not A) = 1 − P(A)."
+        },
+        {
+          "heading": "Understand the detail",
+          "body": "For independent events, P(A and B) = P(A) × P(B). For mutually exclusive events, P(A or B) = P(A) + P(B). Independence and mutual exclusivity are different properties."
+        },
+        {
+          "heading": "Apply your knowledge",
+          "body": "In a tree diagram multiply along a path and add relevant complete paths. Without replacement, the second set of branch probabilities changes because the total and category counts change."
+        }
+      ],
+      "tip": "Check whether replacement occurs before treating draws as independent.",
+      "cards": [
+        {
+          "question": "A fair coin is tossed twice. Find the probability of two heads.",
+          "answer": "½ × ½ = ¼ (or 0.25)."
+        },
+        {
+          "question": "What is an important exam tip for probability?",
+          "answer": "Check whether replacement occurs before treating draws as independent."
+        }
+      ],
+      "questions": [
+        {
+          "id": "q-15",
+          "prompt": "A fair coin is tossed twice. Find the probability of two heads.",
+          "answer": "½ × ½ = ¼ (or 0.25).",
+          "marks": 2,
+          "criteria": [
+            "1/4"
+          ],
+          "difficulty": "Core",
+          "type": "written"
+        },
+        {
+          "id": "q-15-b",
+          "prompt": "Explain two key ideas about probability, using an example where possible.",
+          "answer": "For independent events, P(A and B) = P(A) × P(B). For mutually exclusive events, P(A or B) = P(A) + P(B). Independence and mutual exclusivity are different properties.",
+          "marks": 2,
+          "criteria": [
+            "One accurate relevant idea.",
+            "A second accurate idea with an explanation or example."
+          ],
+          "difficulty": "Develop",
+          "type": "self"
+        }
+      ]
+    },
+    {
+      "id": "topic-16",
+      "subject": "Mathematics",
+      "title": "Percentages and growth",
+      "level": "GCSE foundation & higher overview",
+      "board": "General GCSE",
+      "minutes": 6,
+      "sections": [
+        {
+          "heading": "The essentials",
+          "body": "Percentage change = change ÷ original value × 100. A 15% increase has multiplier 1.15; a 15% decrease has multiplier 0.85."
+        },
+        {
+          "heading": "Understand the detail",
+          "body": "For compound growth multiply repeatedly: final value = initial value × multiplier^n. For reverse percentages divide the final value by the multiplier."
+        },
+        {
+          "heading": "Apply your knowledge",
+          "body": "If a price after a 20% increase is £72, the original price is 72 ÷ 1.2 = £60. Successive increases and decreases of the same percentage do not cancel because the base value changes."
+        }
+      ],
+      "tip": "Use the original value as the denominator when calculating percentage change.",
+      "cards": [
+        {
+          "question": "£200 grows by 10% per year for two years. Calculate its final value.",
+          "answer": "200 × 1.1² = £242."
+        },
+        {
+          "question": "What is an important exam tip for percentages and growth?",
+          "answer": "Use the original value as the denominator when calculating percentage change."
+        }
+      ],
+      "questions": [
+        {
+          "id": "q-16",
+          "prompt": "£200 grows by 10% per year for two years. Calculate its final value.",
+          "answer": "200 × 1.1² = £242.",
+          "marks": 2,
+          "criteria": [
+            "242"
+          ],
+          "difficulty": "Core",
+          "type": "written"
+        },
+        {
+          "id": "q-16-b",
+          "prompt": "Explain two key ideas about percentages and growth, using an example where possible.",
+          "answer": "For compound growth multiply repeatedly: final value = initial value × multiplier^n. For reverse percentages divide the final value by the multiplier.",
+          "marks": 2,
+          "criteria": [
+            "One accurate relevant idea.",
+            "A second accurate idea with an explanation or example."
+          ],
+          "difficulty": "Develop",
+          "type": "self"
+        }
+      ]
+    },
+    {
+      "id": "topic-17",
+      "subject": "English",
+      "title": "Analysing language",
+      "level": "GCSE foundation & higher overview",
+      "board": "General GCSE",
+      "minutes": 6,
+      "sections": [
+        {
+          "heading": "The essentials",
+          "body": "Start with an interpretation that answers the question. Choose a short quotation that supports it. Identify a precise word or technique, then explain how it creates meaning in context."
+        },
+        {
+          "heading": "Understand the detail",
+          "body": "For “the wind clawed at the door”, the verb “clawed” gives the weather an aggressive, almost animal quality. This may make the setting feel threatening. Explain the connection; naming personification alone is not analysis."
+        },
+        {
+          "heading": "Apply your knowledge",
+          "body": "Explore alternatives when supported by the text. Link individual details to the writer’s overall purpose, tone or presentation of a character. Avoid fixed claims about what every reader must feel."
+        }
+      ],
+      "tip": "A short relevant quotation and developed explanation are stronger than a list of terminology.",
+      "cards": [
+        {
+          "question": "Explain one effect of the verb “clawed” in “the wind clawed at the door”.",
+          "answer": "One developed interpretation: the animal-like verb makes the wind seem aggressive, creating a threatening atmosphere. Accept supported alternatives."
+        },
+        {
+          "question": "What is an important exam tip for analysing language?",
+          "answer": "A short relevant quotation and developed explanation are stronger than a list of terminology."
+        }
+      ],
+      "questions": [
+        {
+          "id": "q-17",
+          "prompt": "Explain one effect of the verb “clawed” in “the wind clawed at the door”.",
+          "answer": "One developed interpretation: the animal-like verb makes the wind seem aggressive, creating a threatening atmosphere. Accept supported alternatives.",
+          "marks": 2,
+          "criteria": [
+            "aggressive",
+            "threat"
+          ],
+          "difficulty": "Core",
+          "type": "written"
+        },
+        {
+          "id": "q-17-b",
+          "prompt": "Explain two key ideas about analysing language, using an example where possible.",
+          "answer": "For “the wind clawed at the door”, the verb “clawed” gives the weather an aggressive, almost animal quality. This may make the setting feel threatening. Explain the connection; naming personification alone is not analysis.",
+          "marks": 2,
+          "criteria": [
+            "One accurate relevant idea.",
+            "A second accurate idea with an explanation or example."
+          ],
+          "difficulty": "Develop",
+          "type": "self"
+        }
+      ]
+    },
+    {
+      "id": "topic-18",
+      "subject": "Computer Science",
+      "title": "Algorithms and complexity",
+      "level": "GCSE foundation & higher overview",
+      "board": "General GCSE",
+      "minutes": 6,
+      "sections": [
+        {
+          "heading": "The essentials",
+          "body": "An algorithm is a precise sequence of steps for solving a problem. Pseudocode and flowcharts represent algorithms independently of a particular programming language."
+        },
+        {
+          "heading": "Understand the detail",
+          "body": "Linear search checks items in sequence and works on unsorted data. Binary search repeatedly halves a sorted search space. Trace each change in lower, upper and middle positions carefully."
+        },
+        {
+          "heading": "Apply your knowledge",
+          "body": "Bubble sort compares adjacent items and swaps out-of-order pairs over repeated passes. Merge sort splits a list, sorts the parts and merges them. Use trace tables to track variables and outputs."
+        }
+      ],
+      "tip": "Binary search requires sorted data. Specify integer division when calculating a middle index.",
+      "cards": [
+        {
+          "question": "Why must a list be sorted before binary search is used?",
+          "answer": "The comparison with the middle item relies on ordering to decide which half can be discarded."
+        },
+        {
+          "question": "What is an important exam tip for algorithms and complexity?",
+          "answer": "Binary search requires sorted data. Specify integer division when calculating a middle index."
+        }
+      ],
+      "questions": [
+        {
+          "id": "q-18",
+          "prompt": "Why must a list be sorted before binary search is used?",
+          "answer": "The comparison with the middle item relies on ordering to decide which half can be discarded.",
+          "marks": 2,
+          "criteria": [
+            "half",
+            "order"
+          ],
+          "difficulty": "Core",
+          "type": "written"
+        },
+        {
+          "id": "q-18-b",
+          "prompt": "Explain two key ideas about algorithms and complexity, using an example where possible.",
+          "answer": "Linear search checks items in sequence and works on unsorted data. Binary search repeatedly halves a sorted search space. Trace each change in lower, upper and middle positions carefully.",
+          "marks": 2,
+          "criteria": [
+            "One accurate relevant idea.",
+            "A second accurate idea with an explanation or example."
+          ],
+          "difficulty": "Develop",
+          "type": "self"
+        }
+      ]
+    },
+    {
+      "id": "topic-19",
+      "subject": "Geography",
+      "title": "River processes",
+      "level": "GCSE foundation & higher overview",
+      "board": "General GCSE",
+      "minutes": 6,
+      "sections": [
+        {
+          "heading": "The essentials",
+          "body": "Erosion includes hydraulic action, abrasion, attrition and solution. Hydraulic action is the force of water; abrasion is scraping by transported sediment; attrition rounds fragments through collisions."
+        },
+        {
+          "heading": "Understand the detail",
+          "body": "Transport occurs by traction, saltation, suspension and solution. Deposition occurs when a river loses energy and can no longer carry some of its load."
+        },
+        {
+          "heading": "Apply your knowledge",
+          "body": "On a meander, faster flow near the outside bend encourages erosion and forms a river cliff. Slower flow on the inside encourages deposition and builds a slip-off slope. Over time a neck may be cut through to form an oxbow lake."
+        }
+      ],
+      "tip": "Distinguish abrasion from attrition and erosion from transportation.",
+      "cards": [
+        {
+          "question": "Explain why deposition occurs on the inside of a meander.",
+          "answer": "Water flows more slowly there, has less energy and cannot carry as much sediment, so it deposits material."
+        },
+        {
+          "question": "What is an important exam tip for river processes?",
+          "answer": "Distinguish abrasion from attrition and erosion from transportation."
+        }
+      ],
+      "questions": [
+        {
+          "id": "q-19",
+          "prompt": "Explain why deposition occurs on the inside of a meander.",
+          "answer": "Water flows more slowly there, has less energy and cannot carry as much sediment, so it deposits material.",
+          "marks": 2,
+          "criteria": [
+            "slower",
+            "energy"
+          ],
+          "difficulty": "Core",
+          "type": "written"
+        },
+        {
+          "id": "q-19-b",
+          "prompt": "Explain two key ideas about river processes, using an example where possible.",
+          "answer": "Transport occurs by traction, saltation, suspension and solution. Deposition occurs when a river loses energy and can no longer carry some of its load.",
+          "marks": 2,
+          "criteria": [
+            "One accurate relevant idea.",
+            "A second accurate idea with an explanation or example."
+          ],
+          "difficulty": "Develop",
+          "type": "self"
+        }
+      ]
+    },
+    {
+      "id": "topic-20",
+      "subject": "History",
+      "title": "Evaluating sources",
+      "level": "GCSE foundation & higher overview",
+      "board": "General GCSE",
+      "minutes": 6,
+      "sections": [
+        {
+          "heading": "The essentials",
+          "body": "A source is evidence created in or about the past. Evaluate its content alongside its provenance: who made it, when, for which audience and with what purpose."
+        },
+        {
+          "heading": "Understand the detail",
+          "body": "A source may be useful even if biased: its bias can reveal attitudes, priorities or propaganda. Compare specific claims with contextual knowledge and other evidence."
+        },
+        {
+          "heading": "Apply your knowledge",
+          "body": "A strong evaluation explains what the source can show and where its limits lie for the exact enquiry. A private diary may reveal personal experience but cannot represent every person. A public speech may reveal intended messaging more directly than private beliefs."
+        }
+      ],
+      "tip": "Do not reject a source solely because it is biased. Tie usefulness to the enquiry.",
+      "cards": [
+        {
+          "question": "Explain why a propaganda poster may still be useful to a historian.",
+          "answer": "It provides evidence of the messages authorities wanted to promote or the attitudes they tried to shape, even if its factual claims are unreliable."
+        },
+        {
+          "question": "What is an important exam tip for evaluating sources?",
+          "answer": "Do not reject a source solely because it is biased. Tie usefulness to the enquiry."
+        }
+      ],
+      "questions": [
+        {
+          "id": "q-20",
+          "prompt": "Explain why a propaganda poster may still be useful to a historian.",
+          "answer": "It provides evidence of the messages authorities wanted to promote or the attitudes they tried to shape, even if its factual claims are unreliable.",
+          "marks": 2,
+          "criteria": [
+            "message",
+            "attitudes"
+          ],
+          "difficulty": "Core",
+          "type": "written"
+        },
+        {
+          "id": "q-20-b",
+          "prompt": "Explain two key ideas about evaluating sources, using an example where possible.",
+          "answer": "A source may be useful even if biased: its bias can reveal attitudes, priorities or propaganda. Compare specific claims with contextual knowledge and other evidence.",
+          "marks": 2,
+          "criteria": [
+            "One accurate relevant idea.",
+            "A second accurate idea with an explanation or example."
+          ],
+          "difficulty": "Develop",
+          "type": "self"
+        }
+      ]
+    }
+  ]
+}

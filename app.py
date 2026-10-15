@@ -1047,3 +1047,6 @@ def chat():
         finally: upstream.close()
     return Response(stream_with_context(generate()),mimetype="application/x-ndjson")
 
+
+from study_api import register_study_routes
+register_study_routes(app, require_auth, current_username, _student_record, _save_student, _users_lock)

@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Rian AI Gen 2 Built In | Student Hub</title>
+<title>RevisionCore | Student Hub</title>
 <meta name="theme-color" content="#f5f5f7"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v=rian-20261010-24">
+<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v=revisioncore-20261014">
+<link rel="stylesheet" href="/static/studio.css?v=1">
 </head>
 <body class="logged-out">
 <div class="aurora" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
@@ -12,7 +13,7 @@
 <section id="loginScreen" aria-label="Sign in">
   <div class="login-layout">
     <div class="login-intro">
-      <div class="brand large"><span class="brand-mark">R</span> Rian AI Gen 2 Built In</div>
+      <div class="brand large"><span class="brand-mark">R</span> RevisionCore</div>
       <div class="eyebrow">Student hub</div>
       <h1>Everything you need for school, in one calm place.</h1>
       <p>Timetable, deadlines, revision, quick links and an AI study assistant — designed to feel simple before a busy school day.</p>
@@ -21,7 +22,7 @@
     <div class="login-card glass">
       <div class="login-icon">R</div>
       <form id="loginForm" class="auth-form" onsubmit="return false;" novalidate>
-        <div class="auth-kicker">Welcome back</div><h2>Sign in</h2><p class="auth-subtitle">Use your Rian AI Gen 2 Built In account to continue.</p>
+        <div class="auth-kicker">Welcome back</div><h2>Sign in</h2><p class="auth-subtitle">Use your RevisionCore account to continue.</p>
         <label>Username<input id="loginUsername" type="text" autocomplete="username" required minlength="3"></label>
         <label>Password<input id="loginPassword" type="password" autocomplete="current-password" required></label>
         <button type="button" id="loginSubmit">Sign in <span>→</span></button>
@@ -44,7 +45,7 @@
 <div id="app">
   <aside class="sidebar glass">
     <div class="sidebar-top">
-      <div class="brand"><span class="brand-mark">R</span> Rian AI Gen 2 Built In</div>
+      <div class="brand"><span class="brand-mark">R</span> RevisionCore</div>
       <div class="student-badge"><span id="avatarInitial">S</span><div><strong id="sidebarName">Student</strong><small id="sidebarUsername">@student</small></div></div>
       <button class="primary-side" id="newChat"><span>＋</span> Ask AI tutor</button>
       <nav class="nav" aria-label="Student hub">
@@ -53,7 +54,7 @@
         <button class="nav-item" data-view="tasks"><span>✓</span> Tasks & deadlines <b id="taskBadge">0</b></button>
         <button class="nav-item" data-view="revision"><span>◈</span> Revision</button>
         <button class="nav-item" data-view="flashcards"><span>▣</span> Flashcards</button>
-                <button class="nav-item" data-view="assistant"><span>✦</span> AI study assistant</button>
+                <button class="nav-item" data-view="notes" title="Revision notes"><span>▧</span> Revision notes</button><button class="nav-item" data-view="exam" title="Exam practice"><span>✎</span> Exam practice</button><button class="nav-item" data-view="planner" title="Study planner"><span>◷</span> Study planner</button><button class="nav-item" data-view="insights" title="Progress"><span>↗</span> Progress</button><button class="nav-item" data-view="assistant"><span>✦</span> AI study assistant</button>
       </nav>
     </div>
     <div class="sidebar-bottom">
@@ -65,8 +66,8 @@
 
   <main class="hub-main">
     <header class="topbar">
-      <div><div class="mobile-brand"><span class="brand-mark">R</span> Rian AI Gen 2 Built In</div><span id="pageKicker">Student overview</span><h2 id="pageTitle">Good morning</h2></div>
-      <div class="top-actions"><button class="command-trigger" id="commandOpen" aria-haspopup="dialog" aria-controls="commandPalette"><span class="command-search-icon">⌕</span><span>Search anything</span><kbd>Ctrl K</kbd></button><button class="icon-button" id="refreshHub" title="Refresh hub" aria-label="Refresh hub">↻</button><div class="date-chip" id="todayLabel">Today</div></div>
+      <div><div class="mobile-brand"><span class="brand-mark">R</span> RevisionCore</div><span id="pageKicker">Student overview</span><h2 id="pageTitle">Good morning</h2></div>
+      <div class="top-actions"><button class="icon-button" id="themeToggle" aria-label="Toggle dark appearance">☀</button><button class="command-trigger" id="commandOpen" aria-haspopup="dialog" aria-controls="commandPalette"><span class="command-search-icon">⌕</span><span>Search anything</span><kbd>Ctrl K</kbd></button><button class="icon-button" id="refreshHub" title="Refresh hub" aria-label="Refresh hub">↻</button><div class="date-chip" id="todayLabel">Today</div></div>
     </header>
 
     <div class="view-shell">
@@ -108,7 +109,8 @@
 
       <section class="view" id="view-assistant"><div class="assistant-heading"><div><span class="eyebrow">Powered by ollama</span><h1>Study assistant</h1><p>Clear, text-only help for revision, homework, quizzes and exam prep.</p></div><div class="assistant-tools"><div class="menu-anchor"><button type="button" id="modelButton" class="small-button"><span id="modelName">GPT-OSS 20B</span> ▾</button><div id="modelMenu" class="popover"><div id="models"></div></div></div><div class="menu-anchor"><button type="button" id="chatsButton" class="small-button">Chats ▾</button><div id="chatMenu" class="popover"><div id="recent"></div></div></div></div></div><div class="assistant-frame glass"><div id="conversation"><div class="hero" id="hero"><div class="hero-mark">✦</div><h1>What are you studying?</h1><p class="tagline">Your on-demand study assistant</p><div class="suggestions"><button class="glass">Explain a difficult topic simply</button><button class="glass">Make me a 10-question quiz</button><button class="glass">Create a revision plan for this week</button><button class="glass">Give me an exam-style question</button></div></div></div><div class="composer-wrap"><form id="composer" class="glass"><textarea id="prompt" rows="1" placeholder="Ask your AI study assistant…"></textarea><div class="composer-actions"><button id="webSearchToggle" type="button" class="pill-toggle" disabled>⌕ Web search</button><div class="power-select" id="powerSelect"><span class="power-thumb" id="powerThumb"></span><button type="button" class="power-option" data-power="low" data-index="0">Low</button><button type="button" class="power-option active" data-power="medium" data-index="1">Medium</button><button type="button" class="power-option" data-power="high" data-index="2">High</button><button type="button" class="power-option" data-power="max" data-index="3">Max</button></div><span class="composer-hint">Use AI to learn, not just copy.</span><button id="send" type="submit" aria-label="Send">↑</button></div></form><p class="notice">AI answers can be wrong. Check important facts and your school's marking guidance.</p></div></div></section>
 
-      <section class="view" id="view-settings"><div class="section-title"><div><span class="eyebrow">Personalise</span><h1>Settings</h1><p>Set your details and links once; they are saved to your account.</p></div><button class="primary-button" id="saveSettings">Save changes</button></div><div class="settings-grid"><article class="panel glass settings-card"><h3>Profile</h3><label>Display name<input id="settingName" placeholder="e.g. Alex"></label><label>Year group<input id="settingYear" placeholder="e.g. Year 11"></label><label>School / college<input id="settingSchool" placeholder="Optional"></label></article><article class="panel glass settings-card"><div class="settings-card-head"><div><h3>Quick links</h3><p class="setting-note">Add your school services without typing special formats.</p></div><button class="small-button" type="button" id="addQuickLink">＋ Add link</button></div><div id="quickLinkEditor" class="editor-list"></div></article><article class="panel glass settings-card full"><div class="settings-card-head"><div><h3>Courses & subjects</h3><p class="setting-note">Build your courses here. Choose the exam board, add the specification, and track how far through the course you are.</p></div><button class="small-button" type="button" id="addCourse">＋ Add course</button></div><div id="courseEditor" class="course-editor"></div></article></div><p id="settingsMessage" class="save-message"></p></section>
+      <section class="view" id="view-notes"></section><section class="view" id="view-exam"></section><section class="view" id="view-planner"></section><section class="view" id="view-insights"></section>
+<section class="view" id="view-settings"><div class="section-title"><div><span class="eyebrow">Personalise</span><h1>Settings</h1><p>Set your details and links once; they are saved to your account.</p></div><button class="primary-button" id="saveSettings">Save changes</button></div><div class="settings-grid"><article class="panel glass settings-card"><h3>Profile</h3><label>Display name<input id="settingName" placeholder="e.g. Alex"></label><label>Year group<input id="settingYear" placeholder="e.g. Year 11"></label><label>School / college<input id="settingSchool" placeholder="Optional"></label></article><article class="panel glass settings-card"><div class="settings-card-head"><div><h3>Quick links</h3><p class="setting-note">Add your school services without typing special formats.</p></div><button class="small-button" type="button" id="addQuickLink">＋ Add link</button></div><div id="quickLinkEditor" class="editor-list"></div></article><article class="panel glass settings-card full"><div class="settings-card-head"><div><h3>Courses & subjects</h3><p class="setting-note">Build your courses here. Choose the exam board, add the specification, and track how far through the course you are.</p></div><button class="small-button" type="button" id="addCourse">＋ Add course</button></div><div id="courseEditor" class="course-editor"></div></article></div><p id="settingsMessage" class="save-message"></p></section>
     </div>
   </main>
 </div>
@@ -123,7 +125,8 @@
     <div class="command-foot"><span>↑ ↓ to navigate</span><span><kbd>↵</kbd> to open</span><span><kbd>Ctrl K</kbd> anytime</span></div>
   </section>
 </div>
-<script src="{{ url_for('static', filename='app.js') }}?v=rian-20261010-24"></script>
-<script src="{{ url_for('static', filename='hub.js') }}?v=rian-20261010-24"></script>
-<script src="{{ url_for('static', filename='polish.js') }}?v=rian-20261010-24"></script>
+<script src="{{ url_for('static', filename='app.js') }}?v=revisioncore-20261014"></script>
+<script src="{{ url_for('static', filename='hub.js') }}?v=revisioncore-20261014"></script>
+<script src="{{ url_for('static', filename='polish.js') }}?v=revisioncore-20261014"></script>
+<script src="/static/studio.js?v=1"></script>
 </body></html>

@@ -1,4 +1,6 @@
-# Rian AI Gen 2 Built In — Render ready
+# RevisionCore — Render-ready upgrade
+
+Read [README-REVISIONCORE.md](README-REVISIONCORE.md) for the new study workspace, coverage, deployment instructions, validation and remaining feature gaps. The original deployment notes below describe the inherited integration; review the storage guidance in the new README before using it for student data.
 
 Rian is a Flask-based student hub with flashcards, Learn rounds, tasks, courses, and optional server-side AI/search/Teams integrations.
 
