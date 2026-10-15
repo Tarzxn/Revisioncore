@@ -288,7 +288,7 @@ const Hub = (() => {
     const s=learnSession;if(!s||s.locked)return;s.locked=true;
     const ok=answerMatches(button.dataset.answer,card.answer);button.classList.add(ok?'correct':'wrong');
     document.querySelectorAll('.learn-option').forEach(x=>{x.disabled=true;if(answerMatches(x.dataset.answer,card.answer))x.classList.add('correct');});
-    if(ok){s.choiceCorrect++;s.choiceCorrectCards.push(card);}
+    if(ok){s.correct++;s.choiceCorrect++;s.choiceCorrectCards.push(card);}
     else{s.choiceWrong++;if(!s.choiceRetryQueue.some(c=>c.id===card.id))s.choiceRetryQueue.push(card);}
     s.totalQuestions++;showLearnAnswerFeedback(ok,card.answer,'choice');
     setTimeout(()=>{s.index++;s.locked=false;renderLearnQuestion();},ok?650:1050);
