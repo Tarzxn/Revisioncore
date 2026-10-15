@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from study_api import validate_workspace
+from study_api import validate_workspace,clean_courses,validate_marking,question_lookup
 
 
 class WorkspaceValidationTests(unittest.TestCase):
@@ -42,7 +42,30 @@ class CurriculumTests(unittest.TestCase):
             for q in topic['questions']:
                 self.assertNotIn(q['id'],ids);ids.add(q['id'])
                 self.assertGreater(q['marks'],0);self.assertTrue(q['prompt']);self.assertTrue(q['answer'])
-        self.assertEqual(len(ids),40)
+        self.assertEqual(len(ids),130)
+        self.assertEqual({t['course_id'] for t in data['topics']},{'4MA1','4BI1','4CH1','4PH1','J277','0445'})
+        for t in data['topics']:
+            for q in t['questions']:self.assertEqual(sum(p['marks'] for p in q['mark_scheme']),q['marks'])
+
+
+class CoursesAndMarkingTests(unittest.TestCase):
+    def test_correct_courses_and_options(self):
+        rows=[{'id':'4MA1','year':2027,'tier':'Higher'},{'id':'0445','year':2027,'option':'Resistant Materials'}]
+        self.assertEqual(clean_courses(rows)[1]['option'],'Resistant Materials')
+        for bad in [[{'id':'4BI1','year':2030}],[{'id':'AQA'}],[{'id':'0445','year':2027,'option':'Unknown'}],[{'id':'0445','year':2028,'option':'Resistant Materials'}],[rows[0],rows[0]]]:
+            with self.subTest(bad=bad),self.assertRaises(ValueError):clean_courses(bad)
+
+    def test_ai_score_is_computed_from_canonical_scheme(self):
+        q=next(iter(question_lookup().values()))
+        raw={'score':999,'points':[{'index':i,'awarded':i==0,'reason':'A specific reason.'} for i in range(len(q['mark_scheme']))],'improvement':'Show the next step.'}
+        self.assertEqual(validate_marking(raw,q)['score'],q['mark_scheme'][0]['marks'])
+        raw['points'][0]['awarded']='true'
+        with self.assertRaises(ValueError):validate_marking(raw,q)
+
+    def test_missing_or_duplicate_criteria_are_rejected(self):
+        q=next(iter(question_lookup().values()))
+        for points in [[],[{'index':0,'awarded':True,'reason':'yes'}]*len(q['mark_scheme'])]:
+            with self.assertRaises(ValueError):validate_marking({'points':points,'improvement':'Explain it.'},q)
 
 
 try:

@@ -1,27 +1,64 @@
-# RevisionCore — Render-ready upgrade
+# RevisionCore - clean course edition
 
-Read [README-REVISIONCORE.md](README-REVISIONCORE.md) for the new study workspace, coverage, deployment instructions, validation and remaining feature gaps. The original deployment notes below describe the inherited integration; review the storage guidance in the new README before using it for student data.
+This is the active Flask application, with the unused legacy files removed. Upload the contents of this folder to the repository connected to the existing Render service. Keep your existing environment variables and account store. Do not replace live user data with a sample database.
 
-Rian is a Flask-based student hub with flashcards, Learn rounds, tasks, courses, and optional server-side AI/search/Teams integrations.
+## What changed
 
-## Persistent login and data (free setup)
+- Select the exact course, board, exam year and DT option. These selections are saved to the account and filter the notes, question bank, topic flashcards, progress and weekly plan. Course metadata is chosen from the supported catalogue rather than typed freely.
+- Original course library: 65 chapters, 130 practice questions and 325 topic flashcards. The six selected courses with Resistant Materials show 63 chapters; two additional chapters belong to the alternative DT specialist routes.
+- Topic notes have structured explanations, worked reasoning, exam technique, optional vector diagrams and direct PDF downloads. Each included chapter has a two-page PDF. Six subject books combine the relevant chapters; the DT book uses common content and Resistant Materials.
+- Rian AI marking uses the existing OLLAMA_API_KEY, assesses each stored marking criterion, returns specific evidence and improvement advice, and lets the student review the suggested mark before accepting it. The server calculates the score from validated criteria, rejects malformed output and keeps self assessment available.
+- The study-set library adds search, folders, duplication, due-card and still-learning filters, and CSV/offline HTML exports. Flashcards, Learn, Write, Spell, Test and Match remain available. Fixed seconds/milliseconds in review scheduling, actual deck shuffling, single-card True/False logic, continuous Match timing and negative-number answer comparison. Write now supports reviewing equivalent wording explicitly.
+- White dashboard, pastel course cards, responsive layouts, dark appearance, keyboard controls and personal notes remain integrated with accounts, tasks, timetable and optional Teams.
 
-This build uses a **private GitHub Gist** to persist account records and student data across Render restarts/redeployments. It does not require Supabase or Cloudflare.
+## Course editions
 
-Follow [`docs/GITHUB_GIST_SETUP.md`](docs/GITHUB_GIST_SETUP.md):
+| Subject | Course | Chapters |
+| --- | --- | --- |
+| Mathematics | Pearson Edexcel 4MA1 | 12 |
+| Biology | Pearson Edexcel 4BI1 | 9 |
+| Chemistry | Pearson Edexcel 4CH1 | 10 |
+| Physics | Pearson Edexcel 4PH1 | 11 |
+| Computer Science | OCR J277 | 11 |
+| Design & Technology | Cambridge 0445 | 12 |
 
-1. Create a private Gist with file `rian_ai_gen2_users.json` containing `{}`.
-2. Create a GitHub token with only the `gist` scope.
-3. Add `GITHUB_TOKEN` and `GITHUB_GIST_ID` to your Render web service's Environment settings.
-4. Deploy this project and verify a test account and study set survive a redeploy.
+Mathematics is the 4MA1 **Higher revision edition**, which includes the relevant core material as well as Higher ideas. A separately filtered Foundation edition is not supplied. DT is the **2027** 0445 syllabus; the 2028 revision changes the options and requires a separate content edition. The default DT specialist choice is Resistant Materials, editable in the course picker.
 
-Optional integrations use environment variables for Ollama Cloud, Tavily search, and Microsoft Teams. See `.env.example` for names. Never commit API keys or tokens.
+The DT 2027 structure is Product Design paper 25%, design-and-make Project 50%, and one specialist paper 25%. Follow the centre's project instructions and authenticated-work rules. Rian provides explanations and feedback; it should not invent project research or complete the assessed project for the student.
 
-## Run locally
+## Content depth and limits
 
-```bash
-pip install -r requirements.txt
+These are original revision chapters organised around the course areas. They are concise teaching and recall notes, not a certified statement-by-statement course textbook. Some subtopics and practical detail still need expansion, and all chapters need independent subject-teacher review before being represented as a complete paid-course replacement. The app and PDFs display the review status. Broad chapter presence does not prove full specification coverage.
+
+This build does not claim every feature of Quizlet or Save My Exams, perfect marking, or superiority to their paid products. Public study-set discovery, live classroom games, teacher analytics, licensed textbook solutions, a video library, mobile apps and a complete document-to-AI study pipeline are not included. Personal-set image/audio uploads are not implemented; browser speech reads text. Official past papers remain links to the boards rather than copied paid material. The notes and design are original; this is not a pixel-identical replica of either service.
+
+## Run
+
+```sh
+python -m pip install -r requirements.txt
 python -m flask --app app run
 ```
 
-Without `GITHUB_TOKEN` and `GITHUB_GIST_ID`, local development uses `data/users.json`; that local file is not durable on Render's free filesystem.
+Render build: `pip install -r requirements.txt`
+
+Render start: `gunicorn app:app --workers 1 --worker-class gthread --threads 8 --timeout 340`
+
+The requirements add ReportLab so authenticated PDF routes work after deployment. Notes and questions do not need an AI key. Rian marking needs OLLAMA_API_KEY; optionally set RIAN_MARKING_MODEL, default gpt-oss:20b. The key remains server-side. Ollama Cloud currently does not support enforced structured outputs, so the response is explicitly requested as JSON and strictly checked locally. Invalid or unavailable responses produce an error and do not record a made-up score.
+
+## Account storage
+
+The inherited account adapter still supports its existing Gist integration. Preserve it during the upgrade if existing accounts depend on it. A secret Gist is unlisted rather than an access-controlled private database; production student records should use a private durable store. The existing JSON adapter can use a private Render persistent disk through USERS_FILE=/var/data/users.json with a disk at /var/data, with Gist variables unset after a planned migration. Plan availability/costs vary. Free ephemeral filesystem storage is not durable. Back up and migrate existing records before changing adapters. The app is configured for a single worker; larger deployments need a transactional database.
+
+## Validation and deployment status
+
+Twelve Python tests passed, including real PDF generation, course validation, save-failure preservation and strict AI-result validation. Route tests use request/storage/provider doubles. The real Flask account-isolation test is included but skipped here because Flask and requests could not be installed in this environment.
+
+Chromium tests with simulated API responses passed course onboarding and filtering, note save/retry/reload, topic bookmarks and read tracking, flashcard creation and offline export, Rian marking UI and accepting a suggestion, practice results, planner generation, session completion, folders, set duplication, due filtering, rejection of an incorrect negative-number answer, single-card True/False, Spell workspace, Match completion, Learn workspace, dark appearance, keyboard search and mobile overflow checks. Browser speech sound, full adaptive Learn completion, actual Ollama responses and external Teams/Gist services were not verified.
+
+All 71 PDFs were parsed for text; every topic's core page was rendered in contact sheets, and representative full pages were inspected. PDF downloads are generated on demand in the app, so the application package does not contain 71 duplicate PDF assets.
+
+The Render website has not been deployed from this chat. Before release, install the requirements and run `python -m unittest discover -s tests -v`, including the real Flask test, verify two-account isolation and a persistent restart, and make one real AI-marking request using the configured provider.
+
+## Reference specifications
+
+Each course links to its official specification in static/curriculum.json, the notes interface and the PDFs. The course organisation was checked against Pearson's 4MA1/4BI1/4CH1/4PH1 specifications, OCR J277 and Cambridge 0445 for 2027. The chapter prose and questions are original.

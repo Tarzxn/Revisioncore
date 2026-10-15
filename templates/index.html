@@ -4,8 +4,8 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>RevisionCore | Student Hub</title>
 <meta name="theme-color" content="#f5f5f7"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v=revisioncore-20261014">
-<link rel="stylesheet" href="/static/studio.css?v=1">
+<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v=rc-v3">
+<link rel="stylesheet" href="/static/studio.css?v=3">
 </head>
 <body class="logged-out">
 <div class="aurora" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
@@ -91,10 +91,10 @@
       <section class="view" id="view-tasks"><div class="section-title"><div><span class="eyebrow">Planning</span><h1>Tasks & deadlines</h1><p>Track homework, coursework, revision and anything else you need to finish.</p></div><div class="section-actions"><button class="small-button" id="connectTeamsBtn">Connect Teams</button><button class="primary-button" id="addTaskBtn">＋ Add task</button></div></div><div class="task-toolbar"><button class="filter active" data-filter="all">All</button><button class="filter" data-filter="open">Open</button><button class="filter" data-filter="high">High priority</button><button class="filter" data-filter="done">Completed</button></div><div id="taskList" class="task-list"></div></section>
 
       <section class="view" id="view-flashcards">
-  <div class="section-title study-set-header"><div><span class="eyebrow">Study set</span><h1>Flashcards</h1><p>One study space for Flashcards, Learn, Write, Spell, Test and Match.</p></div><div class="section-actions"><button class="small-button" id="newFlashcardSetBtn">＋ Set</button><button class="small-button" id="importFlashcardsBtn">Import</button><button class="primary-button" id="newFlashcardBtn">＋ Create</button></div></div>
+  <div class="section-title study-set-header"><div><span class="eyebrow">Active recall</span><h1>Your study sets</h1><p>One study space for Flashcards, Learn, Write, Spell, Test and Match.</p></div><div class="section-actions"><button class="small-button" id="newFlashcardSetBtn">＋ Set</button><button class="small-button" id="importFlashcardsBtn">Import</button><button class="primary-button" id="newFlashcardBtn">＋ Create</button></div></div>
   <div class="set-hero glass"><div class="set-hero-main"><div class="set-icon">▣</div><div><div class="set-kicker" id="flashcardSetKicker">All sets</div><h2 id="flashcardSetTitle">Your flashcards</h2><p id="flashcardSetMeta">Build a set, then choose a study mode.</p></div></div><div class="set-metrics"><span><b id="setCardCount">0</b><small>cards</small></span><span><b id="setMastery">0%</b><small>mastered</small></span><span><b id="setDue">0</b><small>to review</small></span></div></div>
   <div class="study-mode-tabs" role="tablist" aria-label="Study modes"><button class="study-tab active" data-study-mode="flashcards">Flashcards</button><button class="study-tab" data-study-mode="learn">Learn</button><button class="study-tab" data-study-mode="write">Write</button><button class="study-tab" data-study-mode="spell">Spell</button><button class="study-tab" data-study-mode="test">Test</button><button class="study-tab" data-study-mode="match">Match</button></div>
-  <div class="flashcard-toolbar"><select id="flashcardDeckFilter" aria-label="Choose set"><option value="all">All sets</option></select><button class="text-button" id="flashcardStarredFilter">☆ Starred</button><span class="toolbar-spacer"></span><button class="text-button" id="shuffleFlashcards">Shuffle</button><button class="text-button" id="playFlashcards">▶ Play</button><button class="text-button" id="flashcardOptions">Options</button><button class="text-button" id="manageFlashcardSet">Set options</button></div>
+  <div class="flashcard-toolbar"><select id="flashcardDeckFilter" aria-label="Choose set"><option value="all">All sets</option></select><select id="cardScope" aria-label="Choose cards to study"><option value="all">All cards</option><option value="learning">Still learning</option><option value="due">Due for review</option></select><button class="text-button" id="flashcardStarredFilter">☆ Starred</button><span class="toolbar-spacer"></span><button class="text-button" id="shuffleFlashcards">Shuffle</button><button class="text-button" id="playFlashcards">▶ Play</button><button class="text-button" id="flashcardOptions">Options</button><button class="text-button" id="manageFlashcardSet">Set options</button></div>
   <div id="flashcardStudy" class="flashcard-study glass"><div class="flashcard-empty"><strong>Your cards will appear here.</strong><span>Import a CSV/TXT file or create your first card.</span></div></div>
   <div id="learnWorkspace" class="learn-workspace" hidden>
     <div class="learn-workspace-head"><div><span class="eyebrow">Adaptive study</span><h2>Learn</h2><p>Learn in focused 10-card rounds, then type the answers at the end of each round. Missed cards return in later rounds until you master the set.</p></div><div class="learn-workspace-actions"><select id="learnDeckFilter" class="small-select" aria-label="Choose Learn set"><option value="all">All sets</option></select><button class="small-button" id="learnExitBtn">← Flashcards</button></div></div>
@@ -125,8 +125,8 @@
     <div class="command-foot"><span>↑ ↓ to navigate</span><span><kbd>↵</kbd> to open</span><span><kbd>Ctrl K</kbd> anytime</span></div>
   </section>
 </div>
-<script src="{{ url_for('static', filename='app.js') }}?v=revisioncore-20261014"></script>
-<script src="{{ url_for('static', filename='hub.js') }}?v=revisioncore-20261014"></script>
-<script src="{{ url_for('static', filename='polish.js') }}?v=revisioncore-20261014"></script>
-<script src="/static/studio.js?v=1"></script>
+<script src="{{ url_for('static', filename='app.js') }}?v=rc-v3"></script>
+<script src="{{ url_for('static', filename='hub.js') }}?v=rc-v3"></script>
+<script src="{{ url_for('static', filename='polish.js') }}?v=rc-v3"></script>
+<script src="/static/studio.js?v=3"></script>
 </body></html>
