@@ -1,37 +1,41 @@
-# RevisionCore - clean course edition
+# RevisionCore - illustrated notes edition
 
-This is the active Flask application, with the unused legacy files removed. Upload the contents of this folder to the repository connected to the existing Render service. Keep your existing environment variables and account store. Do not replace live user data with a sample database.
+The active Flask application for the existing Render service. Replace application source in the connected repository with this folder's contents; preserve existing environment variables and account storage. Do not replace live user data with an example database. This package has not been deployed from the chat.
 
 ## What changed
 
-- Notes take priority. Every one of the 126 topics has a plain-English introduction. The 90 earlier topics each have two added teaching sections; the 36 denser topics were rewritten with shorter sentences, shorter paragraphs and a further explanatory section. Technical exam terms remain, with clearer explanations around them.
-- Explanatory text increased from 33,172 to 47,202 words, including introductions: 42.3% more. The additions explain methods, processes, causes and examples. Flashcards, practice questions and existing worked-example records were kept unchanged.
-- The reader separates paragraphs properly, shows the main idea before the detailed notes, and makes reading progress the primary action. Existing topic IDs, course choices, saved work and study modes are retained. The six selected courses with Resistant Materials show 124 lessons; two further lessons belong to the alternative DT specialist routes.
-- Notes PDFs contain explanations, vocabulary, practical detail and teaching examples. They no longer repeat the question bank and answer-guide pages. Six subject books have clickable contents; topic notes remain available individually. Questions are still available in the website's practice section.
-- Course selection, personal notebooks, Rian AI feedback, study planning and Flashcards/Learn/Write/Spell/Test/Match remain available. This edition does not add more flashcards or questions.
+- 172 original lessons, including 46 new focused lessons: eleven in Chemistry and seven in each of the other five subjects. The six selected courses with Resistant Materials show 170 lessons; the other two belong to alternative DT routes.
+- Explanatory text increased from 47,202 to 69,255 words, including plain-English introductions. Additions explain methods, structures, mechanisms, observations, limitations and worked reasoning rather than expanding the question bank.
+- 117 original vector teaching diagrams are shared by the browser and PDFs; 158 lessons now contain contextual figures. Molecular structures include explicit hydrogen bonds, pentane and hexane, branched isomers, alkenes, the first four alcohols and carboxylic acids, esters, monomers and polymer repeat units. Every complete molecular scene is checked for atom counts and valency.
+- Other figures include cells, osmosis, alveoli, circulation, villi, leaf sections, reflexes, nephrons, geometry, probability trees, graphs, circuits, refraction, lenses, half-life, CPU transfers, sorting, networks, manufacturing and joints. Each has a descriptive label and caption. Scenes distinguish schematic drawings from scale diagrams.
+- Broader chapters link directly to their focused lessons. Diagrams can be enlarged; narrow screens can pan within the enlarged image. The normal reader fits figures to its width and supports light and dark appearances.
+- Existing 126 topic IDs, 738 question records, 864 cards and 288 worked examples remain intact. Each new focused lesson adds one teaching example, with chapter-linked practice and flashcards using the existing bank. It does not invent extra questions to inflate the library.
+- Authenticated topic PDFs and six subject books use the same illustrations. The download archive contains 172 topic PDFs and six subject books; books have clickable contents. PDF files are generated on demand by the website and are not duplicated in application source.
 
-## Course editions
+## Courses
 
-| Subject | Course | Chapters |
+| Subject | Course | Included lessons |
 | --- | --- | --- |
-| Mathematics | Pearson Edexcel 4MA1 | 21 |
-| Biology | Pearson Edexcel 4BI1 | 23 |
-| Chemistry | Pearson Edexcel 4CH1 | 22 |
-| Physics | Pearson Edexcel 4PH1 | 21 |
-| Computer Science | OCR J277 | 19 |
-| Design & Technology | Cambridge 0445 | 20 (18 for Resistant Materials) |
+| Mathematics | Pearson Edexcel International GCSE 4MA1 Higher | 28 |
+| Biology | Pearson Edexcel International GCSE 4BI1 | 30 |
+| Chemistry | Pearson Edexcel International GCSE 4CH1 | 33 |
+| Physics | Pearson Edexcel International GCSE 4PH1 | 28 |
+| Computer Science | OCR GCSE J277 | 26 |
+| Design & Technology | Cambridge IGCSE 0445, 2027 | 27, or 25 for Resistant Materials |
 
-Mathematics is the 4MA1 **Higher revision edition**, which includes the relevant core material as well as Higher ideas. A separately filtered Foundation edition is not supplied. DT is the **2027** 0445 syllabus; the 2028 revision changes the options and requires a separate content edition. The default DT specialist choice is Resistant Materials, editable in the course picker.
+The Mathematics edition includes the relevant core material and Higher content. A separately filtered Foundation edition is not supplied. The 0445 content is for 2027; the course changes from 2028 and needs a separate reviewed edition. The default specialist option is Resistant Materials and can be changed in the course picker.
 
-The DT 2027 structure is Product Design paper 25%, design-and-make Project 50%, and one specialist paper 25%. Follow the centre's project instructions and authenticated-work rules. Rian provides explanations and feedback; it should not invent project research or complete the assessed project for the student.
+For 2027 DT, Product Design is 25%, the design-and-make Project 50%, and the specialist paper 25%. Follow the centre's authenticated-work rules. Rian explains and gives feedback; students must supply their own assessed-project research and evidence.
 
-## Content depth and limits
+Chemistry uses separate alkanes and alkenes lessons. Hexane naming falls within the six-carbon nomenclature range, while its displayed formula extends the specific five-carbon alkane drawing statement. The notes identify that distinction. Alcohol and acid structures, addition-polymer examples and the ethanediol/ethanedioic-acid polyester example were checked against the published 4CH1 statements.
 
-These are original revision chapters organised around the course areas. They are concise teaching and recall notes, not a certified statement-by-statement course textbook. A full statement-by-statement coverage audit and independent subject-teacher review are still required before being represented as a complete paid-course replacement. The app and PDFs display the review status. Broad chapter presence does not prove full specification coverage.
+## Content status
 
-This build does not claim every feature of Quizlet or Save My Exams, perfect marking, or superiority to their paid products. Public study-set discovery, live classroom games, teacher analytics, licensed textbook solutions, a video library, mobile apps and a complete document-to-AI study pipeline are not included. Personal-set image/audio uploads are not implemented; browser speech reads text. Official past papers remain links to the boards rather than copied paid material. The notes and design are original; this is not a pixel-identical replica of either service.
+The included lessons are substantially expanded original teaching material. They are not a certified statement-by-statement textbook for every course. Independent subject-teacher review and a complete specification coverage audit remain pending. Diagram placement and a broad chapter list alone do not certify every syllabus requirement. Links to official specifications are retained in every lesson and PDF.
 
-## Run
+This is an original product, not a copy of Save My Exams or Quizlet. It does not claim every paid feature, perfect AI marking or superiority to those services. No paid notes or image assets have been copied. Public set discovery, live classroom games, licensed textbook solutions, a video library, native mobile apps and personal-set image/audio uploads are not supplied. Browser speech reads text; official papers remain board links.
+
+## Run and deploy
 
 ```sh
 python -m pip install -r requirements.txt
@@ -42,25 +46,22 @@ Render build: `pip install -r requirements.txt`
 
 Render start: `gunicorn app:app --workers 1 --worker-class gthread --threads 8 --timeout 340`
 
-The requirements add ReportLab so authenticated PDF routes work after deployment. Notes and questions do not need an AI key. Rian marking needs OLLAMA_API_KEY; optionally set RIAN_MARKING_MODEL, default gpt-oss:20b. The key remains server-side. Ollama Cloud currently does not support enforced structured outputs, so the response is explicitly requested as JSON and strictly checked locally. Invalid or unavailable responses produce an error and do not record a made-up score.
+Keep the complete `static/diagrams.json` and `teaching_diagrams.py` in the application. No external diagram library or image-generation service is required. ReportLab uses available system fonts, with its bundled Vera fallback on minimal hosts. Notes and PDF downloads work without an AI key.
+
+Rian marking requires server-side `OLLAMA_API_KEY`; optional `RIAN_MARKING_MODEL` defaults to `gpt-oss:20b`. Provider replies are requested as JSON and strictly checked against the canonical marking criteria. Invalid or unavailable replies return an error and do not create a fabricated score. The key is not exposed to the browser.
 
 ## Account storage
 
-The inherited account adapter still supports its existing Gist integration. Preserve it during the upgrade if existing accounts depend on it. A secret Gist is unlisted rather than an access-controlled private database; production student records should use a private durable store. The existing JSON adapter can use a private Render persistent disk through USERS_FILE=/var/data/users.json with a disk at /var/data, with Gist variables unset after a planned migration. Plan availability/costs vary. Free ephemeral filesystem storage is not durable. Back up and migrate existing records before changing adapters. The app is configured for a single worker; larger deployments need a transactional database.
+Preserve the inherited account adapter and its existing Gist settings if accounts depend on them. A secret Gist is unlisted rather than an access-controlled private database. A private durable store is preferable for production student records.
 
-## Validation and deployment status
+The JSON adapter can use a private Render persistent disk with `USERS_FILE=/var/data/users.json` and a disk at `/var/data`, after a backed-up, planned migration and with Gist variables unset. Storage availability and pricing depend on the service plan. Ephemeral filesystem storage is not durable. The configuration uses one worker; larger deployments need transactional storage.
 
-Thirteen Python tests passed, including real PDF generation, course validation, save-failure preservation and strict AI-result validation. Route tests use request/storage/provider doubles. The real Flask account-isolation test is included but skipped here because Flask and requests could not be installed in this environment.
+## Validation
 
-Chromium tests with simulated API responses passed course onboarding and filtering, note save/retry/reload, topic bookmarks and read tracking, flashcard creation and offline export, Rian marking UI and accepting a suggestion, practice results, planner generation, session completion, folders, set duplication, due filtering, rejection of an incorrect negative-number answer, single-card True/False, Spell workspace, Match completion, Learn workspace, dark appearance, keyboard search and mobile overflow checks. The expanded reader checks include tab navigation, answer reveals, key-term search, practical tables, pseudocode, course overview and lesson navigation. A complete three-card Learn session with incorrect multiple-choice and written retries was also checked with simulated progress saves. Missing Learn styles were added for all session states, including mobile, dark appearance, keyboard focus and feedback, and the mastery ring now reflects progress. Completion accuracy includes both multiple-choice and written successes. Browser speech sound, actual Ollama responses and external Teams/Gist services were not verified.
+Fourteen Python tests passed and one real Flask integration test was skipped because Flask/requests are unavailable in the authoring environment. Passed tests cover course validation, workspace preservation, canonical marking, provider-response rejection, real PDF creation, lesson connections, atom counts and bond valences. Route tests use request, storage and provider doubles.
 
-All 132 PDFs (126 topic downloads and six subject books) were parsed for text; every topic’s core page was rendered in contact sheets, and representative full pages were inspected. A text check confirms that the PDFs include the new introductions and exclude the repeated question-bank sections. PDF downloads are generated on demand in the app, so the 19-file application package does not contain duplicate PDF assets. All 126 topic IDs and 738 question IDs remain stable to preserve bookmarks, read tracking and practice history. Existing personal notes and cards are not replaced.
+Chromium checks with simulated APIs passed all 46 focused readers, existing six-subject reader flows, linked chapter practice and cards, bookmarks/read tracking, enlargement, narrow-screen panning, light/dark appearance and mobile overflow. All 117 diagram scenes passed checks that text labels stay within their canvas. The existing broad study-flow suite also passed notes save/retry, exams/results, planning, folders, duplication, offline cards, Learn, Spell, Match, backup and course filtering. Real provider responses and external account services were not tested.
 
+All 178 PDFs were parsed for text and empty pages; no very short pages were found. Every topic's first page and every vector scene were rendered for review; representative full-size lesson pages across all six subjects were inspected. The diagrams were revised after visual review to separate labels from lines and clarify processes. The six subject books contain 669 pages in total.
 
-The notes-edition browser checks cover all six course readers, plain introductions, separate paragraphs, the primary reading action, retained practice flows, connected lessons, SQL labelling, mobile overflow and dark appearance. Representative calculations and an executable SQL example were checked independently. Practice results now use bounded unique attempt IDs so storage limits do not truncate different questions to the same record ID.
-
-The Render website has not been deployed from this chat. Before release, install the requirements and run `python -m unittest discover -s tests -v`, including the real Flask test, verify two-account isolation and a persistent restart, and make one real AI-marking request using the configured provider.
-
-## Reference specifications
-
-Each course links to its official specification in static/curriculum.json, the notes interface and the PDFs. The course organisation was checked against Pearson's 4MA1/4BI1/4CH1/4PH1 specifications, OCR J277 and Cambridge 0445 for 2027. The chapter prose and questions are original.
+Before live release, install requirements and run `python -m unittest discover -s tests -v` including the real Flask test. Verify two-account isolation, a persistent restart and a real configured AI-marking request. No live account data was modified by the authoring tests.

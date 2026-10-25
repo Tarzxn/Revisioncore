@@ -1,4 +1,5 @@
 """Original course notes with deliberate typography and vector teaching figures."""
+from teaching_diagrams import TeachingDiagram, scenes
 from io import BytesIO
 from pathlib import Path
 from html import escape
@@ -93,12 +94,16 @@ def make_pdf(course,topics,book=False):
         if number>1:story.append(PageBreak())
         story += [p(t['chapter'].upper(),'kicker'),Paragraph('<a name="topic-'+escape(t['id'],quote=True)+'"/>'+escape(printable(t['title'])),style['title']),p(course['qualification']+' | '+course['id']+' | '+t['track'],'subtitle')]
         if t.get('plain_intro'):story += [box('START HERE',t['plain_intro']),Spacer(1,10)]
+        if t.get('scope_note'):story.append(p(t['scope_note'],'small'))
         if t.get('prerequisite'):story += [p('Before you begin: '+t['prerequisite'],'small'),Spacer(1,6)]
         if t.get('objectives'):story += [box('WHAT YOU WILL STUDY',' / '.join(t['objectives'])),Spacer(1,5)]
         if t.get('concept_flow'):story += [Spacer(1,10),box('THE REASONING ROUTE','  →  '.join(t['concept_flow']),'#f3f7fa')]
         for section in t['sections']:
             story.append(p(section['heading'],'heading'))
             for paragraph in section['body'].split('\n\n'):story.append(p(paragraph))
+            for key in section.get('figures',[]):
+                figure=scenes()[key]
+                story.append(KeepTogether([Spacer(1,10),TeachingDiagram(key,width),Spacer(1,7),p(figure['title'],'small'),p(figure['caption'],'small'),Spacer(1,10)]))
         if t.get('formula'):story += [Spacer(1,10),box('KEEP THIS RELATIONSHIP',t['formula'])]
         if t.get('diagram'):story += [Spacer(1,12),Figure(t['diagram'],accent)]
         if t.get('comparison_table'):

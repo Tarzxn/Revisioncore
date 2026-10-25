@@ -42,20 +42,20 @@ class CurriculumTests(unittest.TestCase):
             for q in topic['questions']:
                 self.assertNotIn(q['id'],ids);ids.add(q['id'])
                 self.assertGreater(q['marks'],0);self.assertTrue(q['prompt']);self.assertTrue(q['answer'])
-        self.assertEqual(data['version'],6)
-        self.assertEqual(len(data['topics']),126)
+        self.assertEqual(data['version'],7)
+        self.assertEqual(len(data['topics']),172)
         self.assertEqual(len(ids),738)
         self.assertEqual(sum(len(t['cards']) for t in data['topics']),864)
-        self.assertEqual(sum(len(t['worked_examples']) for t in data['topics']),288)
+        self.assertEqual(sum(len(t['worked_examples']) for t in data['topics']),334)
         self.assertEqual({t['course_id'] for t in data['topics']},{'4MA1','4BI1','4CH1','4PH1','J277','0445'})
         for t in data['topics']:
             self.assertEqual(len(t['key_terms']),3)
-            self.assertEqual(len(t['worked_examples']),3 if t.get('edition')==5 else 2)
-            self.assertEqual(len(t['questions']),8 if t.get('edition')==5 else 5)
+            self.assertEqual(len(t['worked_examples']),1 if t.get('edition')==7 else 3 if t.get('edition')==5 else 2)
+            self.assertEqual(len(t['questions']),0 if t.get('edition')==7 else 8 if t.get('edition')==5 else 5)
             self.assertGreaterEqual(len(t['sections']),3)
             self.assertTrue(t['misconception'])
             self.assertTrue(t['plain_intro'])
-            self.assertEqual(t['notes_revision'],6)
+            self.assertEqual(t['notes_revision'],7)
             self.assertNotIn('Explain the key idea',str(t['questions']))
             self.assertLessEqual(len(t['id']),80)
             for q in t['questions']:
@@ -83,6 +83,35 @@ class CurriculumTests(unittest.TestCase):
                 self.assertTrue(any(q['difficulty']=='Challenge' for q in independent))
                 self.assertTrue(t['prerequisite'])
                 for q in independent:self.assertNotIn(q['prompt'],[e['question'] for e in t['worked_examples']])
+
+    def test_illustrations_and_focused_lessons_are_consistent(self):
+        root=Path(__file__).resolve().parents[1]/'static'
+        data=json.loads((root/'curriculum.json').read_text(encoding='utf-8'))
+        figures=json.loads((root/'diagrams.json').read_text(encoding='utf-8'))
+        topics={t['id']:t for t in data['topics']}
+        self.assertEqual(len(figures),117)
+        focused=[t for t in topics.values() if t.get('edition')==7]
+        self.assertEqual(len(focused),46)
+        for t in topics.values():
+            for section in t['sections']:
+                for key in section.get('figures',[]):self.assertIn(key,figures)
+            for key in t.get('child_topics',[]):self.assertEqual(topics[key]['parent_topic'],t['id'])
+        for t in focused:
+            parent=topics[t['parent_topic']]
+            self.assertEqual(parent['course_id'],t['course_id'])
+            self.assertIn(t['id'],parent['child_topics'])
+            self.assertGreaterEqual(sum(len(s['body'].split()) for s in t['sections']),350)
+            self.assertTrue(any(s.get('figures') for s in t['sections']))
+            self.assertEqual(t['questions'],[]);self.assertEqual(t['cards'],[])
+        import collections,re
+        for key,figure in figures.items():
+            self.assertTrue(figure['alt']);self.assertIsInstance(figure['caption'],str);self.assertGreater(len(figure['caption']),30)
+            if 'chemistry' not in figure:continue
+            chem=figure['chemistry'];degree=collections.Counter()
+            for a,b,order in chem['bonds']:degree[a]+=order;degree[b]+=order
+            for i,atom in enumerate(chem['atoms']):self.assertEqual(degree[i],{'C':4,'H':1,'O':2,'Br':1,'Cl':1,'F':1}[atom['element']],key)
+            counts=collections.Counter(a['element'] for a in chem['atoms'])
+            self.assertEqual(counts,{e:int(n or 1) for e,n in re.findall(r'([A-Z][a-z]?)(\d*)',chem['formula'])},key)
 
 
 class CoursesAndMarkingTests(unittest.TestCase):
