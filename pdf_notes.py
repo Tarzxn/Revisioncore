@@ -16,6 +16,7 @@ def printable(text):
     """Keep formulae readable even on a minimal host with Vera's smaller glyph set."""
     font=pdfmetrics.getFont('RC');glyphs=font.face.charToGlyph
     fallback={'−':'-','→':' -> ','←':' <- ','⇌':' <=> ','Δ':'Delta ','λ':'lambda','θ':'theta','π':'pi','Ω':'ohm','ρ':'rho','₀':'0','₁':'1','₂':'2','₃':'3','₄':'4','₅':'5','₆':'6','₇':'7','₈':'8','₉':'9','ₙ':'n','ₛ':'s','ₚ':'p','ₖ':'k','⁰':'^0','¹':'^1','²':'^2','³':'^3','⁴':'^4','⁵':'^5','⁶':'^6','⁻':'-','ⁿ':'^n','ᵐ':'^m','½':'1/2','¼':'1/4','⁺':'+','≥':'>=','≤':'<=','≈':'~','√':'sqrt','×':' x ','÷':' / '}
+    fallback.update({'∩':' intersection ','∪':' union ','′':"'"})
     return ''.join(c if ord(c) in glyphs else fallback.get(c,c.encode('ascii','replace').decode()) for c in str(text))
 
 def setup_fonts():
@@ -64,7 +65,6 @@ def make_pdf(course,topics,book=False):
       'title':ParagraphStyle('t',fontName='RC-Bold',fontSize=26,leading=32,textColor=INK,spaceAfter=13),
       'subtitle':ParagraphStyle('st',fontName='RC',fontSize=10,leading=15,textColor=MUTED,spaceAfter=16),
       'heading':ParagraphStyle('h',fontName='RC-Bold',fontSize=12,leading=17,textColor=INK,spaceBefore=12,spaceAfter=6,keepWithNext=True),
-      'question':ParagraphStyle('q',fontName='RC-Bold',fontSize=10.7,leading=15.5,textColor=INK,spaceBefore=10,spaceAfter=5,keepWithNext=True),
       'body':ParagraphStyle('b',fontName='RC',fontSize=10,leading=15.5,textColor=INK,spaceAfter=7),
       'small':ParagraphStyle('s',fontName='RC',fontSize=8,leading=12,textColor=MUTED,spaceAfter=5),
       'table':ParagraphStyle('tb',fontName='RC',fontSize=8.5,leading=12.5,textColor=INK),
@@ -86,16 +86,19 @@ def make_pdf(course,topics,book=False):
         c.setStrokeColor(LINE);c.line(48,43,w-48,43);c.setFont('RC',7.2);c.drawString(48,29,'Original expanded edition | 2027 | Independent teacher review pending');c.drawRightString(w-48,29,str(doc.page))
     story=[]
     if book:
-        story += [Spacer(1,65),p(course['board'].upper()+' / '+course['qualification'].upper(),'kicker'),p(course['subject'],'title'),p('Expanded revision notebook | '+course['id'],'subtitle'),Spacer(1,15),box('UNDERSTAND. APPLY. RECALL.','Explanations, key vocabulary, worked reasoning and topic questions with explicit marking points.'),Spacer(1,20),p('In this book','heading')]
+        story += [Spacer(1,65),p(course['board'].upper()+' / '+course['qualification'].upper(),'kicker'),p(course['subject'],'title'),p('Expanded revision notebook | '+course['id'],'subtitle'),Spacer(1,15),box('UNDERSTAND. APPLY. RECALL.','Clear topic notes, key vocabulary, practical explanations and worked examples. Questions remain in the website’s practice section.'),Spacer(1,20),p('In this book','heading')]
         for i,t in enumerate(topics,1):story.append(Paragraph('<link href="#topic-'+escape(t['id'],quote=True)+'" color="#357cff">'+escape(printable(f'{i:02}   {t["title"]}'))+'</link>',style['small']))
         story += [Spacer(1,14),p('These original chapters cover the areas listed here. This is not certified statement-by-statement specification coverage. Use the official specification and teacher guidance alongside the notes.','small'),PageBreak()]
     for number,t in enumerate(topics,1):
         if number>1:story.append(PageBreak())
         story += [p(t['chapter'].upper(),'kicker'),Paragraph('<a name="topic-'+escape(t['id'],quote=True)+'"/>'+escape(printable(t['title'])),style['title']),p(course['qualification']+' | '+course['id']+' | '+t['track'],'subtitle')]
+        if t.get('plain_intro'):story += [box('START HERE',t['plain_intro']),Spacer(1,10)]
         if t.get('prerequisite'):story += [p('Before you begin: '+t['prerequisite'],'small'),Spacer(1,6)]
         if t.get('objectives'):story += [box('WHAT YOU WILL STUDY',' / '.join(t['objectives'])),Spacer(1,5)]
         if t.get('concept_flow'):story += [Spacer(1,10),box('THE REASONING ROUTE','  →  '.join(t['concept_flow']),'#f3f7fa')]
-        for section in t['sections']:story += [p(section['heading'],'heading'),p(section['body'])]
+        for section in t['sections']:
+            story.append(p(section['heading'],'heading'))
+            for paragraph in section['body'].split('\n\n'):story.append(p(paragraph))
         if t.get('formula'):story += [Spacer(1,10),box('KEEP THIS RELATIONSHIP',t['formula'])]
         if t.get('diagram'):story += [Spacer(1,12),Figure(t['diagram'],accent)]
         if t.get('comparison_table'):
@@ -116,14 +119,6 @@ def make_pdf(course,topics,book=False):
             example_block=[p(f'Worked example {i}','heading'),p(example['question'])]
             for j,step in enumerate(example['steps'],1):example_block.append(p(f'{j:02}   '+step))
             story += [KeepTogether(example_block),Spacer(1,13)]
-        story += [box('MAKE THE METHOD YOURS','Cover the solution and explain why each step follows. Then answer the question independently and check the method, units and conclusion.'),PageBreak(),p('RECALL / '+course['id'],'kicker'),p('Test your understanding.','title'),p('Try the questions before reading the answer guide on the following page. These are original practice tasks.','subtitle')]
-        for i,q in enumerate(t['questions'],1):
-            story += [KeepTogether([p(f'{i:02}   '+q['prompt'],'question'),p(str(q['marks'])+(' mark' if q['marks']==1 else ' marks')+' | '+q['difficulty']+((' | '+q['purpose']) if q.get('purpose') else ''),'small')])]
-        story += [PageBreak(),p('CHECK / '+course['id'],'kicker'),p('Answer guide.','title'),p('Award only the points supported by your answer. Equivalent accurate wording is acceptable; use teacher guidance for borderline cases.','subtitle')]
-        for i,q in enumerate(t['questions'],1):
-            answer_block=[p(f'{i:02}   '+q['prompt'],'question')]
-            for mark in q['mark_scheme']:answer_block.append(p(str(mark['marks'])+' mark: '+mark['text']))
-            story.append(KeepTogether(answer_block))
         story += [Spacer(1,12),p('Course reference','heading'),Paragraph('<link href="'+escape(t['source'],quote=True)+'" color="#357cff">Official specification: '+escape(course['board']+' '+course['id'])+'</link>',style['small']),p('Original revision material. Independent subject-teacher review and a complete specification audit are pending.','small')]
     doc=SimpleDocTemplate(out,pagesize=A4,rightMargin=60,leftMargin=60,topMargin=65,bottomMargin=62,title=course['subject']+' | RevisionCore',author='RevisionCore',pageCompression=1)
     doc.build(story,onFirstPage=footer,onLaterPages=footer)

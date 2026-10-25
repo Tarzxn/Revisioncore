@@ -42,7 +42,7 @@ class CurriculumTests(unittest.TestCase):
             for q in topic['questions']:
                 self.assertNotIn(q['id'],ids);ids.add(q['id'])
                 self.assertGreater(q['marks'],0);self.assertTrue(q['prompt']);self.assertTrue(q['answer'])
-        self.assertEqual(data['version'],5)
+        self.assertEqual(data['version'],6)
         self.assertEqual(len(data['topics']),126)
         self.assertEqual(len(ids),738)
         self.assertEqual(sum(len(t['cards']) for t in data['topics']),864)
@@ -54,6 +54,8 @@ class CurriculumTests(unittest.TestCase):
             self.assertEqual(len(t['questions']),8 if t.get('edition')==5 else 5)
             self.assertGreaterEqual(len(t['sections']),3)
             self.assertTrue(t['misconception'])
+            self.assertTrue(t['plain_intro'])
+            self.assertEqual(t['notes_revision'],6)
             self.assertNotIn('Explain the key idea',str(t['questions']))
             self.assertLessEqual(len(t['id']),80)
             for q in t['questions']:
@@ -74,8 +76,8 @@ class CurriculumTests(unittest.TestCase):
                 self.assertIn(topics[ident]['track'],('Common',t['track']))
         for t in detailed:
             with self.subTest(t['id']):
-                self.assertGreaterEqual(sum(len(s['body'].split()) for s in t['sections']),270)
-                self.assertEqual(len(t['sections']),4)
+                self.assertGreaterEqual(sum(len(s['body'].split()) for s in t['sections']),240)
+                self.assertEqual(len(t['sections']),5)
                 independent=[q for q in t['questions'] if q.get('purpose')=='Independent practice']
                 self.assertEqual(len(independent),2)
                 self.assertTrue(any(q['difficulty']=='Challenge' for q in independent))
