@@ -64,6 +64,7 @@ def make_pdf(course,topics,book=False):
       'title':ParagraphStyle('t',fontName='RC-Bold',fontSize=26,leading=32,textColor=INK,spaceAfter=13),
       'subtitle':ParagraphStyle('st',fontName='RC',fontSize=10,leading=15,textColor=MUTED,spaceAfter=16),
       'heading':ParagraphStyle('h',fontName='RC-Bold',fontSize=12,leading=17,textColor=INK,spaceBefore=12,spaceAfter=6,keepWithNext=True),
+      'question':ParagraphStyle('q',fontName='RC-Bold',fontSize=10.7,leading=15.5,textColor=INK,spaceBefore=10,spaceAfter=5,keepWithNext=True),
       'body':ParagraphStyle('b',fontName='RC',fontSize=10,leading=15.5,textColor=INK,spaceAfter=7),
       'small':ParagraphStyle('s',fontName='RC',fontSize=8,leading=12,textColor=MUTED,spaceAfter=5),
       'table':ParagraphStyle('tb',fontName='RC',fontSize=8.5,leading=12.5,textColor=INK),
@@ -86,12 +87,14 @@ def make_pdf(course,topics,book=False):
     story=[]
     if book:
         story += [Spacer(1,65),p(course['board'].upper()+' / '+course['qualification'].upper(),'kicker'),p(course['subject'],'title'),p('Expanded revision notebook | '+course['id'],'subtitle'),Spacer(1,15),box('UNDERSTAND. APPLY. RECALL.','Explanations, key vocabulary, worked reasoning and topic questions with explicit marking points.'),Spacer(1,20),p('In this book','heading')]
-        for i,t in enumerate(topics,1):story.append(p(f'{i:02}   {t["title"]}','small'))
+        for i,t in enumerate(topics,1):story.append(Paragraph('<link href="#topic-'+escape(t['id'],quote=True)+'" color="#357cff">'+escape(printable(f'{i:02}   {t["title"]}'))+'</link>',style['small']))
         story += [Spacer(1,14),p('These original chapters cover the areas listed here. This is not certified statement-by-statement specification coverage. Use the official specification and teacher guidance alongside the notes.','small'),PageBreak()]
     for number,t in enumerate(topics,1):
         if number>1:story.append(PageBreak())
-        story += [p(t['chapter'].upper(),'kicker'),p(t['title'],'title'),p(course['qualification']+' | '+course['id']+' | '+t['track'],'subtitle')]
+        story += [p(t['chapter'].upper(),'kicker'),Paragraph('<a name="topic-'+escape(t['id'],quote=True)+'"/>'+escape(printable(t['title'])),style['title']),p(course['qualification']+' | '+course['id']+' | '+t['track'],'subtitle')]
+        if t.get('prerequisite'):story += [p('Before you begin: '+t['prerequisite'],'small'),Spacer(1,6)]
         if t.get('objectives'):story += [box('WHAT YOU WILL STUDY',' / '.join(t['objectives'])),Spacer(1,5)]
+        if t.get('concept_flow'):story += [Spacer(1,10),box('THE REASONING ROUTE','  →  '.join(t['concept_flow']),'#f3f7fa')]
         for section in t['sections']:story += [p(section['heading'],'heading'),p(section['body'])]
         if t.get('formula'):story += [Spacer(1,10),box('KEEP THIS RELATIONSHIP',t['formula'])]
         if t.get('diagram'):story += [Spacer(1,12),Figure(t['diagram'],accent)]
@@ -103,7 +106,7 @@ def make_pdf(course,topics,book=False):
         if t.get('practical'):
             story.append(p('Practical thinking','heading'))
             for label,value in t['practical'].items():story.append(p(label.capitalize()+': '+('; '.join(value) if isinstance(value,list) else value)))
-        if t.get('code_example'):story += [p('Trace the algorithm','heading'),p(t['code_example'],'code')]
+        if t.get('code_example'):story += [p('Read the SQL query' if t['code_example'].strip().startswith('SELECT') else 'Trace the algorithm','heading'),p(t['code_example'],'code')]
         story.append(p('Key vocabulary','heading'))
         for term in t.get('key_terms',[]):story.append(p(term['term']+' - '+term['definition']))
         story += [Spacer(1,8),box('EXAM TECHNIQUE',t['tip'],'#fff7e8')]
@@ -115,11 +118,12 @@ def make_pdf(course,topics,book=False):
             story += [KeepTogether(example_block),Spacer(1,13)]
         story += [box('MAKE THE METHOD YOURS','Cover the solution and explain why each step follows. Then answer the question independently and check the method, units and conclusion.'),PageBreak(),p('RECALL / '+course['id'],'kicker'),p('Test your understanding.','title'),p('Try the questions before reading the answer guide on the following page. These are original practice tasks.','subtitle')]
         for i,q in enumerate(t['questions'],1):
-            story += [p(f'{i:02}   '+q['prompt'],'heading'),p(str(q['marks'])+(' mark' if q['marks']==1 else ' marks'),'small'),Spacer(1,16)]
+            story += [KeepTogether([p(f'{i:02}   '+q['prompt'],'question'),p(str(q['marks'])+(' mark' if q['marks']==1 else ' marks')+' | '+q['difficulty']+((' | '+q['purpose']) if q.get('purpose') else ''),'small')])]
         story += [PageBreak(),p('CHECK / '+course['id'],'kicker'),p('Answer guide.','title'),p('Award only the points supported by your answer. Equivalent accurate wording is acceptable; use teacher guidance for borderline cases.','subtitle')]
         for i,q in enumerate(t['questions'],1):
-            story.append(p(f'{i:02}   '+q['prompt'],'heading'))
-            for mark in q['mark_scheme']:story.append(p(str(mark['marks'])+' mark: '+mark['text']))
+            answer_block=[p(f'{i:02}   '+q['prompt'],'question')]
+            for mark in q['mark_scheme']:answer_block.append(p(str(mark['marks'])+' mark: '+mark['text']))
+            story.append(KeepTogether(answer_block))
         story += [Spacer(1,12),p('Course reference','heading'),Paragraph('<link href="'+escape(t['source'],quote=True)+'" color="#357cff">Official specification: '+escape(course['board']+' '+course['id'])+'</link>',style['small']),p('Original revision material. Independent subject-teacher review and a complete specification audit are pending.','small')]
     doc=SimpleDocTemplate(out,pagesize=A4,rightMargin=60,leftMargin=60,topMargin=65,bottomMargin=62,title=course['subject']+' | RevisionCore',author='RevisionCore',pageCompression=1)
     doc.build(story,onFirstPage=footer,onLaterPages=footer)

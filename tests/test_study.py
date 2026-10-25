@@ -42,20 +42,45 @@ class CurriculumTests(unittest.TestCase):
             for q in topic['questions']:
                 self.assertNotIn(q['id'],ids);ids.add(q['id'])
                 self.assertGreater(q['marks'],0);self.assertTrue(q['prompt']);self.assertTrue(q['answer'])
-        self.assertEqual(data['version'],4)
-        self.assertEqual(len(data['topics']),90)
-        self.assertEqual(len(ids),450)
-        self.assertEqual(sum(len(t['cards']) for t in data['topics']),540)
-        self.assertEqual(sum(len(t['worked_examples']) for t in data['topics']),180)
+        self.assertEqual(data['version'],5)
+        self.assertEqual(len(data['topics']),126)
+        self.assertEqual(len(ids),738)
+        self.assertEqual(sum(len(t['cards']) for t in data['topics']),864)
+        self.assertEqual(sum(len(t['worked_examples']) for t in data['topics']),288)
         self.assertEqual({t['course_id'] for t in data['topics']},{'4MA1','4BI1','4CH1','4PH1','J277','0445'})
         for t in data['topics']:
             self.assertEqual(len(t['key_terms']),3)
-            self.assertEqual(len(t['worked_examples']),2)
-            self.assertEqual(len(t['questions']),5)
+            self.assertEqual(len(t['worked_examples']),3 if t.get('edition')==5 else 2)
+            self.assertEqual(len(t['questions']),8 if t.get('edition')==5 else 5)
             self.assertGreaterEqual(len(t['sections']),3)
             self.assertTrue(t['misconception'])
             self.assertNotIn('Explain the key idea',str(t['questions']))
-            for q in t['questions']:self.assertEqual(sum(p['marks'] for p in q['mark_scheme']),q['marks'])
+            self.assertLessEqual(len(t['id']),80)
+            for q in t['questions']:
+                self.assertLessEqual(len(q['id']),80)
+                self.assertEqual(sum(p['marks'] for p in q['mark_scheme']),q['marks'])
+
+    def test_detailed_lessons_have_independent_practice_and_valid_connections(self):
+        data=json.loads((Path(__file__).resolve().parents[1]/'static'/'curriculum.json').read_text(encoding='utf-8'))
+        topics={t['id']:t for t in data['topics']}
+        detailed=[t for t in topics.values() if t.get('edition')==5]
+        self.assertEqual(len(detailed),36)
+        for course in data['courses']:self.assertEqual(sum(t['course_id']==course['id'] for t in detailed),6)
+        for t in topics.values():
+            self.assertEqual(len(t['related_topics']),3)
+            for ident in t['related_topics']:
+                self.assertNotEqual(ident,t['id'])
+                self.assertEqual(topics[ident]['course_id'],t['course_id'])
+                self.assertIn(topics[ident]['track'],('Common',t['track']))
+        for t in detailed:
+            with self.subTest(t['id']):
+                self.assertGreaterEqual(sum(len(s['body'].split()) for s in t['sections']),270)
+                self.assertEqual(len(t['sections']),4)
+                independent=[q for q in t['questions'] if q.get('purpose')=='Independent practice']
+                self.assertEqual(len(independent),2)
+                self.assertTrue(any(q['difficulty']=='Challenge' for q in independent))
+                self.assertTrue(t['prerequisite'])
+                for q in independent:self.assertNotIn(q['prompt'],[e['question'] for e in t['worked_examples']])
 
 
 class CoursesAndMarkingTests(unittest.TestCase):

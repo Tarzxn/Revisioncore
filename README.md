@@ -5,8 +5,8 @@ This is the active Flask application, with the unused legacy files removed. Uplo
 ## What changed
 
 - Select the exact course, board, exam year and DT option. These selections are saved to the account and filter the notes, question bank, topic flashcards, progress and weekly plan. Course metadata is chosen from the supported catalogue rather than typed freely.
-- Original course library: 90 lessons, 180 worked examples, 450 practice questions and 540 topic flashcards. The six selected courses with Resistant Materials show 88 lessons; two additional chapters belong to the alternative DT specialist routes.
-- The reader separates Learn, Worked examples and Quick check, with key vocabulary, practical methods, comparison tables and pseudocode where relevant. Each lesson includes two worked examples, five questions, explicit marking points and six flashcards. Topic PDFs include the lesson, worked reasoning, independent questions and a separate answer guide. Six subject books combine the relevant chapters; the DT book uses common content and Resistant Materials.
+- Original course library: 126 lessons, 288 worked examples, 738 practice questions and 864 topic flashcards. The six selected courses with Resistant Materials show 124 lessons; two additional chapters belong to the alternative DT specialist routes.
+- The reader separates Learn, Worked examples and Quick check, with key vocabulary, practical methods, comparison tables and pseudocode where relevant. The original 90 lessons are retained. The 36 new detailed lessons each include four teaching sections, three worked examples, two independent application tasks, three vocabulary questions and nine flashcards. Explanatory prose has grown from 21,456 to 33,172 words, about 55% more. New topics include prerequisite guidance, comparison tables, practical methods or code where useful, and visual reasoning sequences. Topic PDFs include the lesson, worked reasoning, independent questions and a separate answer guide. Six subject books combine the relevant chapters with clickable contents; the DT book uses common content and Resistant Materials. Lessons are grouped in course-section order and every lesson has three course-matched connected lessons. Independent practice and a Challenge filter support the new application questions. SQL examples are identified separately from language-neutral pseudocode.
 - Rian AI marking uses the existing OLLAMA_API_KEY, assesses each stored marking criterion, returns specific evidence and improvement advice, and lets the student review the suggested mark before accepting it. The server calculates the score from validated criteria, rejects malformed output and keeps self assessment available.
 - The study-set library adds search, folders, duplication, due-card and still-learning filters, and CSV/offline HTML exports. Flashcards, Learn, Write, Spell, Test and Match remain available. Fixed seconds/milliseconds in review scheduling, actual deck shuffling, single-card True/False logic, continuous Match timing and negative-number answer comparison. Write now supports reviewing equivalent wording explicitly.
 - White dashboard, pastel course cards, responsive layouts, dark appearance, keyboard controls and personal notes remain integrated with accounts, tasks, timetable and optional Teams.
@@ -15,12 +15,12 @@ This is the active Flask application, with the unused legacy files removed. Uplo
 
 | Subject | Course | Chapters |
 | --- | --- | --- |
-| Mathematics | Pearson Edexcel 4MA1 | 15 |
-| Biology | Pearson Edexcel 4BI1 | 17 |
-| Chemistry | Pearson Edexcel 4CH1 | 16 |
-| Physics | Pearson Edexcel 4PH1 | 15 |
-| Computer Science | OCR J277 | 13 |
-| Design & Technology | Cambridge 0445 | 14 (12 for Resistant Materials) |
+| Mathematics | Pearson Edexcel 4MA1 | 21 |
+| Biology | Pearson Edexcel 4BI1 | 23 |
+| Chemistry | Pearson Edexcel 4CH1 | 22 |
+| Physics | Pearson Edexcel 4PH1 | 21 |
+| Computer Science | OCR J277 | 19 |
+| Design & Technology | Cambridge 0445 | 20 (18 for Resistant Materials) |
 
 Mathematics is the 4MA1 **Higher revision edition**, which includes the relevant core material as well as Higher ideas. A separately filtered Foundation edition is not supplied. DT is the **2027** 0445 syllabus; the 2028 revision changes the options and requires a separate content edition. The default DT specialist choice is Resistant Materials, editable in the course picker.
 
@@ -51,11 +51,14 @@ The inherited account adapter still supports its existing Gist integration. Pres
 
 ## Validation and deployment status
 
-Twelve Python tests passed, including real PDF generation, course validation, save-failure preservation and strict AI-result validation. Route tests use request/storage/provider doubles. The real Flask account-isolation test is included but skipped here because Flask and requests could not be installed in this environment.
+Thirteen Python tests passed, including real PDF generation, course validation, save-failure preservation and strict AI-result validation. Route tests use request/storage/provider doubles. The real Flask account-isolation test is included but skipped here because Flask and requests could not be installed in this environment.
 
 Chromium tests with simulated API responses passed course onboarding and filtering, note save/retry/reload, topic bookmarks and read tracking, flashcard creation and offline export, Rian marking UI and accepting a suggestion, practice results, planner generation, session completion, folders, set duplication, due filtering, rejection of an incorrect negative-number answer, single-card True/False, Spell workspace, Match completion, Learn workspace, dark appearance, keyboard search and mobile overflow checks. The expanded reader checks include tab navigation, answer reveals, key-term search, practical tables, pseudocode, course overview and lesson navigation. A complete three-card Learn session with incorrect multiple-choice and written retries was also checked with simulated progress saves. Missing Learn styles were added for all session states, including mobile, dark appearance, keyboard focus and feedback, and the mastery ring now reflects progress. Completion accuracy includes both multiple-choice and written successes. Browser speech sound, actual Ollama responses and external Teams/Gist services were not verified.
 
-All 96 PDFs (90 topic downloads and six subject books) were parsed for text; every topic’s core page was rendered in contact sheets, and representative full pages were inspected. PDF downloads are generated on demand in the app, so the 19-file application package does not contain duplicate PDF assets. All 65 earlier topic IDs remain stable to preserve bookmarks, read tracking and practice history. Existing personal notes and cards are not replaced.
+All 132 PDFs (126 topic downloads and six subject books) were parsed for text; every topic’s core page was rendered in contact sheets, and representative full pages were inspected. PDF downloads are generated on demand in the app, so the 19-file application package does not contain duplicate PDF assets. All 90 earlier topic IDs and 450 earlier question IDs remain stable to preserve bookmarks, read tracking and practice history. Existing personal notes and cards are not replaced.
+
+
+The detailed-edition browser checks cover all six new course readers, three worked examples and eight questions per new lesson, independent practice, distinct saved attempt IDs, Challenge filtering, connected lessons, SQL labelling, mobile overflow and dark appearance. Representative calculations and an executable SQL example were checked independently. Practice results now use bounded unique attempt IDs so storage limits do not truncate different questions to the same record ID.
 
 The Render website has not been deployed from this chat. Before release, install the requirements and run `python -m unittest discover -s tests -v`, including the real Flask test, verify two-account isolation and a persistent restart, and make one real AI-marking request using the configured provider.
 
