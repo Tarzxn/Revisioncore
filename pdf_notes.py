@@ -115,11 +115,11 @@ def make_pdf(course,topics,book=False):
             story.append(p('Practical thinking','heading'))
             for label,value in t['practical'].items():story.append(p(label.capitalize()+': '+('; '.join(value) if isinstance(value,list) else value)))
         if t.get('code_example'):story += [p('Read the SQL query' if t['code_example'].strip().startswith('SELECT') else 'Trace the algorithm','heading'),p(t['code_example'],'code')]
-        story.append(p('Key vocabulary','heading'))
+        if t.get('key_terms'):story.append(p('Key vocabulary','heading'))
         for term in t.get('key_terms',[]):story.append(p(term['term']+' - '+term['definition']))
         story += [Spacer(1,8),box('EXAM TECHNIQUE',t['tip'],'#fff7e8')]
-        if t.get('misconception')!=t.get('tip'):story += [Spacer(1,10),box('COMMON MISCONCEPTION',t['misconception'],'#fff7e8')]
-        story += [CondPageBreak(240),Spacer(1,22),p('APPLY / '+course['id'],'kicker'),p('See the reasoning.','title'),p(t['title'],'subtitle')]
+        if t.get('misconception') and t.get('misconception')!=t.get('tip'):story += [Spacer(1,10),box('COMMON MISCONCEPTION',t['misconception'],'#fff7e8')]
+        story += ([CondPageBreak(240),Spacer(1,22),p('APPLY / '+course['id'],'kicker'),p('See the reasoning.','title'),p(t['title'],'subtitle')] if t.get('worked_examples') else [])
         for i,example in enumerate(t.get('worked_examples',[t['worked']]),1):
             example_block=[p(f'Worked example {i}','heading'),p(example['question'])]
             for j,step in enumerate(example['steps'],1):example_block.append(p(f'{j:02}   '+step))

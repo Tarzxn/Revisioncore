@@ -35,7 +35,20 @@ class TeachingDiagram(Flowable):
                 if fill!='none':c.setFillColor(colors.HexColor(fill))
                 if kind=='rect':c.roundRect(e['x'],Y(e['y']+e['h']),e['w'],e['h'],e.get('r',0),stroke=int(stroke),fill=int(fill!='none'))
                 elif kind=='ellipse':c.ellipse(e['cx']-e['rx'],Y(e['cy']+e['ry']),e['cx']+e['rx'],Y(e['cy']-e['ry']),stroke=int(stroke),fill=int(fill!='none'))
+                elif kind=='path':
+                    path=c.beginPath();pos=(0,0);start=(0,0)
+                    for cmd in e['commands']:
+                        op=cmd[0];v=cmd[1:]
+                        if op=='M':path.moveTo(v[0],Y(v[1]));pos=tuple(v);start=pos
+                        elif op=='L':path.lineTo(v[0],Y(v[1]));pos=tuple(v)
+                        elif op=='C':path.curveTo(v[0],Y(v[1]),v[2],Y(v[3]),v[4],Y(v[5]));pos=(v[4],v[5])
+                        elif op=='Q':
+                            x,y=pos;cx,cy,ex,ey=v
+                            path.curveTo(x+2*(cx-x)/3,Y(y+2*(cy-y)/3),ex+2*(cx-ex)/3,Y(ey+2*(cy-ey)/3),ex,Y(ey));pos=(ex,ey)
+                        elif op=='Z':path.close();pos=start
+                    c.drawPath(path,stroke=int(stroke),fill=int(fill!='none'))
                 elif kind in ('polyline','polygon'):
+
                     path=c.beginPath();path.moveTo(e['points'][0][0],Y(e['points'][0][1]))
                     for x,y in e['points'][1:]:path.lineTo(x,Y(y))
                     if kind=='polygon':path.close()

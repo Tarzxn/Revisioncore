@@ -1,0 +1,2221 @@
+{
+  "checked": "2026-10-26",
+  "basis": "The primary index matches the public subject category lists checked for five courses. Individual subtopic-page parity and a statement-by-statement coverage audit are not certified. Cambridge DT uses the 2027 specification; no public SME notes index was verified.",
+  "courses": [
+    {
+      "code": "4MA1",
+      "subject": "Mathematics",
+      "official_specification": "https://qualifications.pearson.com/content/dam/pdf/International%20GCSE/Mathematics%20A/2016/Specification%20and%20sample%20assessments/international-gcse-in-mathematics-spec-a.pdf",
+      "public_topic_index": "https://www.savemyexams.com/igcse/maths/edexcel/a/18/higher/revision-notes/",
+      "topic_groups": [
+        {
+          "title": "Number Toolkit",
+          "unit": "Numbers & the Number System",
+          "sections": [
+            "Structure before calculation",
+            "Accuracy and sensible answers",
+            "Reason it through",
+            "Order, negatives and exact values"
+          ],
+          "words": 293
+        },
+        {
+          "title": "Set Notation & Venn Diagrams",
+          "unit": "Numbers & the Number System",
+          "sections": [
+            "Describe membership precisely",
+            "Fill overlapping regions in a useful order",
+            "Turn a region into a probability",
+            "Fill the overlap before the outer regions",
+            "Translate set symbols into ordinary words"
+          ],
+          "words": 324
+        },
+        {
+          "title": "Prime Factors, HCF & LCM",
+          "unit": "Numbers & the Number System",
+          "sections": [
+            "Use prime factors to find HCF and LCM",
+            "Prime factor decomposition",
+            "Choosing HCF or LCM"
+          ],
+          "words": 207
+        },
+        {
+          "title": "Powers, Roots & Standard Form",
+          "unit": "Numbers & the Number System",
+          "sections": [
+            "Indices describe repeated multiplication",
+            "Scale without a long string of zeros",
+            "Handle negative and fractional powers",
+            "Separate powers of ten from ordinary numbers"
+          ],
+          "words": 249
+        },
+        {
+          "title": "Fractions",
+          "unit": "Numbers & the Number System",
+          "sections": [
+            "Fractions and signs",
+            "Make fraction calculations easier",
+            "Mixed numbers and comparisons"
+          ],
+          "words": 188
+        },
+        {
+          "title": "Percentages",
+          "unit": "Numbers & the Number System",
+          "sections": [
+            "Choose the correct whole",
+            "Apply and reverse percentage changes",
+            "Percentage of an amount and change"
+          ],
+          "words": 182
+        },
+        {
+          "title": "Compound Interest & Depreciation",
+          "unit": "Numbers & the Number System",
+          "sections": [
+            "Repeated change and proportional models",
+            "Repeated percentage change",
+            "Reverse compound change"
+          ],
+          "words": 173
+        },
+        {
+          "title": "Fractions, Decimals & Percentages",
+          "unit": "Numbers & the Number System",
+          "sections": [
+            "Move between forms",
+            "Recurring decimals"
+          ],
+          "words": 136
+        },
+        {
+          "title": "Rounding, Estimation & Bounds",
+          "unit": "Numbers & the Number System",
+          "sections": [
+            "Write the rounding interval",
+            "Choose bounds that make the answer largest or smallest",
+            "See why upper and lower bounds change a quotient",
+            "Decimal places and significant figures"
+          ],
+          "words": 264
+        },
+        {
+          "title": "Surds",
+          "unit": "Numbers & the Number System",
+          "sections": [
+            "Higher: keep irrational values exact",
+            "Simplify and calculate",
+            "Rationalise denominators"
+          ],
+          "words": 186
+        },
+        {
+          "title": "Using a Calculator",
+          "unit": "Numbers & the Number System",
+          "sections": [
+            "Enter the intended expression",
+            "Read and check output"
+          ],
+          "words": 139
+        },
+        {
+          "title": "Ratio Toolkit",
+          "unit": "Numbers & the Number System",
+          "sections": [
+            "Share an amount using parts",
+            "Equivalent ratios and totals",
+            "A difference rather than a total"
+          ],
+          "words": 175
+        },
+        {
+          "title": "Ratio Problem Solving",
+          "unit": "Numbers & the Number System",
+          "sections": [
+            "Share an amount using parts",
+            "Combine through a shared quantity",
+            "Changing a mixture"
+          ],
+          "words": 171
+        },
+        {
+          "title": "Exchange Rates & Best Buys",
+          "unit": "Numbers & the Number System",
+          "sections": [
+            "Currency conversion",
+            "Compare equal quantities"
+          ],
+          "words": 111
+        },
+        {
+          "title": "Direct & Inverse Proportion",
+          "unit": "Numbers & the Number System",
+          "sections": [
+            "Build a direct or inverse proportion rule",
+            "Powers and graphs"
+          ],
+          "words": 177
+        },
+        {
+          "title": "Algebra Toolkit",
+          "unit": "Equations, Formulae & Identities",
+          "sections": [
+            "An expression is not an equation",
+            "Substitution and like terms",
+            "Algebraic conventions"
+          ],
+          "words": 169
+        },
+        {
+          "title": "Algebraic Roots & Indices",
+          "unit": "Equations, Formulae & Identities",
+          "sections": [
+            "Indices describe repeated multiplication",
+            "Handle negative and fractional powers",
+            "Rules with variables"
+          ],
+          "words": 199
+        },
+        {
+          "title": "Expanding Brackets",
+          "unit": "Equations, Formulae & Identities",
+          "sections": [
+            "Expand first, then collect like terms",
+            "Every required pair",
+            "Special products"
+          ],
+          "words": 155
+        },
+        {
+          "title": "Factorising",
+          "unit": "Equations, Formulae & Identities",
+          "sections": [
+            "Factorise a monic quadratic",
+            "Common factors and squares",
+            "Non-monic quadratics"
+          ],
+          "words": 194
+        },
+        {
+          "title": "Completing the Square",
+          "unit": "Equations, Formulae & Identities",
+          "sections": [
+            "Create a perfect square",
+            "Leading coefficients and equations"
+          ],
+          "words": 115
+        },
+        {
+          "title": "Algebraic Fractions",
+          "unit": "Equations, Formulae & Identities",
+          "sections": [
+            "Higher: fractions and non-linear systems",
+            "Factor before cancelling"
+          ],
+          "words": 129
+        },
+        {
+          "title": "Rearranging Formulas",
+          "unit": "Equations, Formulae & Identities",
+          "sections": [
+            "Undo operations in reverse order",
+            "A repeated subject"
+          ],
+          "words": 113
+        },
+        {
+          "title": "Algebraic Proof",
+          "unit": "Equations, Formulae & Identities",
+          "sections": [
+            "Reasoning with general forms",
+            "Use a general number to prove a statement"
+          ],
+          "words": 136
+        },
+        {
+          "title": "Solving Linear Equations",
+          "unit": "Equations, Formulae & Identities",
+          "sections": [
+            "Keep both sides balanced",
+            "Clear a fraction without losing a term",
+            "Unknowns on both sides"
+          ],
+          "words": 191
+        },
+        {
+          "title": "Solving Quadratic Equations",
+          "unit": "Equations, Formulae & Identities",
+          "sections": [
+            "Put the equation into a useful form",
+            "Factorise a monic quadratic",
+            "Use the zero-product rule",
+            "Connect roots with a graph",
+            "Choose a different method when necessary"
+          ],
+          "words": 448
+        },
+        {
+          "title": "Solving Inequalities",
+          "unit": "Equations, Formulae & Identities",
+          "sections": [
+            "Move everything to one side",
+            "Test the sign in each interval",
+            "Handle strict and inclusive endpoints",
+            "Use the curve as a second check",
+            "Deal with repeated roots and context"
+          ],
+          "words": 440
+        },
+        {
+          "title": "Simultaneous Equations",
+          "unit": "Equations, Formulae & Identities",
+          "sections": [
+            "Eliminate one unknown",
+            "Substitute into a curve",
+            "Recognise no solution or repeated information",
+            "Check each coordinate pair",
+            "Choose substitution when the subject is already clear"
+          ],
+          "words": 250
+        },
+        {
+          "title": "Forming & Solving Equations",
+          "unit": "Equations, Formulae & Identities",
+          "sections": [
+            "Translate the complete relationship",
+            "Interpret solutions"
+          ],
+          "words": 138
+        },
+        {
+          "title": "Sequences",
+          "unit": "Sequences, Functions & Graphs",
+          "sections": [
+            "From a pattern to a rule",
+            "Find a rule from differences",
+            "Quadratic and geometric patterns"
+          ],
+          "words": 213
+        },
+        {
+          "title": "Functions",
+          "unit": "Sequences, Functions & Graphs",
+          "sections": [
+            "Substitute an input into a rule",
+            "Read a composite from the inside out",
+            "Reverse a one-to-one rule",
+            "Check the allowed branch",
+            "Check by going forwards and backwards"
+          ],
+          "words": 251
+        },
+        {
+          "title": "Coordinate Geometry",
+          "unit": "Sequences, Functions & Graphs",
+          "sections": [
+            "Midpoint and distance",
+            "Prove geometric relationships"
+          ],
+          "words": 113
+        },
+        {
+          "title": "Linear Graphs: y = mx + c",
+          "unit": "Sequences, Functions & Graphs",
+          "sections": [
+            "Read y = mx + c",
+            "Calculate gradient from two points",
+            "Find an equation using one point",
+            "Recognise parallel and perpendicular lines",
+            "Interpret gradient with units"
+          ],
+          "words": 445
+        },
+        {
+          "title": "Graphs of Functions",
+          "unit": "Sequences, Functions & Graphs",
+          "sections": [
+            "Read the relationship, not only the picture",
+            "Curves and real-life graphs",
+            "Recognise curve families",
+            "Solve using intersections"
+          ],
+          "words": 246
+        },
+        {
+          "title": "Estimating Gradients",
+          "unit": "Sequences, Functions & Graphs",
+          "sections": [
+            "Connect a derivative to a tangent",
+            "Tangent method"
+          ],
+          "words": 156
+        },
+        {
+          "title": "Real-Life Graphs",
+          "unit": "Sequences, Functions & Graphs",
+          "sections": [
+            "Curves and real-life graphs",
+            "Read quantities first",
+            "Interpret gradient and intercept"
+          ],
+          "words": 162
+        },
+        {
+          "title": "Graphing Inequalities",
+          "unit": "Sequences, Functions & Graphs",
+          "sections": [
+            "Boundary and permitted half-plane",
+            "Several restrictions"
+          ],
+          "words": 129
+        },
+        {
+          "title": "Transformations of Graphs",
+          "unit": "Sequences, Functions & Graphs",
+          "sections": [
+            "Higher: iteration and transformations",
+            "Track coordinate changes"
+          ],
+          "words": 149
+        },
+        {
+          "title": "Differentiation",
+          "unit": "Sequences, Functions & Graphs",
+          "sections": [
+            "Model the quantity before differentiating",
+            "Apply polynomial differentiation",
+            "Interpret the result",
+            "Turn a perimeter condition into an area formula",
+            "Check what the stationary point means"
+          ],
+          "words": 332
+        },
+        {
+          "title": "Standard & Compound Units",
+          "unit": "Geometry & Trigonometry",
+          "sections": [
+            "Convert units before using a formula",
+            "Dimensions matter",
+            "Compound measures"
+          ],
+          "words": 145
+        },
+        {
+          "title": "Angles in Polygons & Parallel Lines",
+          "unit": "Geometry & Trigonometry",
+          "sections": [
+            "Build an angle argument",
+            "Name the reason for each angle step",
+            "Polygon angle sums"
+          ],
+          "words": 204
+        },
+        {
+          "title": "Bearings, Scale Drawing & Constructions",
+          "unit": "Geometry & Trigonometry",
+          "sections": [
+            "Loci and accurate constructions",
+            "Understand what common constructions locate",
+            "Bearings and scale"
+          ],
+          "words": 198
+        },
+        {
+          "title": "Circle Theorems",
+          "unit": "Geometry & Trigonometry",
+          "sections": [
+            "Use the angle at the centre",
+            "Recognise angles in the same segment",
+            "Find a right angle from a diameter",
+            "Use cyclic quadrilaterals and tangents",
+            "Build a proof one step at a time",
+            "Match angles to the same chord or arc",
+            "Use a tangent’s contact point",
+            "Combine facts to find missing angles",
+            "Make each proof step easy to follow",
+            "Follow a chain instead of listing theorem names"
+          ],
+          "words": 699
+        },
+        {
+          "title": "Area & Perimeter",
+          "unit": "Geometry & Trigonometry",
+          "sections": [
+            "Measure in the correct dimension",
+            "Boundary length and covered region",
+            "Compound shapes"
+          ],
+          "words": 136
+        },
+        {
+          "title": "Circles, Arcs & Sectors",
+          "unit": "Geometry & Trigonometry",
+          "sections": [
+            "Whole circles",
+            "Sectors and segments"
+          ],
+          "words": 104
+        },
+        {
+          "title": "Volume & Surface Area",
+          "unit": "Geometry & Trigonometry",
+          "sections": [
+            "Measure in the correct dimension",
+            "Volumes",
+            "Exposed surfaces"
+          ],
+          "words": 152
+        },
+        {
+          "title": "Congruence, Similarity & Geometrical Proof",
+          "unit": "Geometry & Trigonometry",
+          "sections": [
+            "Similarity scales different quantities differently",
+            "Congruent triangles",
+            "Similarity and proof"
+          ],
+          "words": 145
+        },
+        {
+          "title": "Area & Volume of Similar Shapes",
+          "unit": "Geometry & Trigonometry",
+          "sections": [
+            "Use the right scale factor for the measurement",
+            "Length, area and volume ratios"
+          ],
+          "words": 143
+        },
+        {
+          "title": "Right-Angled Triangles: Pythagoras & Trigonometry",
+          "unit": "Geometry & Trigonometry",
+          "sections": [
+            "Identify the hypotenuse first",
+            "Use Pythagoras for side lengths",
+            "Choose sine, cosine or tangent",
+            "Find an angle with an inverse function",
+            "Translate a three-dimensional problem"
+          ],
+          "words": 437
+        },
+        {
+          "title": "Sine, Cosine Rule & Area of Triangles",
+          "unit": "Geometry & Trigonometry",
+          "sections": [
+            "Choose a rule from the information",
+            "Find a side or an angle carefully",
+            "Use the included angle for area",
+            "See why the ambiguous sine answer needs a check"
+          ],
+          "words": 215
+        },
+        {
+          "title": "3D Pythagoras & Trigonometry",
+          "unit": "Geometry & Trigonometry",
+          "sections": [
+            "Translate a three-dimensional problem",
+            "Split a 3D problem into triangles",
+            "Choose a two-dimensional section",
+            "Angle to a plane"
+          ],
+          "words": 246
+        },
+        {
+          "title": "Vectors",
+          "unit": "Vectors & Transformation Geometry",
+          "sections": [
+            "Vectors carry direction and magnitude",
+            "Higher: prove a geometric relationship",
+            "Build a journey from known vectors"
+          ],
+          "words": 190
+        },
+        {
+          "title": "Transformations",
+          "unit": "Vectors & Transformation Geometry",
+          "sections": [
+            "Describe the entire transformation",
+            "Give every part of a transformation description",
+            "Complete descriptions"
+          ],
+          "words": 213
+        },
+        {
+          "title": "Statistics Toolkit",
+          "unit": "Statistics & Probability",
+          "sections": [
+            "A statistic answers a particular question",
+            "Interpret relationships cautiously",
+            "Choose an average and understand its limits",
+            "Estimate a mean from grouped data",
+            "Frequency tables and association"
+          ],
+          "words": 335
+        },
+        {
+          "title": "Histograms",
+          "unit": "Statistics & Probability",
+          "sections": [
+            "Distinguish a histogram from a bar chart",
+            "Calculate frequency density",
+            "Recover a frequency from a bar",
+            "Estimate within part of a class",
+            "Compare distributions responsibly"
+          ],
+          "words": 449
+        },
+        {
+          "title": "Cumulative Frequency Diagrams",
+          "unit": "Statistics & Probability",
+          "sections": [
+            "Find quartiles on a cumulative curve",
+            "Compare typical value and spread",
+            "Treat grouped readings as estimates",
+            "Construct and interpret"
+          ],
+          "words": 218
+        },
+        {
+          "title": "Probability Toolkit",
+          "unit": "Statistics & Probability",
+          "sections": [
+            "List the sample space accurately",
+            "Rules and expectations",
+            "Experimental evidence"
+          ],
+          "words": 139
+        },
+        {
+          "title": "Probability Diagrams: Venn & Tree Diagrams",
+          "unit": "Statistics & Probability",
+          "sections": [
+            "Make each set of branches complete",
+            "Update a bag without replacement",
+            "Multiply along one path",
+            "Add disjoint successful paths",
+            "Check the whole model"
+          ],
+          "words": 426
+        },
+        {
+          "title": "Combined & Conditional Probability",
+          "unit": "Statistics & Probability",
+          "sections": [
+            "Trees and overlapping events",
+            "Higher: conditions change the reference group",
+            "Change probabilities after a draw without replacement",
+            "Use the condition to choose the denominator",
+            "Change the reference group"
+          ],
+          "words": 320
+        }
+      ]
+    },
+    {
+      "code": "4BI1",
+      "subject": "Biology",
+      "official_specification": "https://qualifications.pearson.com/content/dam/pdf/International%20GCSE/Biology/2017/specification-and-sample-assessments/international-gcse-biology-2017-specification1.pdf",
+      "public_topic_index": "https://www.savemyexams.com/igcse/biology/edexcel/19/revision-notes/",
+      "topic_groups": [
+        {
+          "title": "Characteristics of Living Organisms",
+          "unit": "The Nature & Variety of Living Organisms",
+          "sections": [
+            "What living systems do",
+            "Recognising the major groups",
+            "Pathogens are not a separate kingdom",
+            "Reason it through",
+            "Tell the main groups apart",
+            "Keep size and units in perspective"
+          ],
+          "words": 383
+        },
+        {
+          "title": "Levels of Organisation",
+          "unit": "Structure & Functions in Living Organisms",
+          "sections": [
+            "From organelles to systems",
+            "Relate structure to job"
+          ],
+          "words": 173
+        },
+        {
+          "title": "Cell Structure",
+          "unit": "Structure & Functions in Living Organisms",
+          "sections": [
+            "Read an animal cell",
+            "Add the plant-specific features",
+            "Compare bacteria with eukaryotic cells",
+            "Relate specialisation to function",
+            "Calculate magnification and actual size",
+            "Differentiation and stem cells"
+          ],
+          "words": 544
+        },
+        {
+          "title": "Biological Molecules",
+          "unit": "Structure & Functions in Living Organisms",
+          "sections": [
+            "Enzymes work through a specific active site",
+            "Explain specificity",
+            "Separate warming from denaturation",
+            "Explain pH effects",
+            "Measure amylase action with a clear endpoint",
+            "Evaluate the evidence",
+            "Separate the tests and observations",
+            "Control the enzyme reaction",
+            "Interpret a time endpoint",
+            "Distinguish observation from conclusion",
+            "Keep the endpoint consistent in an enzyme test",
+            "Food molecules and their building blocks"
+          ],
+          "words": 954
+        },
+        {
+          "title": "Movement of Substances Into & Out of Cells",
+          "unit": "Structure & Functions in Living Organisms",
+          "sections": [
+            "Three different transport mechanisms",
+            "Understand net movement in diffusion",
+            "See why small cells exchange materials more easily",
+            "Define the direction precisely",
+            "Predict changes in animal cells",
+            "Explain turgid and plasmolysed plant cells",
+            "Design a potato investigation",
+            "Interpret a zero-change point",
+            "Active transport and diffusion rate"
+          ],
+          "words": 748
+        },
+        {
+          "title": "Nutrition",
+          "unit": "Structure & Functions in Living Organisms",
+          "sections": [
+            "Plants build organic molecules",
+            "Digestion turns food into absorbable molecules",
+            "Practical evidence and controls",
+            "Link a leaf’s layers to photosynthesis",
+            "Explain mineral deficiencies clearly",
+            "Read a leaf cross-section",
+            "Connect palisade cells with light absorption",
+            "Explain stomata and air spaces",
+            "Follow xylem and phloem",
+            "Interpret a starch-test investigation",
+            "Break large molecules into small products",
+            "Match enzymes to their conditions",
+            "Explain bile’s two main jobs",
+            "Link villus features to absorption",
+            "Follow one food molecule through the process",
+            "Explain what the plant makes",
+            "Identify the factor limiting the rate",
+            "Measure oxygen with a fair method",
+            "Understand what a starch test shows",
+            "Read a limiting-factor graph in stages",
+            "Balanced diet and food energy"
+          ],
+          "words": 1415
+        },
+        {
+          "title": "Respiration",
+          "unit": "Structure & Functions in Living Organisms",
+          "sections": [
+            "Respiration releases usable energy",
+            "Compare aerobic and anaerobic respiration",
+            "Aerobic and anaerobic equations",
+            "Investigate respiration"
+          ],
+          "words": 269
+        },
+        {
+          "title": "Gas Exchange",
+          "unit": "Structure & Functions in Living Organisms",
+          "sections": [
+            "Exchange surfaces maintain diffusion",
+            "Explain how ventilation maintains gas exchange",
+            "Follow air to the exchange surface",
+            "Link alveolar structure to diffusion",
+            "Explain how gradients are maintained",
+            "Describe the mechanics of inhalation",
+            "Distinguish breathing from respiration",
+            "Plants and changing light"
+          ],
+          "words": 652
+        },
+        {
+          "title": "Transport Systems",
+          "unit": "Structure & Functions in Living Organisms",
+          "sections": [
+            "Bulk transport connects exchange to demand",
+            "Three complementary defences",
+            "Specific recognition and memory",
+            "Interpreting vaccination evidence",
+            "Read the primary and secondary response curves",
+            "Understand protection without claiming certainty",
+            "Trace blood through both sides",
+            "Explain muscle thickness and valves",
+            "Compare the blood vessels",
+            "Explain a coronary blockage",
+            "Understand why two circuits are useful",
+            "Give each tissue its own job",
+            "Follow water through a plant",
+            "Use the gradient to predict changes",
+            "Read a potometer result correctly",
+            "Compare rates using equal time or a calculated rate",
+            "Blood components and clotting"
+          ],
+          "words": 1064
+        },
+        {
+          "title": "Excretion",
+          "unit": "Structure & Functions in Living Organisms",
+          "sections": [
+            "Separate excretion from egestion",
+            "Describe ultrafiltration",
+            "Explain selective reabsorption",
+            "Use ADH to explain dehydration",
+            "Explain negative feedback and evidence"
+          ],
+          "words": 458
+        },
+        {
+          "title": "Co-ordination & Response",
+          "unit": "Structure & Functions in Living Organisms",
+          "sections": [
+            "Keep internal conditions within limits",
+            "Responses can be electrical or chemical",
+            "Follow a negative-feedback response",
+            "Separate blood-glucose control from eating sugar",
+            "Light detection and protection",
+            "Focusing at different distances",
+            "Two responses with different purposes",
+            "Distinguish rods, cones and the blind spot",
+            "Explain the muscles controlling the pupil",
+            "Separate the parts of a response",
+            "Follow a spinal reflex arc",
+            "Describe a synapse in order",
+            "Explain speed without claiming instant action",
+            "Compare nervous and hormonal communication",
+            "Plant responses and temperature control"
+          ],
+          "words": 1187
+        },
+        {
+          "title": "Reproduction",
+          "unit": "Reproduction & Inheritance",
+          "sections": [
+            "Two routes to a new organism",
+            "Flowering plant reproduction",
+            "Human reproduction and development",
+            "Explain how the placenta supports development",
+            "Coordinate the ovary and uterus",
+            "After ovulation",
+            "Read a graph rather than memorising one date",
+            "Build the sequence around the main events",
+            "Connect feedback to the next stage",
+            "Germination and asexual reproduction"
+          ],
+          "words": 677
+        },
+        {
+          "title": "Inheritance",
+          "unit": "Reproduction & Inheritance",
+          "sections": [
+            "Information is stored in base sequence",
+            "Predict inheritance carefully",
+            "Read a genetic cross as a probability",
+            "Keep sex chromosomes separate from all other genes",
+            "Compare mitosis and meiosis",
+            "The code is a sequence",
+            "Transcription and translation are different stages",
+            "Relate mutation to function carefully",
+            "Follow the information in the correct order",
+            "Explain how a mutation may affect a protein",
+            "Start with variation already present",
+            "Link survival to reproduction",
+            "Apply this to antibiotic resistance",
+            "Distinguish a fraction from a number",
+            "Explain adaptation without saying a population is trying",
+            "Alleles and genetic predictions"
+          ],
+          "words": 1049
+        },
+        {
+          "title": "The Organism in the Environment",
+          "unit": "Ecology & the Environment",
+          "sections": [
+            "Match sampling to the question",
+            "Calculate with the sampled area",
+            "Evaluate the conclusion",
+            "Turn quadrat counts into an estimate",
+            "Choose a transect when conditions change",
+            "Ecological levels and factors"
+          ],
+          "words": 429
+        },
+        {
+          "title": "Feeding Relationships",
+          "unit": "Ecology & the Environment",
+          "sections": [
+            "Energy flows; nutrients cycle",
+            "Explain energy loss between feeding levels",
+            "Food webs and ecological pyramids"
+          ],
+          "words": 225
+        },
+        {
+          "title": "Cycles within Ecosystems",
+          "unit": "Ecology & the Environment",
+          "sections": [
+            "Follow atoms through transformations",
+            "Nitrogen becomes usable through microorganisms",
+            "Connect the cycle to farming and pollution",
+            "Track carbon through named processes",
+            "Keep the nitrogen bacteria’s jobs separate"
+          ],
+          "words": 336
+        },
+        {
+          "title": "Human Influences on the Environment",
+          "unit": "Ecology & the Environment",
+          "sections": [
+            "Human activity changes ecological systems",
+            "Follow the steps of eutrophication",
+            "Air pollution and habitat loss"
+          ],
+          "words": 220
+        },
+        {
+          "title": "Food Production",
+          "unit": "Use of Biological Resources",
+          "sections": [
+            "Increase yield while considering consequences",
+            "Use microorganisms as biological factories",
+            "Explain the controls inside a fermenter",
+            "Glasshouses, fertilisers and pest control",
+            "Microorganisms and fish farming"
+          ],
+          "words": 345
+        },
+        {
+          "title": "Selective Breeding",
+          "unit": "Use of Biological Resources",
+          "sections": [
+            "Choose and cross useful parents",
+            "Benefits and limitations"
+          ],
+          "words": 157
+        },
+        {
+          "title": "Genetic Modification (Genetic Engineering)",
+          "unit": "Use of Biological Resources",
+          "sections": [
+            "Modify or copy genetic material",
+            "Follow a simple genetic-engineering pathway",
+            "Transfer a useful gene"
+          ],
+          "words": 250
+        },
+        {
+          "title": "Cloning",
+          "unit": "Use of Biological Resources",
+          "sections": [
+            "Distinguish a clone from sexual offspring",
+            "Follow micropropagation step by step",
+            "Weigh uniformity against shared risk",
+            "Keep cloning and genetic modification separate",
+            "Judge success beyond the first stage",
+            "Mammalian nuclear transfer"
+          ],
+          "words": 355
+        }
+      ]
+    },
+    {
+      "code": "4CH1",
+      "subject": "Chemistry",
+      "official_specification": "https://qualifications.pearson.com/content/dam/pdf/International%20GCSE/Chemistry/2017/specification-and-sample-assessments/international-gcse-chemistry-2017-specification.pdf",
+      "public_topic_index": "https://www.savemyexams.com/igcse/chemistry/edexcel/19/revision-notes/",
+      "topic_groups": [
+        {
+          "title": "States of Matter",
+          "unit": "Principles of Chemistry",
+          "sections": [
+            "A particle model explains state changes",
+            "Diffusion and dilution",
+            "Solutions and solubility"
+          ],
+          "words": 257
+        },
+        {
+          "title": "Elements, Compounds or Mixtures",
+          "unit": "Principles of Chemistry",
+          "sections": [
+            "Separate physical mixtures appropriately",
+            "Separate dissolved and undissolved substances",
+            "Choose the property that separates the mixture",
+            "Set up chromatography correctly",
+            "Calculate an Rf ratio",
+            "Be careful about a single spot",
+            "Explain why the same substance can move differently",
+            "Elements, compounds and purity"
+          ],
+          "words": 485
+        },
+        {
+          "title": "Atomic Structure",
+          "unit": "Principles of Chemistry",
+          "sections": [
+            "Atoms and isotopes",
+            "Calculate relative atomic mass from isotopes",
+            "Subatomic particles and isotopes"
+          ],
+          "words": 229
+        },
+        {
+          "title": "The Periodic Table",
+          "unit": "Principles of Chemistry",
+          "sections": [
+            "The table organises electron patterns",
+            "Electron arrangement and position",
+            "Link observations to classification"
+          ],
+          "words": 205
+        },
+        {
+          "title": "Chemical Formulae, Equations, Calculations",
+          "unit": "Principles of Chemistry",
+          "sections": [
+            "Represent atoms without losing them",
+            "Count chemical amounts with moles",
+            "Concentration connects amount to volume",
+            "Keep mass concentration and molar concentration separate",
+            "Use coefficients after converting to moles",
+            "Mass ratios are not atom ratios",
+            "From empirical to molecular information",
+            "Interpret an experiment critically",
+            "Convert a percentage composition into a ratio",
+            "Do not round away a meaningful half ratio",
+            "Find the reactant that runs out first",
+            "Calculate a gas volume",
+            "Compare actual and theoretical yield",
+            "Use a recipe analogy without forgetting the mole ratio",
+            "Balance equations without changing formulae"
+          ],
+          "words": 932
+        },
+        {
+          "title": "Ionic Bonding",
+          "unit": "Principles of Chemistry",
+          "sections": [
+            "Build an ionic formula from charge balance",
+            "Electron transfer and attraction",
+            "Explain ionic properties"
+          ],
+          "words": 208
+        },
+        {
+          "title": "Covalent Bonding",
+          "unit": "Principles of Chemistry",
+          "sections": [
+            "Ionic and covalent bonds are different attractions",
+            "Structure determines observable behaviour",
+            "Explain a property using the actual structure",
+            "Shared pairs and structures"
+          ],
+          "words": 291
+        },
+        {
+          "title": "Metallic Bonding",
+          "unit": "Principles of Chemistry",
+          "sections": [
+            "A lattice with mobile electrons",
+            "Malleability and alloys"
+          ],
+          "words": 161
+        },
+        {
+          "title": "Electrolysis",
+          "unit": "Principles of Chemistry",
+          "sections": [
+            "Electricity drives a chemical change",
+            "Identify what carries charge",
+            "Identify the electrolyte before predicting products",
+            "Balance a half-equation",
+            "Explain a changing electrode",
+            "Follow a copper ion from solution to the electrode"
+          ],
+          "words": 314
+        },
+        {
+          "title": "Group 1",
+          "unit": "Inorganic Chemistry",
+          "sections": [
+            "Explain the Group 1 trend using electron loss",
+            "Alkali metals and water",
+            "Predict a group reaction"
+          ],
+          "words": 221
+        },
+        {
+          "title": "Group 7",
+          "unit": "Inorganic Chemistry",
+          "sections": [
+            "Explain the reactivity trend",
+            "Predict whether displacement happens",
+            "Identify electron loss and gain",
+            "Describe the observation before the conclusion",
+            "Check that electrons cancel between the two half-equations"
+          ],
+          "words": 256
+        },
+        {
+          "title": "Gases in the Atmosphere",
+          "unit": "Inorganic Chemistry",
+          "sections": [
+            "Atmospheric gases have distinctive uses and tests",
+            "Connect an air-volume change to oxygen content",
+            "Composition and combustion",
+            "Greenhouse gases"
+          ],
+          "words": 261
+        },
+        {
+          "title": "Reactivity Series",
+          "unit": "Inorganic Chemistry",
+          "sections": [
+            "Reactivity predicts competing reactions",
+            "Rusting needs water and oxygen",
+            "Explain rusting and protection as a chain",
+            "Displacement and redox"
+          ],
+          "words": 288
+        },
+        {
+          "title": "Extraction & Uses of Metals",
+          "unit": "Inorganic Chemistry",
+          "sections": [
+            "Extraction involves chemical and practical decisions",
+            "Choose extraction from reactivity",
+            "Match extraction to reactivity"
+          ],
+          "words": 230
+        },
+        {
+          "title": "Acids, Alkalis & Titrations",
+          "unit": "Inorganic Chemistry",
+          "sections": [
+            "Neutralisation is a reaction of ions",
+            "Do not confuse strong with concentrated",
+            "Use the reacting ratio",
+            "Make the measured volume reliable",
+            "Prepare a salt without indicator contamination",
+            "Use the mean titre that matches the method",
+            "Include the acid–alkali mole ratio"
+          ],
+          "words": 458
+        },
+        {
+          "title": "Acids, Bases & Salt Preparations",
+          "unit": "Inorganic Chemistry",
+          "sections": [
+            "Choose the correct salt-preparation route",
+            "Explain each stage of an insoluble-base salt method",
+            "Solubility rules choose the route"
+          ],
+          "words": 251
+        },
+        {
+          "title": "Chemical Tests",
+          "unit": "Inorganic Chemistry",
+          "sections": [
+            "Observations identify substances",
+            "Test a clear hypothesis",
+            "Use suitable reagents for negative ions",
+            "A test result has conditions and limits",
+            "Keep common hydroxide precipitates separate",
+            "Use a flame test for suitable metal ions",
+            "Gas and water tests"
+          ],
+          "words": 479
+        },
+        {
+          "title": "Energetics",
+          "unit": "Physical Chemistry",
+          "sections": [
+            "Follow the energy balance",
+            "Use bond energies in the correct direction",
+            "Define the system and the measured change",
+            "Scale to a stated amount of reaction",
+            "Explain realistic limitations",
+            "Choose the mass that matches the calculation",
+            "Explain the direction of a heat-loss error"
+          ],
+          "words": 454
+        },
+        {
+          "title": "Rates of Reaction",
+          "unit": "Physical Chemistry",
+          "sections": [
+            "Use collision theory to explain a change in rate",
+            "Make a fair rate measurement",
+            "Explain why temperature affects rate",
+            "Choose a measurable change",
+            "Control the comparison",
+            "Use gradients with units",
+            "Read a slope as rate, not total product",
+            "Choose measurements that fit the reaction"
+          ],
+          "words": 529
+        },
+        {
+          "title": "Reversible Reactions & Equilibria",
+          "unit": "Physical Chemistry",
+          "sections": [
+            "An equilibrium is still active",
+            "A changed condition favours a response",
+            "Industry balances several objectives",
+            "Reason it through",
+            "Distinguish a reversible change from a finished reaction",
+            "Keep rate changes separate from equilibrium yield",
+            "Explain why the system must be closed",
+            "Predict concentration and pressure effects",
+            "Use temperature and catalyst rules separately",
+            "Explain an industrial compromise",
+            "Distinguish one-pass yield from overall production"
+          ],
+          "words": 656
+        },
+        {
+          "title": "Introduction",
+          "unit": "Organic Chemistry",
+          "sections": [
+            "Distinguish the three representations",
+            "Compare butane with methylpropane",
+            "Avoid counting rotated copies twice",
+            "Use a functional group to choose the ending",
+            "Audit a proposed structure",
+            "A formula must show the intended connectivity",
+            "Use the functional group in the name",
+            "Link representation to polymerisation",
+            "Count carbons before naming the functional group",
+            "Distinguish an isomer from a rotated drawing"
+          ],
+          "words": 822
+        },
+        {
+          "title": "Crude Oil",
+          "unit": "Organic Chemistry",
+          "sections": [
+            "Start with a mixture",
+            "Follow heating, rising and condensation",
+            "Connect chain length with physical properties",
+            "Match fractions to useful roles",
+            "Separate demand from natural supply",
+            "Explain why cracking is useful",
+            "State the course conditions",
+            "Check a complete example",
+            "Derive a missing product",
+            "Connect products to observations",
+            "Balance complete combustion",
+            "Recognise incomplete combustion",
+            "Explain the danger of carbon monoxide",
+            "Identify sulfur dioxide and nitrogen oxides",
+            "Distinguish acid rain from climate effects"
+          ],
+          "words": 1345
+        },
+        {
+          "title": "Alkanes",
+          "unit": "Organic Chemistry",
+          "sections": [
+            "What makes a molecule an alkane",
+            "Build the straight-chain series",
+            "Read pentane and hexane carefully",
+            "Explain the physical-property trend",
+            "Use combustion equations",
+            "Recognise ultraviolet substitution"
+          ],
+          "words": 621
+        },
+        {
+          "title": "Alkenes",
+          "unit": "Organic Chemistry",
+          "sections": [
+            "Locate the functional group",
+            "Draw hydrogens using valency",
+            "Name the double-bond position",
+            "Follow bromine addition atom by atom",
+            "Interpret the bromine-water test",
+            "Connect addition to polymers"
+          ],
+          "words": 539
+        },
+        {
+          "title": "Alcohols",
+          "unit": "Organic Chemistry",
+          "sections": [
+            "Recognise an alcohol structure",
+            "Explain fermentation",
+            "Compare hydration of ethene",
+            "Distinguish combustion from partial oxidation",
+            "Use structures to follow the change"
+          ],
+          "words": 442
+        },
+        {
+          "title": "Carboxylic Acids",
+          "unit": "Organic Chemistry",
+          "sections": [
+            "Read the carboxyl group",
+            "Explain weak acidity",
+            "Predict salts with metals and alkalis",
+            "Use the carbonate reaction",
+            "Connect oxidation and esterification"
+          ],
+          "words": 436
+        },
+        {
+          "title": "Esters",
+          "unit": "Organic Chemistry",
+          "sections": [
+            "Identify the ester linkage",
+            "Build names in the right order",
+            "State the reaction and conditions",
+            "Track atoms instead of guessing a drawing",
+            "Relate structure and use cautiously"
+          ],
+          "words": 443
+        },
+        {
+          "title": "Synthetic Polymers",
+          "unit": "Organic Chemistry",
+          "sections": [
+            "Start from the correct monomer",
+            "Draw the ethene repeat unit",
+            "Keep side groups in place",
+            "Recover a monomer from a repeat unit",
+            "Link chemical structure with disposal",
+            "Recognise a two-ended monomer",
+            "Find the polyester link",
+            "Account for the eliminated molecule",
+            "Compare with addition polymerisation",
+            "Explain hydrolysis and environmental claims"
+          ],
+          "words": 1029
+        }
+      ]
+    },
+    {
+      "code": "4PH1",
+      "subject": "Physics",
+      "official_specification": "https://qualifications.pearson.com/content/dam/pdf/International%20GCSE/Physics/2017/specification-and-sample-assessments/international-gcse-physics-2017-specification.pdf",
+      "public_topic_index": "https://www.savemyexams.com/igcse/physics/edexcel/19/revision-notes/",
+      "topic_groups": [
+        {
+          "title": "Movement & Position",
+          "unit": "Forces & Motion",
+          "sections": [
+            "Read both axes before interpreting",
+            "Calculate speed from a straight section",
+            "Interpret curved sections",
+            "Calculate an average for a whole journey",
+            "Evaluate measurements and models",
+            "Identify velocity and direction",
+            "Calculate acceleration from gradient",
+            "Calculate displacement from area",
+            "Handle crossing the axis",
+            "Check a motion calculation",
+            "Define the measured interval",
+            "Calculate and compare acceleration",
+            "Judge improvements specifically",
+            "Use a light gate for a short time interval",
+            "Explain how repeats help and what they cannot fix",
+            "Speed and uniform acceleration"
+          ],
+          "words": 1338
+        },
+        {
+          "title": "Forces, Movement & Changing Shape",
+          "unit": "Forces & Motion",
+          "sections": [
+            "Choose one object and label real forces",
+            "Combine forces along each direction",
+            "Apply F = ma",
+            "Separate weight, mass and normal force",
+            "Use Newton’s third law correctly",
+            "Separate extension from total spring length",
+            "Stopping distance",
+            "Terminal velocity",
+            "Springs and Hooke’s law"
+          ],
+          "words": 708
+        },
+        {
+          "title": "Momentum",
+          "unit": "Forces & Motion",
+          "sections": [
+            "Include the direction of motion",
+            "State when total momentum is conserved",
+            "Use stopping time to explain a safety feature",
+            "Check energy separately",
+            "Understand why bouncing changes momentum more than stopping"
+          ],
+          "words": 254
+        },
+        {
+          "title": "Moments",
+          "unit": "Forces & Motion",
+          "sections": [
+            "Identify the pivot and line of action",
+            "Choose clockwise and anticlockwise directions",
+            "Apply the principle of moments",
+            "Check translational equilibrium as well",
+            "Explain stability and everyday design",
+            "Use perpendicular distance",
+            "Balance clockwise and anticlockwise effects",
+            "Explain toppling from the weight line",
+            "Measure a turning-effect investigation carefully",
+            "Choose a pivot that removes an unknown force"
+          ],
+          "words": 694
+        },
+        {
+          "title": "Current, Potential Difference & Resistance",
+          "unit": "Electricity",
+          "sections": [
+            "Current is moving charge",
+            "Components respond differently",
+            "Connect charge, current and energy",
+            "Build the measurement circuit",
+            "Recognise the shapes",
+            "Separate component behaviour from experimental effects",
+            "Connect the meters to the quantities measured",
+            "Explain a lamp curve using temperature"
+          ],
+          "words": 542
+        },
+        {
+          "title": "Components in Series & Parallel Circuits",
+          "unit": "Electricity",
+          "sections": [
+            "Recognise parallel connections",
+            "Use the junction rule",
+            "Apply the same voltage to each branch",
+            "Find and check combined resistance",
+            "Connect energy and safe operation",
+            "Resistance and power in networks",
+            "Explain series and parallel using the junctions"
+          ],
+          "words": 582
+        },
+        {
+          "title": "Electrical Power & Mains Electricity",
+          "unit": "Electricity",
+          "sections": [
+            "Protect the user when something goes wrong",
+            "Choose protective ratings sensibly",
+            "Give the earth wire and fuse their separate roles",
+            "Power, energy and alternating current"
+          ],
+          "words": 306
+        },
+        {
+          "title": "Static Electricity",
+          "unit": "Electricity",
+          "sections": [
+            "Charge transfer creates static effects",
+            "Explain charging without moving protons",
+            "Charge and applications"
+          ],
+          "words": 235
+        },
+        {
+          "title": "Waves & The Electromagnetic Spectrum",
+          "unit": "Waves",
+          "sections": [
+            "Track the oscillation and the energy separately",
+            "One spectrum, different interactions",
+            "Distinguish a particle’s vibration from wave travel",
+            "Use the electromagnetic spectrum as one family",
+            "Wave equation and Doppler effect"
+          ],
+          "words": 368
+        },
+        {
+          "title": "Reflection & Refraction",
+          "unit": "Waves",
+          "sections": [
+            "Draw the normal and incident ray",
+            "Track speed, wavelength and frequency",
+            "Find the critical angle",
+            "State both total internal reflection conditions",
+            "Explain optical fibres with the same geometry",
+            "Draw a normal at each boundary",
+            "Check both conditions for total internal reflection",
+            "Explain how a fibre guides light",
+            "Separate refraction from reflection in a single diagram"
+          ],
+          "words": 672
+        },
+        {
+          "title": "Sound",
+          "unit": "Waves",
+          "sections": [
+            "Sound as a longitudinal wave",
+            "Measure speed and read an oscilloscope"
+          ],
+          "words": 160
+        },
+        {
+          "title": "Energy Stores & Transfers",
+          "unit": "Energy Resources & Energy Transfers",
+          "sections": [
+            "Energy accounting must balance",
+            "Read an efficiency calculation as a fraction",
+            "Keep the three transfer routes separate",
+            "Make a cooling comparison fair",
+            "Thermal transfer mechanisms"
+          ],
+          "words": 301
+        },
+        {
+          "title": "Work, Power & Energy Resources",
+          "unit": "Energy Resources & Energy Transfers",
+          "sections": [
+            "Calculate the change, not an unrelated total",
+            "Evaluate resources in context",
+            "Use power to connect energy and time",
+            "Work and mechanical stores"
+          ],
+          "words": 279
+        },
+        {
+          "title": "Density & Pressure",
+          "unit": "Solids, Liquids & Gases",
+          "sections": [
+            "Density relates material amount to volume",
+            "Particles explain liquid and gas pressure",
+            "Choose the correct area or volume unit",
+            "Explain why liquid pressure increases with depth",
+            "Measure density"
+          ],
+          "words": 339
+        },
+        {
+          "title": "Changes of State",
+          "unit": "Solids, Liquids & Gases",
+          "sections": [
+            "Heating can raise temperature or change state",
+            "Choose between mcΔT and mL",
+            "Use the correct heater energy",
+            "Keep the three transfer routes separate",
+            "Make a cooling comparison fair",
+            "Explain a heating-curve plateau using particles"
+          ],
+          "words": 322
+        },
+        {
+          "title": "Ideal Gases",
+          "unit": "Solids, Liquids & Gases",
+          "sections": [
+            "Choose the correct thermal model",
+            "Keep gas conditions explicit",
+            "Explain behaviour using particles",
+            "Convert to kelvin before using temperature ratios",
+            "Explain compression at constant temperature"
+          ],
+          "words": 340
+        },
+        {
+          "title": "Magnetism & Electromagnetism",
+          "unit": "Magnetism & Electromagnetism",
+          "sections": [
+            "Fields represent force patterns",
+            "A current can produce motion",
+            "Connect a current with its magnetic field",
+            "Field patterns and motor action"
+          ],
+          "words": 286
+        },
+        {
+          "title": "Electromagnetic Induction",
+          "unit": "Magnetism & Electromagnetism",
+          "sections": [
+            "Identify what is changing",
+            "Distinguish a generator from a motor",
+            "Apply the ideal transformer rules",
+            "Explain high-voltage transmission",
+            "Follow the energy rather than assuming extra voltage creates energy"
+          ],
+          "words": 275
+        },
+        {
+          "title": "Properties of Radiation",
+          "unit": "Radioactivity & Particles",
+          "sections": [
+            "Unstable nuclei change spontaneously",
+            "Track nuclear numbers in decay",
+            "Link penetration to a suitable use",
+            "Atoms and nuclear radiation"
+          ],
+          "words": 314
+        },
+        {
+          "title": "Radioactivity, Uses & Dangers",
+          "unit": "Radioactivity & Particles",
+          "sections": [
+            "Separate activity from measured count rate",
+            "Subtract background first",
+            "Define and use half-life",
+            "Read a decay graph",
+            "Handle residual fractions and limitations",
+            "Applications involve a risk-benefit choice",
+            "Choose a source and control exposure"
+          ],
+          "words": 594
+        },
+        {
+          "title": "Fission & Fusion",
+          "unit": "Radioactivity & Particles",
+          "sections": [
+            "Nuclear fission and a chain reaction",
+            "Fusion and stellar conditions"
+          ],
+          "words": 167
+        },
+        {
+          "title": "Motion in the Universe",
+          "unit": "Astrophysics",
+          "sections": [
+            "Gravity continually changes orbital direction",
+            "Explain why an orbit still has acceleration",
+            "Find orbital speed from a complete journey",
+            "Objects, gravity and orbits"
+          ],
+          "words": 295
+        },
+        {
+          "title": "Stellar Evolution",
+          "unit": "Astrophysics",
+          "sections": [
+            "Explain a main-sequence star",
+            "Choose the correct final-stage branch",
+            "Stellar brightness and the H–R diagram"
+          ],
+          "words": 177
+        },
+        {
+          "title": "Cosmology",
+          "unit": "Astrophysics",
+          "sections": [
+            "Evidence supports a developing cosmological model",
+            "Read redshift from a spectral pattern",
+            "Connect evidence to the model",
+            "Distinguish an observation from its explanation"
+          ],
+          "words": 235
+        }
+      ]
+    },
+    {
+      "code": "J277",
+      "subject": "Computer Science",
+      "official_specification": "https://www.ocr.org.uk/Images/558027-specification-gcse-computer-science-j277.pdf",
+      "public_topic_index": "https://www.savemyexams.com/gcse/computer-science/ocr/22/revision-notes/",
+      "topic_groups": [
+        {
+          "title": "CPU Architecture, Performance & Embedded Systems",
+          "unit": "Systems Architecture",
+          "sections": [
+            "Identify each register’s role",
+            "Fetch the next instruction",
+            "Describe buses and the control unit",
+            "Trace execution and branching",
+            "Evaluate performance factors",
+            "Performance has several bottlenecks",
+            "Embedded systems have a focused job",
+            "Explain an embedded system using its purpose"
+          ],
+          "words": 659
+        },
+        {
+          "title": "Primary & Secondary Storage",
+          "unit": "Memory & Storage",
+          "sections": [
+            "Primary memory and persistent storage serve different roles",
+            "Choose storage for its context",
+            "Translate representations into storage requirements",
+            "Reason it through",
+            "Separate RAM, ROM and secondary storage",
+            "Compare storage devices for a stated use"
+          ],
+          "words": 435
+        },
+        {
+          "title": "Data Storage & Compression",
+          "unit": "Memory & Storage",
+          "sections": [
+            "Read an eight-bit value",
+            "Convert denary to binary",
+            "Add with carries",
+            "Explain overflow and shifts",
+            "Link binary with hexadecimal",
+            "Calculate bitmap data",
+            "Calculate sampled sound",
+            "Use the stated units",
+            "Choose a suitable compression method",
+            "Spot which change has the biggest size effect",
+            "Read pixels and colour codes",
+            "Calculate pixel-data size",
+            "Keep units explicit",
+            "Explain changes to resolution and depth",
+            "Compare lossy and lossless compression",
+            "Characters and hexadecimal"
+          ],
+          "words": 1260
+        },
+        {
+          "title": "Networks & Topologies",
+          "unit": "Computer Networks, Connections & Protocols",
+          "sections": [
+            "Read a star topology",
+            "Explain the switch’s role",
+            "Distinguish a router and access point",
+            "Follow a web request",
+            "Evaluate a network choice",
+            "Networks share resources and communication",
+            "Compare client–server and peer-to-peer arrangements",
+            "Explain a star topology through its connections",
+            "Network types and performance"
+          ],
+          "words": 740
+        },
+        {
+          "title": "Wired & Wireless Networks, Protocols & Layers",
+          "unit": "Computer Networks, Connections & Protocols",
+          "sections": [
+            "Separate a name from an address",
+            "Follow data through network devices",
+            "Give protocols their own jobs",
+            "Separate capacity, delay and trust",
+            "Compare a large download with a short request",
+            "Addresses and protocols support delivery",
+            "Layers reduce dependence between tasks",
+            "Addresses, standards and layers"
+          ],
+          "words": 462
+        },
+        {
+          "title": "Identifying & Preventing Threats to Computer Systems & Networks",
+          "unit": "Network Security",
+          "sections": [
+            "Identify the mechanism of the threat",
+            "Match each control to a threat",
+            "Plan for failure as well as prevention",
+            "Reason it through",
+            "Match a control to the route of attack",
+            "Explain why backups and access rights matter"
+          ],
+          "words": 416
+        },
+        {
+          "title": "Operating Systems & Utility Software",
+          "unit": "Systems Software",
+          "sections": [
+            "The operating system manages shared resources",
+            "Utilities support maintenance",
+            "Explain multitasking without claiming everything happens at once",
+            "Operating system responsibilities"
+          ],
+          "words": 262
+        },
+        {
+          "title": "Ethical, Legal, Cultural & Environmental Impact",
+          "unit": "Ethical, Legal, Cultural & Environmental Impacts",
+          "sections": [
+            "A legal action can still raise an ethical problem",
+            "Understand the purpose of relevant legislation",
+            "Consider the whole life cycle",
+            "Reason it through",
+            "Connect each named law to the issue",
+            "Build a balanced ethical argument"
+          ],
+          "words": 416
+        },
+        {
+          "title": "Computational Thinking, Searching & Sorting Algorithms",
+          "unit": "Algorithms",
+          "sections": [
+            "Explain why sorting is required",
+            "Set initial bounds and a midpoint",
+            "Update the range without repeating the midpoint",
+            "Recognise an unsuccessful termination",
+            "Compare with linear search",
+            "Keep state and comparison separate",
+            "Compare adjacent passes and insertion steps",
+            "Merge ordered parts carefully",
+            "Show why binary search needs sorted data",
+            "Distinguish comparison from a successful swap",
+            "Separate the two phases",
+            "Merge two sorted inputs",
+            "Trace duplicates without losing items",
+            "Compare sorting methods in context",
+            "Test and present a complete trace",
+            "Decomposition, abstraction and algorithmic thinking"
+          ],
+          "words": 1295
+        },
+        {
+          "title": "Designing, Creating & Refining Algorithms",
+          "unit": "Algorithms",
+          "sections": [
+            "Make a problem small enough to reason about",
+            "Reason it through",
+            "Make a trace show the order of changes",
+            "Inputs, processing and outputs",
+            "Refining a solution"
+          ],
+          "words": 364
+        },
+        {
+          "title": "Programming Fundamentals & Data Types",
+          "unit": "Programming Fundamentals",
+          "sections": [
+            "Control execution deliberately",
+            "Distinguish a returned value from displayed output",
+            "Use an accumulator and counter for different jobs",
+            "Variables, types and operators"
+          ],
+          "words": 303
+        },
+        {
+          "title": "Additional Programming Techniques",
+          "unit": "Programming Fundamentals",
+          "sections": [
+            "Use collections and files appropriately",
+            "Subprograms make interfaces explicit",
+            "Validate before converting and using",
+            "Handle empty and boundary cases",
+            "Use a clear subprogram interface",
+            "Use the array length to set safe loop bounds",
+            "Treat end-of-file as a condition, not a data value",
+            "Read rows and columns correctly",
+            "Use SELECT, FROM and WHERE",
+            "Sort the returned records",
+            "Trace a query record by record",
+            "Use contrasting records to understand AND and OR",
+            "Check both indices in a grid",
+            "Trace nested loops carefully",
+            "Distinguish text from numbers",
+            "Use cases that reveal indexing mistakes",
+            "See how a reset changes a total",
+            "Random values and reusable interfaces"
+          ],
+          "words": 1050
+        },
+        {
+          "title": "Defensive Design & Testing",
+          "unit": "Producing Robust Programs",
+          "sections": [
+            "Keep the three checks separate",
+            "Write the input rule first",
+            "Choose purposeful test data",
+            "Identify the type of error",
+            "Use a boundary to reveal a hidden mistake",
+            "Separate finding an error from explaining it",
+            "Turn a requirement into a Boolean condition",
+            "Test the behaviour after a failure"
+          ],
+          "words": 472
+        },
+        {
+          "title": "Boolean Logic Diagrams",
+          "unit": "Boolean Logic",
+          "sections": [
+            "Use the basic operations",
+            "List every input combination",
+            "Evaluate a combined expression",
+            "Translate a scenario into conditions",
+            "Compare equivalent expressions"
+          ],
+          "words": 457
+        },
+        {
+          "title": "Programming Languages & Integrated Development Environments (IDEs)",
+          "unit": "Programming Languages & IDEs",
+          "sections": [
+            "Translate source into executable operations",
+            "Distinguish a translator’s job from a program’s logic",
+            "Levels and translation",
+            "IDE facilities"
+          ],
+          "words": 282
+        },
+        {
+          "title": "The Exam Papers",
+          "unit": "Exam Technique",
+          "sections": [
+            "Prepare for both components",
+            "Use time and evidence"
+          ],
+          "words": 168
+        },
+        {
+          "title": "Structuring Your Responses",
+          "unit": "Exam Technique",
+          "sections": [
+            "Describe, explain and evaluate",
+            "Make technical working readable"
+          ],
+          "words": 164
+        }
+      ]
+    },
+    {
+      "code": "0445",
+      "subject": "Design & Technology",
+      "official_specification": "https://www.cambridgeinternational.org/Images/721302-2027-syllabus.pdf",
+      "public_topic_index": null,
+      "topic_groups": [
+        {
+          "title": "Research, user needs and specifications",
+          "unit": "Common · Design process",
+          "sections": [
+            "Start with an evidenced need",
+            "Turn findings into testable requirements",
+            "Generate and evaluate alternatives",
+            "Reason it through",
+            "Choose research that answers a design question",
+            "Turn a finding into a justified requirement"
+          ],
+          "words": 430
+        },
+        {
+          "title": "Ergonomics, prototypes and product testing",
+          "unit": "Common · Design process",
+          "sections": [
+            "Test a defined user task",
+            "Build a prototype to answer a question",
+            "Turn results into development",
+            "Use reach and clearance in different ways",
+            "Test the task, not only a user’s first opinion"
+          ],
+          "words": 333
+        },
+        {
+          "title": "Product analysis, lifecycle decisions and evidence-led evaluation",
+          "unit": "Common · Design process",
+          "sections": [
+            "Start with a real user task",
+            "Make requirements testable",
+            "Consider the whole lifecycle",
+            "Use test results to make a specific change",
+            "Make an evaluation more useful than “it worked well”"
+          ],
+          "words": 260
+        },
+        {
+          "title": "Drawing, modelling, CAD and CAM",
+          "unit": "Common · Communication",
+          "sections": [
+            "Communicate enough for someone else to understand",
+            "Models should answer a design question",
+            "Digital tools change the workflow",
+            "Reason it through",
+            "Use each drawing to communicate a particular job",
+            "Explain what a model actually proves"
+          ],
+          "words": 409
+        },
+        {
+          "title": "Orthographic views: first-angle layout and consistent detail",
+          "unit": "Common · Communication",
+          "sections": [
+            "Separate orthographic from pictorial views",
+            "Use the stated projection convention",
+            "Align shared dimensions",
+            "Use line types and dimensions purposefully",
+            "Check whether another person could make it"
+          ],
+          "words": 448
+        },
+        {
+          "title": "Life cycles, production and responsible design",
+          "unit": "Common · Society and sustainability",
+          "sections": [
+            "Look beyond the finished object",
+            "Choose a production scale that fits demand",
+            "Sustainability includes practical trade-offs",
+            "Reason it through",
+            "Match production scale to quantity",
+            "Compare products over an equal service period"
+          ],
+          "words": 418
+        },
+        {
+          "title": "Structures, mechanisms and safe control",
+          "unit": "Common · Practical design",
+          "sections": [
+            "Forces affect shape and stability",
+            "Mechanisms transform movement",
+            "Control needs inputs, processing and outputs",
+            "Reason it through",
+            "Explain bracing through the shape",
+            "Trace input, process and output"
+          ],
+          "words": 423
+        },
+        {
+          "title": "Gear ratios: speed, torque and direction",
+          "unit": "Common · Practical design",
+          "sections": [
+            "Name the driver and driven gear",
+            "Calculate the output speed",
+            "Explain the torque trade-off",
+            "Add an idler or compound stage",
+            "Choose a mechanism for a product"
+          ],
+          "words": 442
+        },
+        {
+          "title": "Project portfolio, manufacture and evaluation",
+          "unit": "Project · Design and make",
+          "sections": [
+            "The project records a developing argument",
+            "Plan manufacturing before irreversible steps",
+            "Evaluate against the original requirements",
+            "Reason it through",
+            "Make development show a reasoned change",
+            "Plan manufacture in a workable order"
+          ],
+          "words": 418
+        },
+        {
+          "title": "Timbers and manufactured boards",
+          "unit": "Resistant Materials · Selection",
+          "sections": [
+            "Material families are starting points, not quality grades",
+            "Boards offer different compromises",
+            "Match property, process and product",
+            "Reason it through",
+            "Allow for natural grain and movement",
+            "Match a board’s core and surface to the task"
+          ],
+          "words": 411
+        },
+        {
+          "title": "Timber grain, movement and plywood construction",
+          "unit": "Resistant Materials · Selection",
+          "sections": [
+            "Explain grain rather than just naming it",
+            "Relate moisture to dimensional movement",
+            "Understand plywood layers",
+            "Compare MDF and particleboard",
+            "Justify a product-specific choice"
+          ],
+          "words": 452
+        },
+        {
+          "title": "Metals, polymers and material properties",
+          "unit": "Resistant Materials · Selection",
+          "sections": [
+            "Properties should be linked to the failure you want to avoid",
+            "Metals and alloys provide specialised combinations",
+            "Polymers respond differently to heat",
+            "Reason it through",
+            "Keep strength, hardness and toughness separate",
+            "Use polymer type to explain heating behaviour"
+          ],
+          "words": 418
+        },
+        {
+          "title": "Choosing materials with evidence",
+          "unit": "Resistant Materials · Selection",
+          "sections": [
+            "Start with the failure mode",
+            "Compare realistic candidates",
+            "Use evidence to justify the trade-off",
+            "Turn a property into a useful comparison",
+            "Explain why the final choice is a compromise"
+          ],
+          "words": 337
+        },
+        {
+          "title": "Timber conversion, seasoning and choosing a manufactured board",
+          "unit": "Resistant Materials · Selection",
+          "sections": [
+            "Link timber properties to the product",
+            "Explain seasoning as moisture control",
+            "Compare boards by their construction",
+            "Design around the stock you will actually use",
+            "Explain why a large panel may need room to move"
+          ],
+          "words": 254
+        },
+        {
+          "title": "Alloys, heat treatment and protecting a metal product",
+          "unit": "Resistant Materials · Selection",
+          "sections": [
+            "Compare the properties the product needs",
+            "Match heat treatment to the material",
+            "Distinguish barrier and sacrificial protection",
+            "Plan protection through manufacture and use",
+            "Explain why hardness is not the only useful property"
+          ],
+          "words": 259
+        },
+        {
+          "title": "Measuring, marking, cutting and shaping",
+          "unit": "Resistant Materials · Manufacture",
+          "sections": [
+            "Accuracy begins with a datum",
+            "Select a process for the material and shape",
+            "Make quality control part of the sequence",
+            "Reason it through",
+            "Measure from a common datum",
+            "Allow for material removed by the process"
+          ],
+          "words": 411
+        },
+        {
+          "title": "Joints, adhesives, fasteners and assembly",
+          "unit": "Resistant Materials · Manufacture",
+          "sections": [
+            "A joint must suit its forces and construction",
+            "Permanent and removable connections differ",
+            "Assembly order can determine whether a design is possible",
+            "Reason it through",
+            "Follow the load through the joint",
+            "Plan access and assembly order"
+          ],
+          "words": 416
+        },
+        {
+          "title": "Mortise-and-tenon joints: loads, fit and shoulders",
+          "unit": "Resistant Materials · Manufacture",
+          "sections": [
+            "Identify the parts in an exploded view",
+            "Follow the load through the joint",
+            "Explain fit and adhesive selection",
+            "Plan accuracy and quality checks",
+            "Compare alternatives in the product context"
+          ],
+          "words": 460
+        },
+        {
+          "title": "Forming, casting, heat treatment and finishes",
+          "unit": "Resistant Materials · Manufacture",
+          "sections": [
+            "Shape can be added, removed or transformed",
+            "Treatment changes the working behaviour",
+            "A finish protects as well as communicates quality",
+            "Reason it through",
+            "Explain why a casting pattern needs careful geometry",
+            "Treat a finish as a functional layer"
+          ],
+          "words": 410
+        },
+        {
+          "title": "Vacuum forming: pressure, draft and component shape",
+          "unit": "Resistant Materials · Manufacture",
+          "sections": [
+            "Describe the forming sequence",
+            "Explain draft and undercuts",
+            "Consider draw depth and thickness",
+            "Plan venting and surface quality",
+            "Evaluate suitability and waste"
+          ],
+          "words": 461
+        },
+        {
+          "title": "Designing reliable joints, fixings and adhesive bonds",
+          "unit": "Resistant Materials · Manufacture",
+          "sections": [
+            "Start with the force and service needs",
+            "Make geometry and preparation support the adhesive",
+            "Choose holes and fixings for their jobs",
+            "Test a representative sample",
+            "Compare a removable joint with a permanent bond"
+          ],
+          "words": 265
+        },
+        {
+          "title": "Thermoforming, injection moulding and designing for release",
+          "unit": "Resistant Materials · Manufacture",
+          "sections": [
+            "Choose a suitable polymer type",
+            "Follow vacuum forming",
+            "Explain injection moulding for repeated parts",
+            "Use a prototype to test a manufacturing question",
+            "See why an undercut changes the tooling problem"
+          ],
+          "words": 255
+        },
+        {
+          "title": "Injection moulding: cycle, tooling and repeatability",
+          "unit": "Resistant Materials · Manufacture",
+          "sections": [
+            "Follow the material through the machine",
+            "Explain why tooling matters",
+            "Design for release and consistent walls",
+            "Identify defects and quality checks",
+            "Compare with other polymer processes"
+          ],
+          "words": 447
+        },
+        {
+          "title": "Tolerances, jigs, quality control and repeatable batches",
+          "unit": "Resistant Materials · Manufacture",
+          "sections": [
+            "Turn a tolerance into limits",
+            "Give templates, jigs and fixtures their roles",
+            "Check at useful stages",
+            "Start with a trial part",
+            "Distinguish a fixed offset from random variation"
+          ],
+          "words": 259
+        },
+        {
+          "title": "Tolerances and clearance: worst-case dimensions",
+          "unit": "Resistant Materials · Manufacture",
+          "sections": [
+            "Separate nominal size from limits",
+            "Find minimum and maximum clearance",
+            "Explain datum choice and accumulated error",
+            "Match inspection to the required accuracy",
+            "Use jigs and evaluate repeatability"
+          ],
+          "words": 460
+        },
+        {
+          "title": "Structures, motion and electronic control",
+          "unit": "Systems & Control · Option",
+          "sections": [
+            "Choose the option deliberately",
+            "Mechanisms trade speed, direction and force",
+            "Electronic systems connect sensing to response",
+            "Reason it through",
+            "Use gear teeth to calculate a speed change",
+            "Explain feedback as a comparison"
+          ],
+          "words": 406
+        },
+        {
+          "title": "Projection, developments and graphic manufacture",
+          "unit": "Graphic Products · Option",
+          "sections": [
+            "Draw the information the reader needs",
+            "Flat developments need working allowances",
+            "Presentation and manufacture use material constraints",
+            "Reason it through",
+            "Keep orthographic views aligned",
+            "Test a development as a folded object"
+          ],
+          "words": 396
+        }
+      ]
+    }
+  ]
+}

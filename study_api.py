@@ -143,7 +143,8 @@ def register_study_routes(app, require_auth, current_username, student_record, s
         if not course:return jsonify(error='Course not found.'),404
         option=request.args.get('option','Resistant Materials')
         if course['options'] and option not in course['options']:return jsonify(error='Unknown specialist option.'),400
-        topics=[t for t in data['topics'] if t['course_id']==course_id and (course_id!='0445' or t['track'] in ('Common',option))]
+        library=set(data.get('note_library_ids',[t['id'] for t in data['topics']]))
+        topics=[t for t in data['topics'] if t['id'] in library and t['course_id']==course_id and (course_id!='0445' or t['track'] in ('Common',option))]
         return send_file(BytesIO(make_pdf(course,topics,True)),mimetype='application/pdf',as_attachment=True,download_name=course_id+'-revision-notes.pdf',max_age=0)
 
     @app.post('/api/study/mark')

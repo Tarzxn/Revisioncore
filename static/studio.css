@@ -93,3 +93,11 @@ body{font-size:14px;background:radial-gradient(ellipse at 45% 0,#fff 0,#eff3f6 7
 
 .focused-lessons{padding:20px;border:1px solid var(--line);border-radius:18px;background:var(--surface);margin:24px 0}.focused-lessons>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.focused-lesson{padding:15px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);text-align:left}.focused-lesson:hover{border-color:#7faaf0}.focused-lesson strong{display:block;font-size:12px;line-height:1.6}.focused-lesson small{display:block;font-size:10px;color:var(--muted);margin-top:7px}@media(max-width:650px){.focused-lessons>div{grid-template-columns:1fr}}
 .modal-card:has(.diagram-modal){width:min(980px,calc(100vw - 40px))}
+
+/* Section index beneath each curriculum topic. */
+.topic-section-list {margin:0 10px 12px 18px;border-left:1px solid var(--line,#dbe3eb);padding-left:12px}
+.topic-section-list summary {cursor:pointer;font-size:11px;color:var(--muted,#718297);padding:5px 0}
+.topic-section-list button {display:block;text-align:left;font:inherit;font-size:11px;line-height:1.5;color:var(--muted,#718297);background:none;border:0;padding:6px 3px;width:100%;cursor:pointer}
+.topic-section-list button:hover,.topic-section-list button:focus-visible {color:#357cff}
+.lesson-diagram svg path {stroke-linecap:round;stroke-linejoin:round}
+.reading-section {scroll-margin-top:25px}

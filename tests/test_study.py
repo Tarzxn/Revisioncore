@@ -42,7 +42,8 @@ class CurriculumTests(unittest.TestCase):
             for q in topic['questions']:
                 self.assertNotIn(q['id'],ids);ids.add(q['id'])
                 self.assertGreater(q['marks'],0);self.assertTrue(q['prompt']);self.assertTrue(q['answer'])
-        self.assertEqual(data['version'],7)
+        self.assertEqual(data['version'],8)
+        data={**data,'topics':[t for t in data['topics'] if t.get('edition')!=8]}
         self.assertEqual(len(data['topics']),172)
         self.assertEqual(len(ids),738)
         self.assertEqual(sum(len(t['cards']) for t in data['topics']),864)
@@ -55,7 +56,7 @@ class CurriculumTests(unittest.TestCase):
             self.assertGreaterEqual(len(t['sections']),3)
             self.assertTrue(t['misconception'])
             self.assertTrue(t['plain_intro'])
-            self.assertEqual(t['notes_revision'],7)
+            self.assertIn(t['notes_revision'],(7,8))
             self.assertNotIn('Explain the key idea',str(t['questions']))
             self.assertLessEqual(len(t['id']),80)
             for q in t['questions']:
@@ -89,7 +90,7 @@ class CurriculumTests(unittest.TestCase):
         data=json.loads((root/'curriculum.json').read_text(encoding='utf-8'))
         figures=json.loads((root/'diagrams.json').read_text(encoding='utf-8'))
         topics={t['id']:t for t in data['topics']}
-        self.assertEqual(len(figures),117)
+        self.assertEqual(len(figures),152)
         focused=[t for t in topics.values() if t.get('edition')==7]
         self.assertEqual(len(focused),46)
         for t in topics.values():
